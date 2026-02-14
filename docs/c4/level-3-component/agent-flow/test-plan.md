@@ -4,6 +4,7 @@ This document maps requirements to automated tests.
 
 ## Unit Tests
 - Workflow persistence and resume: serialize/deserialize DAG state and resume execution.
+- Workflow early termination: when a worker signals `metrics.terminate_workflow`, remaining steps are marked skipped and are not executed.
 - Planner workflow generation: Planner output is converted into a multi-step workflow when provided.
 - Retry novelty gating: refuse identical retry without a Lesson and changed strategy.
 - Failure signature de-dup: detect repeated failures via hash (task_id, call_signature, failure_signature).

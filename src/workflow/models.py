@@ -67,4 +67,5 @@ class WorkflowState:
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def is_complete(self) -> bool:
-        return all(state.status in {StepStatus.SUCCEEDED, StepStatus.PARTIAL} for state in self.steps.values())
+        terminal = {StepStatus.SUCCEEDED, StepStatus.PARTIAL, StepStatus.SKIPPED}
+        return all(state.status in terminal for state in self.steps.values())

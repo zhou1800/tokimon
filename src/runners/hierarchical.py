@@ -75,6 +75,13 @@ class HierarchicalRunner:
                     for step_id in ready
                 ]
                 await executor.run(tasks)
+                termination = engine.state.metadata.pop("terminate_workflow", None)
+                if isinstance(termination, dict):
+                    reason = str(termination.get("reason") or "terminated early").strip()
+                    triggered_by = str(termination.get("step_id") or "<unknown>")
+                    engine.skip_remaining(reason=reason or "terminated early", triggered_by=triggered_by)
+                    engine.save(run_context.workflow_state_path)
+                    break
                 engine.save(run_context.workflow_state_path)
 
         asyncio.run(run_loop())
@@ -113,6 +120,13 @@ class HierarchicalRunner:
                     for step_id in ready
                 ]
                 await executor.run(tasks)
+                termination = engine.state.metadata.pop("terminate_workflow", None)
+                if isinstance(termination, dict):
+                    reason = str(termination.get("reason") or "terminated early").strip()
+                    triggered_by = str(termination.get("step_id") or "<unknown>")
+                    engine.skip_remaining(reason=reason or "terminated early", triggered_by=triggered_by)
+                    engine.save(run_context.workflow_state_path)
+                    break
                 engine.save(run_context.workflow_state_path)
 
         asyncio.run(run_loop())
@@ -216,10 +230,31 @@ class HierarchicalRunner:
         )
         engine.record_attempt(step_id, attempt)
 
+        terminate_workflow = False
+        terminate_reason = ""
+        if isinstance(output.metrics, dict):
+            terminate_workflow = output.metrics.get("terminate_workflow") is True
+            if not terminate_workflow:
+                control = output.metrics.get("workflow_control")
+                if isinstance(control, dict):
+                    terminate_workflow = control.get("terminate_workflow") is True
+                    terminate_reason = str(control.get("reason") or control.get("terminate_reason") or "")
+            terminate_reason = str(output.metrics.get("terminate_reason") or terminate_reason or "")
+
+        tests_green = True
+        if isinstance(pytest_metrics, dict):
+            returncode = pytest_metrics.get("returncode")
+            if isinstance(returncode, int):
+                tests_green = returncode == 0
+
         if output.status == WorkerStatus.SUCCESS:
             manager.record_progress(task_id, call_signature, output.failure_signature, progress)
             manager.delegation_graph.record_artifacts(call_signature, progress.artifact_delta_hash or "")
             engine.mark_status(step_id, StepStatus.SUCCEEDED)
+            if terminate_workflow and tests_green and "terminate_workflow" not in engine.state.metadata:
+                reason = terminate_reason.strip() or output.summary or "terminated early"
+                engine.state.metadata["terminate_workflow"] = {"step_id": step_id, "reason": reason}
+                log_to_file(worker_log, f"Requested workflow termination: {reason}")
             trace.log("step_succeeded", {"step_id": step_id})
             return
 

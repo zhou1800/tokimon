@@ -25,6 +25,7 @@ def build_system_prompt(role: str) -> str:
         "- Prefer small, verifiable steps.",
         "- Use tools to read/search before editing files.",
         "- When the goal is underspecified, state assumptions and proceed; ask targeted questions only if strictly necessary.",
+        "- If you determine the overall goal is satisfied early, set `metrics.terminate_workflow=true` (and optional `metrics.terminate_reason`) to skip remaining steps.",
         "",
     ]
 
@@ -52,4 +53,3 @@ def build_system_prompt(role: str) -> str:
         )
 
     return "\n".join(lines).strip()
-

@@ -117,6 +117,7 @@ Note: The workspace is where Agent-Flow writes runs, memory, and artifacts. By d
 - READY: validated and dependencies satisfied.
 - RUNNING: assigned to a worker.
 - SUCCEEDED: outputs validated and persisted.
+- SKIPPED: step was not needed (e.g., workflow terminated early after the goal was satisfied).
 - FAILED: worker failed; may be eligible for retry if novelty and progress rules pass.
 - BLOCKED: missing inputs or external preconditions.
 - PARTIAL: produced artifacts but not full success.
@@ -126,6 +127,7 @@ Transitions:
 - NEW -> READY after schema validation.
 - READY -> RUNNING when scheduled.
 - RUNNING -> SUCCEEDED | FAILED | BLOCKED | PARTIAL.
+- READY|NEW -> SKIPPED when workflow terminates early.
 - FAILED/PARTIAL -> RETRY_PENDING if novelty/progress gating passes.
 - RETRY_PENDING -> RUNNING with new call_signature.
 

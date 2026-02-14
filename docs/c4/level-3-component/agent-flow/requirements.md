@@ -39,6 +39,7 @@ Agent-Flow is a production-grade manager/worker (hierarchical) agent system that
 ### Workflow Orchestration
 - Workflow engine supports DAG steps, typed input/output schemas, and persistent state with resume.
 - Parallel execution of independent steps.
+- Workflow engine supports early termination when a worker signals the overall goal is satisfied, marking remaining steps as skipped to avoid redundant work.
 - Artifact store for per-step outputs.
 - DSL: JSON or YAML for workflows; Python API for programmatic construction.
 
@@ -71,6 +72,9 @@ Agent-Flow is a production-grade manager/worker (hierarchical) agent system that
 - A response is considered **final** when it includes `status` (SUCCESS|FAILURE|BLOCKED|PARTIAL).
 - Tool results are fed back into the worker loop as structured records; workers report:
   - `metrics.model_calls`, `metrics.tool_calls`, `metrics.elapsed_ms`, and `metrics.iteration_count`
+- Workers may request early workflow termination by setting:
+  - `metrics.terminate_workflow: true` (and optional `metrics.terminate_reason`)
+  - The runner marks remaining steps as `SKIPPED` and completes the workflow when safe to do so.
 
 #### Planner Output Contract (Goal → Workflow)
 - The Planner may return a multi-step workflow in either of these shapes:

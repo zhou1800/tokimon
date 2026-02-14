@@ -48,10 +48,17 @@ class WorkflowEngine:
 
     def _refresh_ready(self) -> None:
         for step_id, state in self.state.steps.items():
-            if state.status in {StepStatus.SUCCEEDED, StepStatus.RUNNING, StepStatus.FAILED, StepStatus.PARTIAL, StepStatus.BLOCKED}:
+            if state.status in {
+                StepStatus.SUCCEEDED,
+                StepStatus.SKIPPED,
+                StepStatus.RUNNING,
+                StepStatus.FAILED,
+                StepStatus.PARTIAL,
+                StepStatus.BLOCKED,
+            }:
                 continue
             deps = self._step_map[step_id].depends_on
-            if all(self.state.steps[dep].status in {StepStatus.SUCCEEDED, StepStatus.PARTIAL} for dep in deps):
+            if all(self.state.steps[dep].status in {StepStatus.SUCCEEDED, StepStatus.PARTIAL, StepStatus.SKIPPED} for dep in deps):
                 state.status = StepStatus.READY
             else:
                 state.status = StepStatus.NEW
@@ -76,6 +83,31 @@ class WorkflowEngine:
         state = self.state.steps[step_id]
         state.status = status
         state.error = error
+
+    def skip_remaining(self, *, reason: str, triggered_by: str) -> list[str]:
+        """Mark all non-terminal steps as SKIPPED.
+
+        Intended for early-termination flows when the goal is already satisfied.
+        Returns the list of step ids that were skipped.
+        """
+
+        skipped: list[str] = []
+        for step_id, state in self.state.steps.items():
+            if state.status in {StepStatus.SUCCEEDED, StepStatus.PARTIAL, StepStatus.SKIPPED}:
+                continue
+            if state.status in {StepStatus.FAILED, StepStatus.BLOCKED, StepStatus.RUNNING}:
+                continue
+            state.status = StepStatus.SKIPPED
+            if not state.outputs:
+                state.outputs = {"summary": f"skipped: {reason}"}
+            skipped.append(step_id)
+
+        termination = self.state.metadata.get("termination")
+        if not isinstance(termination, dict):
+            termination = {}
+        termination.update({"triggered_by": triggered_by, "reason": reason, "skipped_steps": skipped})
+        self.state.metadata["termination"] = termination
+        return skipped
 
     def set_inputs(self, step_id: str, inputs: dict[str, Any]) -> None:
         step_spec = self._step_map[step_id]
