@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 from pathlib import Path
 
 from benchmarks.harness import EvaluationHarness
-from llm.client import MockLLMClient
+from llm.client import MockLLMClient, build_llm_client
 from memory.store import MemoryStore
 from runners.baseline import BaselineRunner
 from runners.hierarchical import HierarchicalRunner
@@ -50,6 +51,12 @@ def build_parser() -> argparse.ArgumentParser:
     self_improve.add_argument("--batches", type=int, default=1)
     self_improve.add_argument("--workers", type=int, default=4)
     self_improve.add_argument("--no-merge", action="store_true")
+    self_improve.add_argument(
+        "--llm",
+        choices=["mock", "codex"],
+        default=os.environ.get("AGENT_FLOW_LLM", "mock"),
+        help="LLM provider to use for self-improve sessions (or set AGENT_FLOW_LLM).",
+    )
 
     return parser
 
@@ -136,7 +143,12 @@ def main(argv: list[str] | None = None) -> int:
             max_workers=args.workers,
             merge_on_success=not args.no_merge,
         )
-        orchestrator = SelfImproveOrchestrator(master_root, settings=settings)
+        llm_provider = str(args.llm or "mock")
+
+        def llm_factory(_session_id: str, workspace_dir: Path):
+            return build_llm_client(llm_provider, workspace_dir=workspace_dir)
+
+        orchestrator = SelfImproveOrchestrator(master_root, llm_factory=llm_factory, settings=settings)
         report = orchestrator.run(args.goal, input_ref=args.input)
         print(json.dumps({"run_root": report.run_root}, indent=2))
         return 0

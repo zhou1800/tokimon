@@ -40,7 +40,7 @@ This section consolidates the system architecture plan for Agent-Flow.
 - Memory Store: persistent Lessons and artifact index, staged retrieval, lexical index.
 - Skill Registry: loads built-in and generated skills; supports hot reload.
 - Skill Builder Pipeline: creates skill modules and manifest entries, runs tests, and registers on success.
-- Model Integration: LLMClient abstraction with stub, mock, and real adapter placeholder.
+- Model Integration: LLMClient abstraction with stub, mock, and optional Codex CLI-backed adapter.
 - Benchmark Harness: supports benchmark evaluation by running tasks when invoked, collects metrics, and produces reports.
 - Logging & Trace: structured logging, per-worker logs, consolidated trace.jsonl.
 - Self-Improve Orchestrator: runs parallel “sessions” in isolated workspaces, evaluates each session, and merges the best result back to the master workspace with a report.

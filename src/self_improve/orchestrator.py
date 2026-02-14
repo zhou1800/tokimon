@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import concurrent.futures
+import inspect
 import json
 import time
 from dataclasses import dataclass, field
@@ -49,6 +50,9 @@ class SelfImproveSessionResult:
     session_id: str
     workspace_root: str
     run_root: str | None
+    workflow_ok: bool | None
+    workflow_status: str | None
+    workflow_error: str | None
     evaluation: EvaluationResult
     score: tuple[int, int, int]
     model_calls: int
@@ -80,12 +84,12 @@ class SelfImproveOrchestrator:
     def __init__(
         self,
         master_root: Path,
-        llm_factory: Callable[[str], LLMClient] | None = None,
+        llm_factory: Callable[..., LLMClient] | None = None,
         settings: SelfImproveSettings | None = None,
     ) -> None:
         self.master_root = master_root.resolve()
         self.settings = settings or SelfImproveSettings()
-        self.llm_factory = llm_factory or (lambda _sid: MockLLMClient(script=[]))
+        self.llm_factory = _wrap_llm_factory(llm_factory) if llm_factory else (lambda _sid, _ws: MockLLMClient(script=[]))
 
     def run(self, goal: str, input_ref: str | None = None) -> SelfImproveReport:
         input_payload = read_optional_input(input_ref)
@@ -141,17 +145,23 @@ class SelfImproveOrchestrator:
         session_dir.mkdir(parents=True, exist_ok=True)
         clone_master(self.master_root, workspace_dir, include_paths=self.settings.include_paths)
 
-        llm_client = self.llm_factory(session_id)
+        llm_client = self.llm_factory(session_id, workspace_dir)
         session_goal = _session_goal(goal, session_id, input_payload)
         runner = HierarchicalRunner(workspace_dir, llm_client, base_dir=workspace_dir / "runs")
 
         run_root = None
         error = None
+        workflow_ok: bool | None = None
+        workflow_status: str | None = None
+        workflow_error: str | None = None
         model_calls = 0
         tool_calls = 0
         try:
             result = runner.run(session_goal, task_steps=None, task_id=f"self-improve-{session_id}", test_args=None, concurrency=2)
             run_root = str(result.run_context.root)
+            workflow_ok, workflow_status, workflow_error = _summarize_workflow_state(result.workflow_state_path)
+            if workflow_ok is False and error is None:
+                error = workflow_error or "workflow failed"
             model_calls = result.model_calls
             tool_calls = result.tool_calls
         except Exception as exc:
@@ -166,6 +176,9 @@ class SelfImproveOrchestrator:
             "goal": session_goal,
             "input": {"kind": input_payload.kind, "ref": input_payload.ref},
             "run_root": run_root,
+            "workflow_ok": workflow_ok,
+            "workflow_status": workflow_status,
+            "workflow_error": workflow_error,
             "evaluation": evaluation.__dict__,
             "model_calls": model_calls,
             "tool_calls": tool_calls,
@@ -177,6 +190,9 @@ class SelfImproveOrchestrator:
             session_id=session_id,
             workspace_root=str(workspace_dir),
             run_root=run_root,
+            workflow_ok=workflow_ok,
+            workflow_status=workflow_status,
+            workflow_error=workflow_error,
             evaluation=evaluation,
             score=score,
             model_calls=model_calls,
@@ -261,6 +277,21 @@ def _session_goal(goal: str, session_id: str, input_payload: InputPayload) -> st
     return "\n".join(parts).strip() + "\n"
 
 
+def _wrap_llm_factory(factory: Callable[..., LLMClient]) -> Callable[[str, Path], LLMClient]:
+    """Normalize llm_factory to accept (session_id, workspace_dir).
+
+    Backward compatible with older factories that only accept (session_id).
+    """
+
+    try:
+        params = list(inspect.signature(factory).parameters.values())
+    except (TypeError, ValueError):  # pragma: no cover
+        params = []
+    if len(params) <= 1:
+        return lambda session_id, _ws: factory(session_id)
+    return lambda session_id, workspace_dir: factory(session_id, workspace_dir)
+
+
 def _strategy_hint(session_id: str) -> str:
     options = [
         "Minimize diff; prefer small safe changes.",
@@ -300,6 +331,9 @@ def _report_to_dict(report: SelfImproveReport) -> dict[str, Any]:
                         "session_id": session.session_id,
                         "workspace_root": session.workspace_root,
                         "run_root": session.run_root,
+                        "workflow_ok": session.workflow_ok,
+                        "workflow_status": session.workflow_status,
+                        "workflow_error": session.workflow_error,
                         "evaluation": session.evaluation.__dict__,
                         "model_calls": session.model_calls,
                         "tool_calls": session.tool_calls,
@@ -335,12 +369,61 @@ def _report_to_markdown(report: SelfImproveReport) -> str:
                 f"Master eval: ok={batch.master_evaluation.ok} passed={batch.master_evaluation.passed} failed={batch.master_evaluation.failed}"
             )
         lines.append("")
-        lines.append("| Session | OK | Passed | Failed | Model | Tool | Changed Files | Workspace | Run |")
-        lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- |")
+        lines.append("| Session | OK | Passed | Failed | Workflow | Model | Tool | Changed Files | Workspace | Run |")
+        lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
         for session in batch.sessions:
             lines.append(
                 f"| {session.session_id} | {session.evaluation.ok} | {session.evaluation.passed} | {session.evaluation.failed} | "
-                f"{session.model_calls} | {session.tool_calls} | {len(session.changed_files)} | {session.workspace_root} | {session.run_root or ''} |"
+                f"{session.workflow_status or ''} | {session.model_calls} | {session.tool_calls} | {len(session.changed_files)} | {session.workspace_root} | {session.run_root or ''} |"
             )
         lines.append("")
     return "\n".join(lines)
+
+
+def _summarize_workflow_state(workflow_state_path: Path) -> tuple[bool | None, str | None, str | None]:
+    if not workflow_state_path.exists():
+        return None, None, "workflow_state.json missing"
+    try:
+        data = json.loads(workflow_state_path.read_text(encoding="utf-8"))
+    except Exception as exc:  # pragma: no cover
+        return None, None, f"invalid workflow_state.json: {exc}"
+
+    steps = data.get("state", {}).get("steps", {})
+    if not isinstance(steps, dict) or not steps:
+        return None, None, "workflow has no steps"
+
+    statuses: list[str] = []
+    failures: list[str] = []
+    for step_id, step in steps.items():
+        if not isinstance(step, dict):
+            continue
+        status = str(step.get("status") or "")
+        statuses.append(status)
+        if status != "SUCCEEDED":
+            outputs = step.get("outputs") if isinstance(step.get("outputs"), dict) else {}
+            summary = outputs.get("summary") if isinstance(outputs, dict) else None
+            error = step.get("error")
+            detail = f"{step_id}:{status or 'UNKNOWN'}"
+            if summary:
+                detail = f"{detail} summary={summary}"
+            if error:
+                detail = f"{detail} error={error}"
+            failures.append(detail)
+
+    workflow_status = _overall_workflow_status(statuses)
+    ok = workflow_status == "SUCCEEDED" and not failures
+    if ok:
+        return True, workflow_status, None
+    return False, workflow_status, f"{workflow_status}: " + "; ".join(failures)
+
+
+def _overall_workflow_status(statuses: list[str]) -> str:
+    if any(status == "FAILED" for status in statuses):
+        return "FAILED"
+    if any(status == "BLOCKED" for status in statuses):
+        return "BLOCKED"
+    if any(status == "PARTIAL" for status in statuses):
+        return "PARTIAL"
+    if statuses and all(status == "SUCCEEDED" for status in statuses):
+        return "SUCCEEDED"
+    return "UNKNOWN"

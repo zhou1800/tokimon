@@ -44,9 +44,12 @@ source .venv/bin/activate && agent-flow list-skills
 Self-improve (experimental; uses the current working directory as the "master" workspace):
 ```bash
 source .venv/bin/activate && agent-flow self-improve --goal "Improve agent-flow based on docs and failing tests."
+
+# Use a real model via Codex CLI (requires `codex` on PATH, or set CODEX_CLI=/path/to/codex):
+source .venv/bin/activate && agent-flow self-improve --llm codex --goal "Improve agent-flow based on docs and failing tests."
 ```
 
-Note: the CLI currently uses `MockLLMClient` (no real model calls). To plug in a real model, implement an `LLMClient` and wire it into `src/cli.py`.
+Note: by default, self-improve uses `MockLLMClient` (no real model calls). To use Codex CLI as the LLM, pass `--llm codex` (or set `AGENT_FLOW_LLM=codex`).
 
 ## Development
 Run tests:

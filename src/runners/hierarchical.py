@@ -165,7 +165,18 @@ class HierarchicalRunner:
         worker = Worker(worker_type, self.llm_client, tools)
         output = worker.run(engine.spec.goal, step_id, step_state.inputs, memory)
         log_to_file(worker_log, f"Output status {output.status} summary {output.summary}")
-        engine.mark_outputs(step_id, {"summary": output.summary, "artifact_count": len(output.artifacts)})
+        if output.failure_signature:
+            log_to_file(worker_log, f"Failure signature: {output.failure_signature}")
+        details = output.metrics.get("details")
+        if isinstance(details, str) and details.strip():
+            log_to_file(worker_log, f"Details: {details.strip()}")
+
+        outputs_payload: dict[str, Any] = {"summary": output.summary, "artifact_count": len(output.artifacts)}
+        if output.failure_signature:
+            outputs_payload["failure_signature"] = output.failure_signature
+        if isinstance(details, str) and details.strip():
+            outputs_payload["details"] = details.strip()
+        engine.mark_outputs(step_id, outputs_payload)
 
         pytest_metrics = await self._run_tests(test_args, tools.get("pytest")) if test_args else None
         artifact_hash = artifact_store.write_step(task_id, step_id, output.artifacts, outputs=step_state.outputs)

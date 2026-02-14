@@ -11,4 +11,5 @@ Production-grade manager/worker agent system with workflow orchestration, novelt
 - Setup: `python -m venv .venv && source .venv/bin/activate && pip install -e src[dev]`
 - Run a benchmark suite: `source .venv/bin/activate && agent-flow run-suite`
 - Run a single task: `source .venv/bin/activate && agent-flow run-task --task-id stats-summary`
+- Self-improve (real LLM via Codex CLI): `source .venv/bin/activate && agent-flow self-improve --llm codex --goal "Improve agent-flow based on docs and failing tests."`
 - Run tests: `source .venv/bin/activate && pytest --maxfail=1 -c src/pyproject.toml src/tests`

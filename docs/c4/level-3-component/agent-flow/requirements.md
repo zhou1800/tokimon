@@ -87,6 +87,7 @@ Agent-Flow is a production-grade manager/worker (hierarchical) agent system that
 ### Model Integration
 - Abstract `LLMClient.send(messages, tools=None, response_schema=None)`.
 - Provide stub adapter, deterministic mock adapter, and a documented placeholder for a real adapter.
+- Optional real adapter: Codex CLI-backed client that shells out to `codex exec` and returns structured JSON (controlled via `AGENT_FLOW_LLM=codex` or CLI flags).
 - No hard dependency on a vendor SDK.
 
 ### Benchmarks & Harness
