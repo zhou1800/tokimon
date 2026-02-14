@@ -23,7 +23,7 @@ flowchart TB
 - Core Library: orchestration, manager/worker logic, retry gating, skill lifecycle.
 - Workflow Engine: DAG execution, persistence, resume.
 - Memory Store: Lessons, artifact index, staged retrieval, lexical index.
-- Tooling Layer: FileTool, PatchTool, PytestTool, GrepTool (test runner is pluggable).
+- Tooling Layer: FileTool, PatchTool, PytestTool, GrepTool, WebTool (test runner is pluggable).
 - Benchmark Harness: supports benchmark evaluation when invoked by operators, uses self-contained tasks.
 - Trace/Logs: structured logs and trace.jsonl.
 
@@ -36,7 +36,7 @@ This section consolidates the system architecture plan for Agent-Flow.
 - Workflow Engine: validates DAGs, manages step state machine, persists state, and resumes runs.
 - Manager Agent: converts goals into workflows, delegates to workers, enforces retry/novelty rules, and maintains delegation graph.
 - Worker Agents: specialized roles (Planner, Implementer, Debugger, Reviewer, TestTriager, SkillBuilder) with limited tool access.
-- Tooling Layer: FileTool, PatchTool, PytestTool, GrepTool with structured schemas and timeouts.
+- Tooling Layer: FileTool, PatchTool, PytestTool, GrepTool, WebTool with structured schemas and timeouts.
 - Memory Store: persistent Lessons and artifact index, staged retrieval, lexical index.
 - Skill Registry: loads built-in and generated skills; supports hot reload.
 - Skill Builder Pipeline: creates skill modules and manifest entries, runs tests, and registers on success.
@@ -184,9 +184,11 @@ Transitions:
 - Each batch spawns N **sessions** in parallel (threads/processes), each with an isolated workspace clone of master.
 - For safety, cloning and merging may be restricted to a configured set of paths (defaults should include `src/` and `docs/`).
 - Session workspaces should include the repo entrypoint `AGENTS.md` so agents can follow the documented start sequence.
+- Before launching each batch, the orchestrator evaluates the current master (pytest by default) and provides the results summary to all sessions as context.
 - Each session:
   - Receives the self-improvement goal plus optional input sources (URL/file/text).
   - Runs the hierarchical runner inside its workspace.
+  - Uses the same evaluation command as a per-step check when available, so retries are progress-gated by objective signals (e.g., fewer failing tests).
   - Evaluates via automated checks (pytest by default; optionally the benchmark suite).
   - Produces a session report and an artifact diff versus master.
 - After the batch:

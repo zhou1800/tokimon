@@ -29,7 +29,10 @@ class SelfImproveSettings:
     sessions_per_batch: int = 4
     batches: int = 1
     max_workers: int = 4
-    include_paths: list[str] = field(default_factory=lambda: ["AGENTS.md", "src", "docs"])
+    session_concurrency: int = 4
+    include_paths: list[str] = field(
+        default_factory=lambda: ["AGENTS.md", "README.md", "requirements.txt", "src", "docs"]
+    )
     pytest_args: list[str] = field(
         default_factory=lambda: ["--maxfail=1", "-c", "src/pyproject.toml", "src/tests"]
     )
@@ -54,7 +57,7 @@ class SelfImproveSessionResult:
     workflow_status: str | None
     workflow_error: str | None
     evaluation: EvaluationResult
-    score: tuple[int, int, int]
+    score: tuple[int, int, int, int, int]
     model_calls: int
     tool_calls: int
     changed_files: list[str]
@@ -65,6 +68,7 @@ class SelfImproveSessionResult:
 @dataclass(frozen=True)
 class SelfImproveBatchResult:
     batch_index: int
+    master_baseline_evaluation: EvaluationResult
     sessions: list[SelfImproveSessionResult]
     winner_session_id: str | None
     merged: bool
@@ -98,8 +102,6 @@ class SelfImproveOrchestrator:
         for batch_index in range(1, self.settings.batches + 1):
             batch = self._run_batch(run_context, batch_index, goal, input_payload)
             batches.append(batch)
-            if not batch.merged:
-                break
         report = SelfImproveReport(
             goal=goal,
             input_payload=input_payload,
@@ -114,13 +116,16 @@ class SelfImproveOrchestrator:
                    input_payload: InputPayload) -> SelfImproveBatchResult:
         sessions_dir = run_context.root / "sessions"
         sessions_dir.mkdir(parents=True, exist_ok=True)
+        baseline_master_eval = self._evaluate_workspace(self.master_root)
         session_results: list[SelfImproveSessionResult] = []
         with concurrent.futures.ThreadPoolExecutor(max_workers=self.settings.max_workers) as executor:
             futures = []
             for index in range(1, self.settings.sessions_per_batch + 1):
                 session_id = f"{batch_index}-{index}"
                 futures.append(
-                    executor.submit(self._run_session, sessions_dir, session_id, goal, input_payload)
+                    executor.submit(
+                        self._run_session, sessions_dir, session_id, goal, input_payload, baseline_master_eval
+                    )
                 )
             for fut in concurrent.futures.as_completed(futures):
                 session_results.append(fut.result())
@@ -132,21 +137,28 @@ class SelfImproveOrchestrator:
             merged, master_eval = self._merge_winner(winner)
         return SelfImproveBatchResult(
             batch_index=batch_index,
+            master_baseline_evaluation=baseline_master_eval,
             sessions=session_results,
             winner_session_id=winner.session_id if winner else None,
             merged=merged,
             master_evaluation=master_eval,
         )
 
-    def _run_session(self, sessions_dir: Path, session_id: str, goal: str,
-                     input_payload: InputPayload) -> SelfImproveSessionResult:
+    def _run_session(
+        self,
+        sessions_dir: Path,
+        session_id: str,
+        goal: str,
+        input_payload: InputPayload,
+        baseline_master_eval: EvaluationResult,
+    ) -> SelfImproveSessionResult:
         session_dir = sessions_dir / f"session-{session_id}"
         workspace_dir = session_dir / "workspace"
         session_dir.mkdir(parents=True, exist_ok=True)
         clone_master(self.master_root, workspace_dir, include_paths=self.settings.include_paths)
 
         llm_client = self.llm_factory(session_id, workspace_dir)
-        session_goal = _session_goal(goal, session_id, input_payload)
+        session_goal = _session_goal(goal, session_id, input_payload, baseline_master_eval, self.settings.pytest_args)
         runner = HierarchicalRunner(workspace_dir, llm_client, base_dir=workspace_dir / "runs")
 
         run_root = None
@@ -157,7 +169,13 @@ class SelfImproveOrchestrator:
         model_calls = 0
         tool_calls = 0
         try:
-            result = runner.run(session_goal, task_steps=None, task_id=f"self-improve-{session_id}", test_args=None, concurrency=2)
+            result = runner.run(
+                session_goal,
+                task_steps=None,
+                task_id=f"self-improve-{session_id}",
+                test_args=self.settings.pytest_args,
+                concurrency=self.settings.session_concurrency,
+            )
             run_root = str(result.run_context.root)
             workflow_ok, workflow_status, workflow_error = _summarize_workflow_state(result.workflow_state_path)
             if workflow_ok is False and error is None:
@@ -170,11 +188,13 @@ class SelfImproveOrchestrator:
         evaluation = self._evaluate_workspace(workspace_dir)
         changes = compute_changes(self.master_root, workspace_dir, include_paths=self.settings.include_paths)
         changed_files = [change.relpath for change in changes]
-        score = _score(evaluation, model_calls, tool_calls)
+        score = _score(evaluation, workflow_ok, len(changed_files), model_calls, tool_calls)
         session_report = {
             "session_id": session_id,
             "goal": session_goal,
             "input": {"kind": input_payload.kind, "ref": input_payload.ref},
+            "master_baseline_evaluation": baseline_master_eval.__dict__,
+            "pytest_args": list(self.settings.pytest_args),
             "run_root": run_root,
             "workflow_ok": workflow_ok,
             "workflow_status": workflow_status,
@@ -246,6 +266,7 @@ class SelfImproveOrchestrator:
             "sessions_per_batch": self.settings.sessions_per_batch,
             "batches": self.settings.batches,
             "max_workers": self.settings.max_workers,
+            "session_concurrency": self.settings.session_concurrency,
             "include_paths": self.settings.include_paths,
             "pytest_args": self.settings.pytest_args,
             "merge_on_success": self.settings.merge_on_success,
@@ -258,13 +279,28 @@ def _project_root(master_root: Path) -> Path:
     return master_root
 
 
-def _session_goal(goal: str, session_id: str, input_payload: InputPayload) -> str:
+def _session_goal(
+    goal: str,
+    session_id: str,
+    input_payload: InputPayload,
+    baseline_master_eval: EvaluationResult,
+    pytest_args: list[str],
+) -> str:
     strategy = _strategy_hint(session_id)
     parts = [
         goal.strip(),
         "",
         f"Session: {session_id}",
         f"Strategy: {strategy}",
+        "",
+        "Master baseline evaluation (before this session):",
+        f"- ok: {baseline_master_eval.ok}",
+        f"- passed: {baseline_master_eval.passed}",
+        f"- failed: {baseline_master_eval.failed}",
+        f"- failing_tests: {baseline_master_eval.failing_tests[:20]}",
+        "",
+        "Evaluation command (run via pytest tool):",
+        f"- args: {pytest_args}",
     ]
     if input_payload.kind != "none":
         parts.extend(
@@ -306,12 +342,20 @@ def _strategy_hint(session_id: str) -> str:
     return options[idx % len(options)]
 
 
-def _score(evaluation: EvaluationResult, model_calls: int, tool_calls: int) -> tuple[int, int, int]:
+def _score(
+    evaluation: EvaluationResult,
+    workflow_ok: bool | None,
+    changed_files: int,
+    model_calls: int,
+    tool_calls: int,
+) -> tuple[int, int, int, int, int]:
     ok = 1 if evaluation.ok else 0
+    workflow = 1 if workflow_ok else 0
+    has_changes = 1 if changed_files > 0 else 0
     passed = int(evaluation.passed or 0)
     failed = int(evaluation.failed or 9999)
-    # Primary: tests pass; Secondary: maximize passed; Tertiary: minimize failed/tool/model calls.
-    return (ok, passed, -failed - tool_calls - model_calls)
+    # Primary: tests pass; Secondary: workflow completes; Tertiary: prefer actual changes; then maximize passed.
+    return (ok, workflow, has_changes, passed, -failed - tool_calls - model_calls)
 
 
 def _report_to_dict(report: SelfImproveReport) -> dict[str, Any]:
@@ -326,6 +370,7 @@ def _report_to_dict(report: SelfImproveReport) -> dict[str, Any]:
                 "winner_session_id": batch.winner_session_id,
                 "merged": batch.merged,
                 "master_evaluation": batch.master_evaluation.__dict__ if batch.master_evaluation else None,
+                "master_baseline_evaluation": batch.master_baseline_evaluation.__dict__,
                 "sessions": [
                     {
                         "session_id": session.session_id,
@@ -364,6 +409,9 @@ def _report_to_markdown(report: SelfImproveReport) -> str:
         lines.append(f"### Batch {batch.batch_index}")
         lines.append("")
         lines.append(f"Winner: {batch.winner_session_id} | Merged: {batch.merged}")
+        lines.append(
+            f"Baseline eval: ok={batch.master_baseline_evaluation.ok} passed={batch.master_baseline_evaluation.passed} failed={batch.master_baseline_evaluation.failed}"
+        )
         if batch.master_evaluation:
             lines.append(
                 f"Master eval: ok={batch.master_evaluation.ok} passed={batch.master_evaluation.passed} failed={batch.master_evaluation.failed}"

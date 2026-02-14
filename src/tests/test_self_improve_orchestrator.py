@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from llm.client import MockLLMClient
@@ -70,3 +71,135 @@ def test_compute_changes_detects_added_files_when_workspace_path_contains_runs(t
         change.kind == "add" and change.relpath == str(Path("proj") / "new_file.txt")
         for change in changes
     )
+
+
+def test_self_improve_runs_all_batches_when_merge_disabled(tmp_path: Path) -> None:
+    master = tmp_path / "master"
+    (master / "proj").mkdir(parents=True, exist_ok=True)
+    (master / "proj" / "__init__.py").write_text("")
+    (master / "proj" / "app.py").write_text("def add(a, b):\n    return a + b\n")
+    (master / "proj" / "tests").mkdir(parents=True, exist_ok=True)
+    (master / "proj" / "tests" / "test_app.py").write_text(
+        "from proj.app import add\n\n\ndef test_add():\n    assert add(2, 3) == 5\n"
+    )
+
+    def llm_factory(_session_id: str) -> MockLLMClient:
+        plan = {
+            "status": "SUCCESS",
+            "summary": "planned",
+            "workflow": {"steps": [{"id": "noop", "worker": "Implementer"}]},
+        }
+        return MockLLMClient(
+            script=[
+                plan,
+                {"status": "SUCCESS", "summary": "done", "artifacts": [], "metrics": {}, "next_actions": [], "failure_signature": ""},
+            ]
+        )
+
+    settings = SelfImproveSettings(
+        sessions_per_batch=1,
+        batches=2,
+        max_workers=1,
+        include_paths=["proj"],
+        pytest_args=["proj/tests"],
+        merge_on_success=False,
+    )
+    orchestrator = SelfImproveOrchestrator(master, llm_factory=llm_factory, settings=settings)
+    report = orchestrator.run("No-op", input_ref=None)
+
+    assert len(report.batches) == 2
+    assert report.batches[0].merged is False
+    assert report.batches[1].merged is False
+
+
+def test_self_improve_continues_after_failed_batch_then_merges(tmp_path: Path) -> None:
+    master = tmp_path / "master"
+    (master / "proj").mkdir(parents=True, exist_ok=True)
+    (master / "proj" / "__init__.py").write_text("")
+    (master / "proj" / "app.py").write_text("def add(a, b):\n    return a - b\n")
+    (master / "proj" / "tests").mkdir(parents=True, exist_ok=True)
+    (master / "proj" / "tests" / "test_app.py").write_text(
+        "from proj.app import add\n\n\ndef test_add():\n    assert add(2, 3) == 5\n"
+    )
+
+    def llm_factory(session_id: str) -> MockLLMClient:
+        plan = {
+            "status": "SUCCESS",
+            "summary": "planned",
+            "workflow": {"steps": [{"id": "fix", "worker": "Implementer"}]},
+        }
+        if session_id == "2-1":
+            return MockLLMClient(
+                script=[
+                    plan,
+                    {"tool_calls": [{"tool": "file", "action": "write", "args": {"path": "proj/app.py", "content": "def add(a, b):\n    return a + b\n"}}]},
+                    {"status": "SUCCESS", "summary": "fixed", "artifacts": [], "metrics": {}, "next_actions": [], "failure_signature": ""},
+                ]
+            )
+        return MockLLMClient(
+            script=[
+                plan,
+                {"status": "SUCCESS", "summary": "no-op", "artifacts": [], "metrics": {}, "next_actions": [], "failure_signature": ""},
+            ]
+        )
+
+    settings = SelfImproveSettings(
+        sessions_per_batch=1,
+        batches=2,
+        max_workers=1,
+        include_paths=["proj"],
+        pytest_args=["proj/tests"],
+        merge_on_success=True,
+    )
+    orchestrator = SelfImproveOrchestrator(master, llm_factory=llm_factory, settings=settings)
+    report = orchestrator.run("Fix proj.add", input_ref=None)
+
+    assert len(report.batches) == 2
+    assert report.batches[0].merged is False
+    assert report.batches[1].merged is True
+    assert report.batches[1].master_evaluation is not None
+    assert report.batches[1].master_evaluation.ok is True
+    assert "return a + b" in (master / "proj" / "app.py").read_text()
+
+
+def test_self_improve_records_per_step_pytest_metrics(tmp_path: Path) -> None:
+    master = tmp_path / "master"
+    (master / "proj").mkdir(parents=True, exist_ok=True)
+    (master / "proj" / "__init__.py").write_text("")
+    (master / "proj" / "app.py").write_text("def add(a, b):\n    return a + b\n")
+    (master / "proj" / "tests").mkdir(parents=True, exist_ok=True)
+    (master / "proj" / "tests" / "test_app.py").write_text(
+        "from proj.app import add\n\n\ndef test_add():\n    assert add(2, 3) == 5\n"
+    )
+
+    def llm_factory(_session_id: str) -> MockLLMClient:
+        plan = {
+            "status": "SUCCESS",
+            "summary": "planned",
+            "workflow": {"steps": [{"id": "noop", "worker": "Implementer"}]},
+        }
+        return MockLLMClient(
+            script=[
+                plan,
+                {"status": "SUCCESS", "summary": "done", "artifacts": [], "metrics": {}, "next_actions": [], "failure_signature": ""},
+            ]
+        )
+
+    settings = SelfImproveSettings(
+        sessions_per_batch=1,
+        batches=1,
+        max_workers=1,
+        include_paths=["proj"],
+        pytest_args=["proj/tests"],
+        merge_on_success=False,
+    )
+    orchestrator = SelfImproveOrchestrator(master, llm_factory=llm_factory, settings=settings)
+    report = orchestrator.run("No-op", input_ref=None)
+
+    run_root = report.batches[0].sessions[0].run_root
+    assert run_root is not None
+    workflow_state = Path(run_root) / "workflow_state.json"
+    payload = json.loads(workflow_state.read_text())
+    attempts = payload["state"]["steps"]["noop"]["attempts"]
+    assert attempts
+    assert isinstance(attempts[0]["progress_metrics"].get("passed_tests"), int)

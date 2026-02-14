@@ -62,6 +62,7 @@ Agent-Flow is a production-grade manager/worker (hierarchical) agent system that
 - PatchTool: apply unified diffs with validation.
 - PytestTool: run pytest, capture output, pass/fail counts, failing tests list.
 - GrepTool: search within repo.
+- WebTool: fetch URL content (and optional lightweight search) with byte/time limits.
 - Tools expose structured schemas and outputs.
 
 #### Tool Invocation Protocol (Worker ↔ Tools)
@@ -104,16 +105,30 @@ Agent-Flow is a production-grade manager/worker (hierarchical) agent system that
 - When invoked with a self-improvement goal, the system can accept optional “inputs”:
   - URL (http/https), local file path, or inline text (or none).
 - The system runs a batch of N independent improvement sessions in parallel.
+- Before launching each batch, the system runs an evaluation on the current master workspace (pytest by default) and passes a compact summary (pass/fail counts + failing test ids) into every session as context.
 - Each session:
   - Clones the master workspace into a session workspace (isolated copy).
   - Runs the hierarchical agent system within that workspace to attempt improvements.
+  - Runs the configured evaluation command after each workflow step when `pytest_args` are provided, so retry/progress gating has objective signals.
   - Evaluates the result (pytest by default; optionally benchmark suite).
   - Produces a session report, metrics, and a diff/changed-file set.
   - After each batch:
     - A comparer selects a winner by deterministic criteria (tests passing is primary).
     - A merger applies the winner back onto master (restricted to configured paths; defaults should include `src/` and `docs/`).
     - Master is re-evaluated; if evaluation fails, the merge is rolled back/refused.
-- The system may run multiple batches for a single improvement request.
+- The system runs up to the configured number of batches, even when merge is disabled (report-only mode) or when a batch fails to produce a mergeable winner.
+
+#### Self-Improve Session Context Contract
+- Each session receives:
+  - The raw `goal` string.
+  - A session strategy hint (diverse across sessions).
+  - The optional input payload content (URL/file/text) when provided.
+  - The master evaluation summary for the batch (pytest counts + failing test ids).
+- Workers are expected to:
+  - Clarify assumptions inline when the goal is underspecified (ask questions only when strictly necessary).
+  - Produce a structured plan (workflow steps) with verifiable subgoals.
+  - Prefer writing/expanding tests and updating docs before code changes (Helix).
+  - Use tools for repo context retrieval (grep/file), patching, and evaluation.
 
 ## Repository Layout
 - Agent-Flow project root lives under `src/` in this repository.

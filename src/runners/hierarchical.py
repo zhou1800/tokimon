@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -19,6 +20,7 @@ from tools.file_tool import FileTool
 from tools.grep_tool import GrepTool
 from tools.patch_tool import PatchTool
 from tools.pytest_tool import PytestTool
+from tools.web_tool import WebTool
 from tracing import TraceLogger
 from workflow.engine import WorkflowEngine
 from workflow.models import StepAttempt
@@ -131,6 +133,7 @@ class HierarchicalRunner:
             "grep": GrepTool(self.repo_root),
             "patch": PatchTool(self.repo_root),
             "pytest": PytestTool(self.repo_root),
+            "web": WebTool(),
         }
 
     async def _run_step(self, step_id: str, engine: WorkflowEngine, manager: Manager, tools: dict[str, Any],
@@ -180,11 +183,15 @@ class HierarchicalRunner:
 
         pytest_metrics = await self._run_tests(test_args, tools.get("pytest")) if test_args else None
         artifact_hash = artifact_store.write_step(task_id, step_id, output.artifacts, outputs=step_state.outputs)
+        touched_hash = None
+        touched_files = output.metrics.get("touched_files") if isinstance(output.metrics, dict) else None
+        if isinstance(touched_files, list) and touched_files:
+            touched_hash = _hash_touched_files(self.repo_root, [str(p) for p in touched_files])
         progress = ProgressMetrics(
             failing_tests=pytest_metrics.get("failed") if pytest_metrics else None,
             passed_tests=pytest_metrics.get("passed") if pytest_metrics else None,
             new_artifacts=len(output.artifacts),
-            artifact_delta_hash=artifact_hash,
+            artifact_delta_hash=touched_hash or artifact_hash,
         )
         prev_attempt = step_state.last_attempt
         attempt = StepAttempt(
@@ -240,6 +247,46 @@ class HierarchicalRunner:
             return {}
         result = pytest_tool.run(test_args)
         return result.data
+
+
+def _hash_touched_files(repo_root: Path, relpaths: list[str], *, max_files: int = 50, max_bytes: int = 2_000_000) -> str:
+    repo_root = repo_root.resolve()
+    hasher = hashlib.sha256()
+    unique = []
+    seen = set()
+    for relpath in relpaths:
+        relpath = str(relpath).strip()
+        if not relpath or relpath in seen:
+            continue
+        seen.add(relpath)
+        unique.append(relpath)
+
+    truncated = unique[:max_files]
+    for relpath in sorted(truncated):
+        normalized = relpath.lstrip("./")
+        if not normalized or normalized.startswith("/"):
+            hasher.update(f"invalid:{relpath}".encode())
+            continue
+        path = (repo_root / normalized).resolve()
+        try:
+            path.relative_to(repo_root)
+        except ValueError:
+            hasher.update(f"traversal:{normalized}".encode())
+            continue
+        if not path.exists() or not path.is_file():
+            hasher.update(f"missing:{normalized}".encode())
+            continue
+        data = path.read_bytes()
+        if len(data) > max_bytes:
+            data = data[:max_bytes]
+        hasher.update(normalized.encode())
+        hasher.update(b"\0")
+        hasher.update(data)
+        hasher.update(b"\0")
+
+    if len(unique) > max_files:
+        hasher.update(f"truncated:{len(unique) - max_files}".encode())
+    return hasher.hexdigest()
 
 
 def _progress_from_attempt(attempt: StepAttempt | None) -> ProgressMetrics | None:

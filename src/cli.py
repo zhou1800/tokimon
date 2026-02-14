@@ -6,10 +6,11 @@ import argparse
 import json
 import os
 import shutil
+from dataclasses import replace
 from pathlib import Path
 
 from benchmarks.harness import EvaluationHarness
-from llm.client import MockLLMClient, build_llm_client
+from llm.client import CodexCLIClient, CodexCLISettings, MockLLMClient, build_llm_client
 from memory.store import MemoryStore
 from runners.baseline import BaselineRunner
 from runners.hierarchical import HierarchicalRunner
@@ -143,9 +144,18 @@ def main(argv: list[str] | None = None) -> int:
             max_workers=args.workers,
             merge_on_success=not args.no_merge,
         )
-        llm_provider = str(args.llm or "mock")
+        llm_provider = str(args.llm or "mock").strip().lower()
 
         def llm_factory(_session_id: str, workspace_dir: Path):
+            if llm_provider in {"codex", "codex-cli"}:
+                codex_settings = CodexCLISettings.from_env()
+                if "AGENT_FLOW_CODEX_SANDBOX" not in os.environ:
+                    codex_settings = replace(codex_settings, sandbox="workspace-write")
+                if "AGENT_FLOW_CODEX_APPROVAL" not in os.environ:
+                    codex_settings = replace(codex_settings, ask_for_approval="never")
+                if "AGENT_FLOW_CODEX_SEARCH" not in os.environ:
+                    codex_settings = replace(codex_settings, search=True)
+                return CodexCLIClient(workspace_dir, settings=codex_settings)
             return build_llm_client(llm_provider, workspace_dir=workspace_dir)
 
         orchestrator = SelfImproveOrchestrator(master_root, llm_factory=llm_factory, settings=settings)

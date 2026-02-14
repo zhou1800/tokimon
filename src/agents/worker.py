@@ -8,6 +8,7 @@ import time
 from typing import Any
 
 from agents.outputs import WorkerOutput
+from agents.prompts import build_system_prompt
 from flow_types import ToolCallRecord, WorkerStatus
 from llm.client import LLMClient
 from tools.base import ToolResult
@@ -24,8 +25,9 @@ class Worker:
         start = time.perf_counter()
         model_calls = 0
         tool_call_records: list[ToolCallRecord] = []
+        touched_files: set[str] = set()
         messages = [
-            {"role": "system", "content": f"You are a {self.role} worker."},
+            {"role": "system", "content": build_system_prompt(self.role)},
             {"role": "user", "content": f"Goal: {goal}\nStep: {step_id}\nInputs: {inputs}\nMemory: {memory}"},
         ]
         for iteration in range(1, max_iterations + 1):
@@ -52,6 +54,7 @@ class Worker:
                 )
             if tool_calls:
                 for call in tool_calls:
+                    touched_files.update(_touched_files_from_call(call))
                     record = _invoke_tool_call(self.tools, call)
                     tool_call_records.append(record)
                     messages.append(
@@ -71,6 +74,7 @@ class Worker:
             output.metrics.setdefault("tool_calls", len(tool_call_records))
             output.metrics.setdefault("iteration_count", iteration)
             output.metrics.setdefault("tool_call_records", [record.__dict__ for record in tool_call_records])
+            output.metrics.setdefault("touched_files", sorted(touched_files))
             return output
 
         elapsed_ms = (time.perf_counter() - start) * 1000
@@ -246,6 +250,57 @@ def _format_tool_message(record: ToolCallRecord, *, max_chars: int | None = None
             return text
     minimal = {"ok": record.ok, "summary": record.summary, "error": record.error, "data": {"_truncated": True}}
     return json.dumps(minimal, sort_keys=True)
+
+
+def _touched_files_from_call(call: dict[str, Any]) -> set[str]:
+    tool_name = str(call.get("tool") or "")
+    action = str(call.get("action") or "")
+    args = call.get("args") if isinstance(call.get("args"), dict) else {}
+
+    if tool_name == "file" and action == "write":
+        path = args.get("path")
+        if isinstance(path, str) and path.strip():
+            return {path.strip()}
+        return set()
+
+    if tool_name == "patch" and action == "apply":
+        patch_text = args.get("patch_text")
+        if isinstance(patch_text, str) and patch_text.strip():
+            return _touched_files_from_patch_text(patch_text)
+        return set()
+
+    return set()
+
+
+def _touched_files_from_patch_text(patch_text: str) -> set[str]:
+    paths: set[str] = set()
+    for raw_line in (patch_text or "").splitlines():
+        line = raw_line.rstrip("\n")
+        if line.startswith("diff --git "):
+            parts = line.split()
+            if len(parts) >= 4:
+                for candidate in (parts[2], parts[3]):
+                    normalized = _normalize_patch_path(candidate)
+                    if normalized:
+                        paths.add(normalized)
+            continue
+        if line.startswith(("+++ ", "--- ")):
+            candidate = line.split(maxsplit=1)[1] if len(line.split(maxsplit=1)) == 2 else ""
+            normalized = _normalize_patch_path(candidate)
+            if normalized:
+                paths.add(normalized)
+    return paths
+
+
+def _normalize_patch_path(candidate: str) -> str | None:
+    candidate = (candidate or "").strip()
+    if not candidate or candidate == "/dev/null":
+        return None
+    if candidate.startswith(("a/", "b/")):
+        candidate = candidate[2:]
+    if candidate.startswith(("\"a/", "\"b/")) and candidate.endswith("\""):
+        candidate = candidate[3:-1]
+    return candidate.strip() or None
 
 
 def _truncate_jsonish(value: Any, *, max_str: int, max_list: int, max_depth: int) -> Any:

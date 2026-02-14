@@ -23,6 +23,10 @@ This document maps requirements to automated tests.
   - Creates multiple isolated session workspaces from a master root.
   - Evaluates each session and selects a winner deterministically.
   - Merges the winner back to master and re-runs evaluation.
+  - Runs all configured batches even when:
+    - merge is disabled (`--no-merge` / report-only mode), or
+    - a batch fails to produce a mergeable winner (evaluation fails).
+  - Passes `pytest_args` into the hierarchical runner so per-step progress metrics include test counts.
 
 ## Benchmark Task Tests
 - Each benchmark task includes pytest acceptance tests.

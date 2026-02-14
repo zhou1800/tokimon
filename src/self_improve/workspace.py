@@ -69,7 +69,9 @@ def merge_winner(master_root: Path, workspace_root: Path, include_paths: list[st
                 dst.unlink()
             continue
         dst.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(src, dst)
+        # Avoid preserving mtimes so Python doesn't reuse stale .pyc caches when file size stays the same.
+        shutil.copy(src, dst)
+        _purge_bytecode_for_file(master_root, change.relpath)
 
     return backups
 
@@ -142,3 +144,20 @@ def _file_digest(path: Path) -> str:
                 break
             hasher.update(chunk)
     return hasher.hexdigest()
+
+
+def _purge_bytecode_for_file(root: Path, relpath: str) -> None:
+    if not relpath.endswith(".py"):
+        return
+    rel = Path(relpath)
+    pycache_dir = (root / rel.parent / "__pycache__").resolve()
+    try:
+        pycache_dir.relative_to(root.resolve())
+    except ValueError:
+        return
+    if not pycache_dir.exists() or not pycache_dir.is_dir():
+        return
+    stem = rel.stem
+    for suffix in (".pyc", ".pyo"):
+        for candidate in pycache_dir.glob(f"{stem}.*{suffix}"):
+            candidate.unlink(missing_ok=True)
