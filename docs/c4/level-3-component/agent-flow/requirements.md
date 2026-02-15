@@ -112,7 +112,7 @@ Agent-Flow is a production-grade manager/worker (hierarchical) agent system that
 - The system runs a batch of N independent improvement sessions in parallel.
 - Before launching each batch, the system runs an evaluation on the current master workspace (pytest by default) and passes a compact summary (pass/fail counts + failing test ids) into every session as context.
 - Each session:
-  - Clones the master workspace into a session workspace (isolated copy).
+  - Materializes the master workspace into an isolated session workspace (prefer `git worktree` for fast cloning when the master workspace is a clean git checkout; otherwise fall back to file copying).
   - Runs the hierarchical agent system within that workspace to attempt improvements.
   - Runs the configured evaluation command after each workflow step when `pytest_args` are provided, so retry/progress gating has objective signals.
   - Evaluates the result (pytest by default; optionally benchmark suite).

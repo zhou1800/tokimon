@@ -22,6 +22,7 @@ This document maps requirements to automated tests.
 
 - Self-improvement batch:
   - Creates multiple isolated session workspaces from a master root.
+  - Uses `git worktree` for session workspaces when the master is a clean git checkout; otherwise falls back to file copying.
   - Evaluates each session and selects a winner deterministically.
   - Merges the winner back to master and re-runs evaluation.
   - Runs all configured batches even when:

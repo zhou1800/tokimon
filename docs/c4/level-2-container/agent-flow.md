@@ -184,6 +184,7 @@ Transitions:
 ### Self-Improvement (Batch Sessions)
 - A self-improvement “run” executes one or more **batches**.
 - Each batch spawns N **sessions** in parallel (threads/processes), each with an isolated workspace clone of master.
+- Session workspaces may be created via `git worktree` (preferred for speed when master is a clean git checkout) or via file copying as a fallback.
 - For safety, cloning and merging may be restricted to a configured set of paths (defaults should include `src/` and `docs/`).
 - Session workspaces should include the repo entrypoint `AGENTS.md` so agents can follow the documented start sequence.
 - Before launching each batch, the orchestrator evaluates the current master (pytest by default) and provides the results summary to all sessions as context.

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import hashlib
 import shutil
+import subprocess
+import threading
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -14,7 +16,18 @@ class WorkspaceChange:
     kind: str  # "add" | "modify" | "delete"
 
 
+_WORKTREE_LOCK = threading.Lock()
+
+
 def clone_master(master_root: Path, workspace_root: Path, include_paths: list[str]) -> None:
+    if _can_use_git_worktree(master_root):
+        try:
+            _create_git_worktree(master_root, workspace_root)
+            return
+        except Exception:
+            # Fall back to file copying when worktrees are unavailable.
+            pass
+
     workspace_root.mkdir(parents=True, exist_ok=True)
     for rel in include_paths:
         src = master_root / rel
@@ -161,3 +174,58 @@ def _purge_bytecode_for_file(root: Path, relpath: str) -> None:
     for suffix in (".pyc", ".pyo"):
         for candidate in pycache_dir.glob(f"{stem}.*{suffix}"):
             candidate.unlink(missing_ok=True)
+
+
+def _can_use_git_worktree(master_root: Path) -> bool:
+    try:
+        result = _git(master_root, ["rev-parse", "--show-toplevel"])
+    except Exception:
+        return False
+
+    toplevel_raw = (result.stdout or "").strip()
+    if not toplevel_raw:
+        return False
+    toplevel = Path(toplevel_raw).resolve()
+    if toplevel != master_root.resolve():
+        return False
+
+    try:
+        status = _git(master_root, ["status", "--porcelain"])
+    except Exception:
+        return False
+    return not (status.stdout or "").strip()
+
+
+def _create_git_worktree(master_root: Path, workspace_root: Path) -> None:
+    workspace_root.parent.mkdir(parents=True, exist_ok=True)
+    _remove_path(workspace_root)
+
+    try:
+        with _WORKTREE_LOCK:
+            _git(master_root, ["worktree", "prune"], check=False)
+            _git(master_root, ["worktree", "add", "--detach", "--no-checkout", str(workspace_root), "HEAD"])
+        _git(workspace_root, ["reset", "--hard", "HEAD"])
+    except Exception:
+        with _WORKTREE_LOCK:
+            _git(master_root, ["worktree", "remove", "-f", str(workspace_root)], check=False)
+            _git(master_root, ["worktree", "prune"], check=False)
+        _remove_path(workspace_root)
+        raise
+
+
+def _git(root: Path, args: list[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["git", "-C", str(root), *args],
+        text=True,
+        capture_output=True,
+        check=check,
+    )
+
+
+def _remove_path(path: Path) -> None:
+    if not path.exists():
+        return
+    if path.is_dir():
+        shutil.rmtree(path)
+        return
+    path.unlink()
