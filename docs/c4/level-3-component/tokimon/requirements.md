@@ -65,6 +65,9 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
 - PytestTool: run pytest, capture output, pass/fail counts, failing tests list.
 - GrepTool: search within repo.
 - WebTool: fetch URL content (and optional lightweight search) with byte/time limits.
+  - Networking supports a two-layer allowlist model: an operator-configured org allowlist (maximum destinations) plus an optional request allowlist (must be a subset).
+  - WebTool may inject per-domain secret headers from environment-backed configuration (domain secrets) without exposing raw credential values in tool outputs.
+  - Default configuration surface: `TOKIMON_WEB_ORG_ALLOWLIST`, `TOKIMON_WEB_REQUEST_ALLOWLIST`, and `TOKIMON_WEB_DOMAIN_SECRETS_JSON`.
 - Tools expose structured schemas and outputs.
 
 #### Tool Invocation Protocol (Worker ↔ Tools)
@@ -116,7 +119,7 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
 ### Self-Improvement Mode (Multi-Session / Batch)
 - When invoked with a self-improvement goal, the system can accept optional “inputs”:
   - URL (http/https), local file path, or inline text (or none).
-- If `--input` is not provided, the system may auto-detect URL(s) embedded in the `--goal` text and fetch at least the first URL as the session input payload (bounded by byte/time limits).
+- If `--input` is not provided, the system may auto-detect URL(s) embedded in the `--goal` text and fetch at least the first URL as the session input payload (bounded by byte/time limits and the WebTool network policy).
 - The system runs a batch of N independent improvement sessions in parallel.
 - Before launching each batch, the system runs an evaluation on the current master workspace (pytest by default) and passes a compact summary (pass/fail counts + failing test ids) into every session as context.
 - Each session:

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+import pytest
+
 from self_improve.source import extract_urls, read_goal_input
 
 
@@ -50,3 +52,14 @@ def test_read_goal_input_prefers_explicit_input_over_goal_url(monkeypatch) -> No
     assert payload.kind == "text"
     assert called["count"] == 0
 
+
+def test_read_goal_input_respects_webtool_allowlist(monkeypatch) -> None:
+    monkeypatch.setenv("TOKIMON_WEB_ORG_ALLOWLIST", "example.com")
+
+    def fake_urlopen(_req, timeout: float):
+        raise AssertionError("urlopen should not be called")
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+
+    with pytest.raises(ValueError, match="allowlist"):
+        read_goal_input("Read https://evil.com/a", input_ref=None)

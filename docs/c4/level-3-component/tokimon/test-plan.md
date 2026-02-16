@@ -12,7 +12,7 @@ This document maps requirements to automated tests.
 - Memory staged retrieval: Stage 1/2/3 selection logic with deterministic lexical index.
 - Dynamic skill registration: register only after tests pass; hot reload behavior.
 - Parallel execution correctness: basic ordering, backpressure, and cancellation.
-- Tool schemas: FileTool path traversal protection, PatchTool validation, PytestTool parsing.
+- Tool schemas: FileTool path traversal protection, PatchTool validation, PytestTool parsing, WebTool allowlists/domain-secrets behavior.
 - Worker tool loop: tool calls execute and are reflected in worker metrics (model/tool call counts).
 
 ## Integration Tests
@@ -38,6 +38,7 @@ This document maps requirements to automated tests.
     - a batch fails to produce a mergeable winner (evaluation fails).
   - Passes `pytest_args` into the hierarchical runner so per-step progress metrics include test counts.
   - Auto-detects URL(s) in `--goal` and fetches content as session input when `--input` is not provided.
+  - URL fetching respects the WebTool network policy (org allowlist + optional request allowlist).
 
 ## Benchmark Task Tests
 - Each benchmark task includes pytest acceptance tests.

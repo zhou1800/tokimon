@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-import ipaddress
 import re
-import urllib.parse
-import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
+
+from tools.web_tool import WebTool
 
 
 @dataclass(frozen=True)
@@ -55,14 +54,18 @@ def read_optional_input(ref: str | None, max_bytes: int = 512_000) -> InputPaylo
 
 
 def _read_url(url: str, max_bytes: int) -> InputPayload:
-    parsed = _validate_url(url)
-    req = urllib.request.Request(parsed.geturl(), headers={"User-Agent": "tokimon-self-improve"})
-    with urllib.request.urlopen(req, timeout=15) as resp:
-        data = resp.read(max_bytes + 1)
-    if len(data) > max_bytes:
-        data = data[:max_bytes]
-    content = data.decode(errors="replace")
-    return InputPayload(kind="url", ref=parsed.geturl(), content=content)
+    tool = WebTool()
+    result = tool.fetch(url, max_bytes=max_bytes, timeout_s=15)
+    if not result.ok:
+        raise ValueError(result.error or result.summary)
+    payload = result.data or {}
+    if not isinstance(payload, dict):
+        raise ValueError("web tool returned invalid payload")
+    ref = payload.get("url")
+    content = payload.get("content")
+    if not isinstance(ref, str) or not isinstance(content, str):
+        raise ValueError("web tool returned invalid payload")
+    return InputPayload(kind="url", ref=ref, content=content)
 
 
 def extract_urls(text: str, max_urls: int = 5) -> list[str]:
@@ -84,23 +87,3 @@ def extract_urls(text: str, max_urls: int = 5) -> list[str]:
         urls.append(cleaned)
     return urls
 
-
-def _validate_url(url: str) -> urllib.parse.ParseResult:
-    if not isinstance(url, str) or not url.strip():
-        raise ValueError("url must be a non-empty string")
-    parsed = urllib.parse.urlparse(url.strip())
-    if parsed.scheme not in {"http", "https"}:
-        raise ValueError("only http/https urls are allowed")
-    if not parsed.hostname:
-        raise ValueError("url hostname missing")
-    host = parsed.hostname.strip().lower()
-    if host in {"localhost"}:
-        raise ValueError("localhost is not allowed")
-    try:
-        ip = ipaddress.ip_address(host)
-    except ValueError:
-        ip = None
-    if ip is not None:
-        if ip.is_loopback or ip.is_private or ip.is_link_local or ip.is_reserved or ip.is_multicast:
-            raise ValueError("private or local IPs are not allowed")
-    return parsed
