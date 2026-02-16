@@ -25,6 +25,7 @@ This document maps requirements to automated tests.
   - Uses `git worktree` for session workspaces when the master is a clean git checkout; otherwise falls back to file copying.
   - Evaluates each session and selects a winner deterministically.
   - Merges the winner back to master and re-runs evaluation.
+  - When master is a clean git checkout, winner merge uses `git merge --squash` (conflict-aware) and commits only on passing evaluation.
   - Runs all configured batches even when:
     - merge is disabled (`--no-merge` / report-only mode), or
     - a batch fails to produce a mergeable winner (evaluation fails).

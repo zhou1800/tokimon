@@ -196,5 +196,9 @@ Transitions:
   - Produces a session report and an artifact diff versus master.
 - After the batch:
   - A comparer selects the best session by a deterministic score (tests pass first, then secondary metrics).
-  - The merger applies the winner back onto master (restricted to configured paths), then re-runs evaluation on master.
+  - The merger applies the winner back onto master (restricted to configured paths) using a conflict-aware git integration:
+    - Create a temporary commit for the winner changes.
+    - Apply via `git merge --squash` onto master, then re-run evaluation.
+    - On success, commit the squashed changes to keep master clean for subsequent batches.
+    - On conflicts or failing evaluation, abort and leave master unchanged (winner workspace remains available for manual review).
   - A batch report is persisted with links to session artifacts and the merged changes.

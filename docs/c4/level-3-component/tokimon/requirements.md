@@ -119,8 +119,11 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
   - Produces a session report, metrics, and a diff/changed-file set.
   - After each batch:
     - A comparer selects a winner by deterministic criteria (tests passing is primary).
-    - A merger applies the winner back onto master (restricted to configured paths; defaults should include `src/` and `docs/`).
-    - Master is re-evaluated; if evaluation fails, the merge is rolled back/refused.
+    - A merger applies the winner back onto master (restricted to configured paths; defaults should include `src/` and `docs/`) using a conflict-aware git integration (preferred when master is a clean git checkout):
+      - Create a temporary commit capturing the winner changes.
+      - Apply via `git merge --squash` onto master.
+      - Re-evaluate master; on success, commit the squashed changes.
+      - On conflicts or failing evaluation, abort and leave master unchanged.
 - The system runs up to the configured number of batches, even when merge is disabled (report-only mode) or when a batch fails to produce a mergeable winner.
 
 #### Self-Improve Session Context Contract

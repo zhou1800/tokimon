@@ -6,6 +6,7 @@ import hashlib
 import shutil
 import subprocess
 import threading
+import uuid
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -14,6 +15,12 @@ from pathlib import Path
 class WorkspaceChange:
     relpath: str
     kind: str  # "add" | "modify" | "delete"
+
+
+@dataclass(frozen=True)
+class GitMergeCandidate:
+    branch: str
+    commit: str
 
 
 _WORKTREE_LOCK = threading.Lock()
@@ -63,41 +70,104 @@ def compute_changes(master_root: Path, workspace_root: Path, include_paths: list
     return changes
 
 
-def merge_winner(master_root: Path, workspace_root: Path, include_paths: list[str],
-                 changes: list[WorkspaceChange]) -> dict[str, bytes | None]:
-    """Apply the winner workspace to master. Returns a backup map for rollback."""
-    backups: dict[str, bytes | None] = {}
+def can_use_git_merge(master_root: Path) -> bool:
+    """Return True when master_root is a clean git toplevel suitable for conflict-aware merges."""
+    return _can_use_git_worktree(master_root)
+
+
+def create_git_merge_candidate(
+    master_root: Path,
+    workspace_root: Path,
+    changes: list[WorkspaceChange],
+) -> GitMergeCandidate | None:
+    """Create a temporary branch+commit capturing the winner changes.
+
+    Returns None when there is no staged diff after applying changes.
+    """
+    token = uuid.uuid4().hex[:12]
+    branch = f"tokimon/self-improve/candidate-{token}"
+    worktree_root = (master_root / ".tokimon-tmp" / "merge-worktrees").resolve()
+    worktree_path = worktree_root / f"candidate-{token}"
+    worktree_root.mkdir(parents=True, exist_ok=True)
+
+    delete_branch_after = False
+    with _WORKTREE_LOCK:
+        _git(master_root, ["worktree", "prune"], check=False)
+        _git(master_root, ["worktree", "add", "-b", branch, str(worktree_path), "HEAD"])
+
+    try:
+        _apply_changes(workspace_root, worktree_path, changes)
+        paths = sorted({change.relpath for change in changes})
+        if paths:
+            _git(worktree_path, ["add", "-A", "--", *paths])
+
+        diff_check = _git(worktree_path, ["diff", "--cached", "--name-only"])
+        if not (diff_check.stdout or "").strip():
+            delete_branch_after = True
+            return None
+
+        _git(
+            worktree_path,
+            [
+                "-c",
+                "user.email=tokimon@local",
+                "-c",
+                "user.name=Tokimon",
+                "commit",
+                "-m",
+                "tokimon: self-improve candidate",
+                "--no-gpg-sign",
+            ],
+        )
+        commit = (_git(worktree_path, ["rev-parse", "HEAD"]).stdout or "").strip()
+        if not commit:
+            raise RuntimeError("candidate commit hash missing")
+        return GitMergeCandidate(branch=branch, commit=commit)
+    except Exception:
+        delete_branch_after = True
+        raise
+    finally:
+        with _WORKTREE_LOCK:
+            _git(master_root, ["worktree", "remove", "-f", str(worktree_path)], check=False)
+            _git(master_root, ["worktree", "prune"], check=False)
+        _remove_path(worktree_path)
+        if delete_branch_after:
+            delete_branch(master_root, branch)
+
+
+def squash_merge_candidate(master_root: Path, candidate: GitMergeCandidate) -> subprocess.CompletedProcess[str]:
+    return _git(master_root, ["merge", "--squash", candidate.commit], check=False)
+
+
+def abort_squash_merge(master_root: Path) -> None:
+    # `git merge --squash` does not create MERGE_HEAD; reset is the safe abort.
+    _git(master_root, ["reset", "--hard", "HEAD"], check=False)
+
+
+def commit_squash_merge(master_root: Path, message: str) -> subprocess.CompletedProcess[str]:
+    return _git(
+        master_root,
+        [
+            "-c",
+            "user.email=tokimon@local",
+            "-c",
+            "user.name=Tokimon",
+            "commit",
+            "-m",
+            message,
+            "--no-gpg-sign",
+        ],
+        check=False,
+    )
+
+
+def delete_branch(master_root: Path, branch: str) -> None:
+    _git(master_root, ["branch", "-D", branch], check=False)
+
+
+def purge_bytecode_for_changes(root: Path, changes: list[WorkspaceChange]) -> None:
     for change in changes:
-        target = master_root / change.relpath
-        if target.exists():
-            backups[change.relpath] = target.read_bytes()
-        else:
-            backups[change.relpath] = None
-
-    for change in changes:
-        src = workspace_root / change.relpath
-        dst = master_root / change.relpath
-        if change.kind == "delete":
-            if dst.exists():
-                dst.unlink()
-            continue
-        dst.parent.mkdir(parents=True, exist_ok=True)
-        # Avoid preserving mtimes so Python doesn't reuse stale .pyc caches when file size stays the same.
-        shutil.copy(src, dst)
-        _purge_bytecode_for_file(master_root, change.relpath)
-
-    return backups
-
-
-def rollback_merge(master_root: Path, backups: dict[str, bytes | None]) -> None:
-    for relpath, content in backups.items():
-        dst = master_root / relpath
-        if content is None:
-            if dst.exists():
-                dst.unlink()
-            continue
-        dst.parent.mkdir(parents=True, exist_ok=True)
-        dst.write_bytes(content)
+        _purge_bytecode_for_file(root, change.relpath)
 
 
 def _collect_files(root: Path, include_paths: list[str]) -> set[str]:
@@ -229,3 +299,17 @@ def _remove_path(path: Path) -> None:
         shutil.rmtree(path)
         return
     path.unlink()
+
+
+def _apply_changes(workspace_root: Path, target_root: Path, changes: list[WorkspaceChange]) -> None:
+    for change in changes:
+        dst = target_root / change.relpath
+        if change.kind == "delete":
+            if dst.exists():
+                dst.unlink()
+            continue
+        src = workspace_root / change.relpath
+        if not src.exists():
+            raise FileNotFoundError(f"missing winner file: {change.relpath}")
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dst)

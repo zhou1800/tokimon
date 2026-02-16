@@ -19,10 +19,15 @@ from tools.pytest_tool import PytestTool
 from .source import InputPayload
 from .source import read_goal_input
 from .workspace import WorkspaceChange
+from .workspace import abort_squash_merge
+from .workspace import can_use_git_merge
+from .workspace import commit_squash_merge
 from .workspace import clone_master
 from .workspace import compute_changes
-from .workspace import merge_winner
-from .workspace import rollback_merge
+from .workspace import create_git_merge_candidate
+from .workspace import delete_branch
+from .workspace import purge_bytecode_for_changes
+from .workspace import squash_merge_candidate
 
 
 @dataclass(frozen=True)
@@ -253,13 +258,35 @@ class SelfImproveOrchestrator:
             return False, None
         if not winner.changes:
             return True, self._evaluate_workspace(self.master_root)
+        if not can_use_git_merge(self.master_root):
+            return False, None
 
-        backups = merge_winner(self.master_root, Path(winner.workspace_root), self.settings.include_paths, winner.changes)
-        master_eval = self._evaluate_workspace(self.master_root)
-        if master_eval.ok:
+        candidate = create_git_merge_candidate(self.master_root, Path(winner.workspace_root), winner.changes)
+        if candidate is None:
+            return True, self._evaluate_workspace(self.master_root)
+
+        try:
+            merge_result = squash_merge_candidate(self.master_root, candidate)
+            if merge_result.returncode != 0:
+                abort_squash_merge(self.master_root)
+                return False, None
+
+            purge_bytecode_for_changes(self.master_root, winner.changes)
+            master_eval = self._evaluate_workspace(self.master_root)
+            if not master_eval.ok:
+                abort_squash_merge(self.master_root)
+                return False, master_eval
+
+            commit_result = commit_squash_merge(
+                self.master_root,
+                f"tokimon: self-improve winner session {winner.session_id}",
+            )
+            if commit_result.returncode != 0:
+                abort_squash_merge(self.master_root)
+                return False, master_eval
             return True, master_eval
-        rollback_merge(self.master_root, backups)
-        return False, master_eval
+        finally:
+            delete_branch(self.master_root, candidate.branch)
 
     def _create_self_improve_run(self) -> RunContext:
         project_root = _project_root(self.master_root)
