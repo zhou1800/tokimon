@@ -9,6 +9,7 @@ import shutil
 from dataclasses import replace
 from pathlib import Path
 
+from chat_ui.server import ChatUIConfig, run_chat_ui
 from benchmarks.harness import EvaluationHarness
 from llm.client import CodexCLIClient, CodexCLISettings, MockLLMClient, build_llm_client
 from memory.store import MemoryStore
@@ -58,6 +59,17 @@ def build_parser() -> argparse.ArgumentParser:
         default=os.environ.get("TOKIMON_LLM", "mock"),
         help="LLM provider to use for self-improve sessions (or set TOKIMON_LLM).",
     )
+
+    chat_ui = subparsers.add_parser("chat-ui")
+    chat_ui.add_argument("--host", default="127.0.0.1")
+    chat_ui.add_argument("--port", type=int, default=8765)
+    chat_ui.add_argument(
+        "--llm",
+        choices=["mock", "codex"],
+        default=os.environ.get("TOKIMON_LLM", "mock"),
+        help="LLM provider to use for chat-ui (or set TOKIMON_LLM).",
+    )
+    chat_ui.add_argument("--workspace", default=None, help="Workspace directory (default: current working directory).")
 
     return parser
 
@@ -163,6 +175,17 @@ def main(argv: list[str] | None = None) -> int:
         orchestrator = SelfImproveOrchestrator(master_root, llm_factory=llm_factory, settings=settings)
         report = orchestrator.run(args.goal, input_ref=args.input)
         print(json.dumps({"run_root": report.run_root}, indent=2))
+        return 0
+
+    if args.command == "chat-ui":
+        workspace_dir = Path(args.workspace).resolve() if args.workspace else Path.cwd().resolve()
+        config = ChatUIConfig(
+            host=str(args.host),
+            port=int(args.port),
+            llm_provider=str(args.llm),
+            workspace_dir=workspace_dir,
+        )
+        run_chat_ui(config)
         return 0
 
     return 1

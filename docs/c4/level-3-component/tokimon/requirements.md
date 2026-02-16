@@ -21,6 +21,7 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
 - As a researcher, I can compare baseline and hierarchical agents across a benchmark suite with reports.
 - As a maintainer, I can add or generate new skills and register them only when tests pass.
 - As an operator, I can inspect runs, artifacts, Lessons, and traces for debugging and auditing.
+- As a developer, I can interact with Tokimon in a local chat UI to submit goals and view responses without repeatedly invoking CLI commands.
 
 ## Functional Requirements
 ### Hierarchical Agents
@@ -102,8 +103,15 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
   - Metrics include at least: pass/fail counts, wall time, model calls, tool calls, and Lessons produced.
 
 ### CLI
-- Commands: run-task, run-suite, resume-run, inspect-run, list-skills, build-skill, self-improve.
+- Commands: run-task, run-suite, resume-run, inspect-run, list-skills, build-skill, self-improve, chat-ui.
 - CLI outputs are structured and point to run artifacts.
+
+### Chat UI
+- `tokimon chat-ui` starts a local web server (binds loopback by default) that serves a single-page chat UI.
+- Health endpoint: `GET /healthz` returns JSON indicating the server is running.
+- Chat endpoint: `POST /api/send` accepts JSON `{message: string, history?: [{role, content}]}` and returns a structured JSON reply including `status` and a human-readable assistant message (in `reply` or `summary`).
+- The chat handler uses the same tool set as the hierarchical runner (file, grep, patch, pytest, web).
+- Default LLM provider is `mock`; `--llm codex` (or `TOKIMON_LLM=codex`) enables the Codex CLI-backed client.
 
 ### Self-Improvement Mode (Multi-Session / Batch)
 - When invoked with a self-improvement goal, the system can accept optional “inputs”:
@@ -112,7 +120,7 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
 - The system runs a batch of N independent improvement sessions in parallel.
 - Before launching each batch, the system runs an evaluation on the current master workspace (pytest by default) and passes a compact summary (pass/fail counts + failing test ids) into every session as context.
 - Each session:
-  - Materializes the master workspace into an isolated session workspace (prefer `git worktree` for fast cloning when the master workspace is a clean git checkout; otherwise fall back to file copying).
+  - Materializes the master workspace into an isolated session workspace (prefer `git worktree` for fast cloning when the master workspace is the git toplevel and `git status --porcelain` is empty; otherwise fall back to file copying).
   - Runs the hierarchical agent system within that workspace to attempt improvements.
   - Runs the configured evaluation command after each workflow step when `pytest_args` are provided, so retry/progress gating has objective signals.
   - Evaluates the result (pytest by default; optionally benchmark suite).
@@ -123,7 +131,8 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
       - Create a temporary commit capturing the winner changes.
       - Apply via `git merge --squash` onto master.
       - Re-evaluate master; on success, commit the squashed changes.
-      - On conflicts or failing evaluation, abort and leave master unchanged.
+      - Use an OS-level lock to serialise merges so multiple self-improve runs can safely merge into the same checkout.
+      - On merge conflicts, automatically resolve (prefer winner changes) and continue; on failing evaluation, abort and leave master unchanged.
 - The system runs up to the configured number of batches, even when merge is disabled (report-only mode) or when a batch fails to produce a mergeable winner.
 
 #### Self-Improve Session Context Contract
@@ -159,3 +168,4 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
 - Parallel worker execution is implemented and configurable to very high concurrency.
 - Retries are novelty-gated, log progress metrics, and persist Lessons for each retry.
 - Dynamic skills are generated, tested, and registered only on passing tests.
+- `tokimon chat-ui` starts a local server where `GET /healthz` and `POST /api/send` return successful JSON responses.

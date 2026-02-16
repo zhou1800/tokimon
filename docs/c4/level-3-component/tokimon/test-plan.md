@@ -20,12 +20,19 @@ This document maps requirements to automated tests.
   - Validate artifacts, Lessons, and reports are produced.
   - Verify baseline and hierarchical runners both execute.
 
+- Chat UI smoke test (mock model):
+  - Start `tokimon chat-ui` (or the server module) on an ephemeral port.
+  - Assert `GET /healthz` returns `{"ok": true}` (or equivalent).
+  - Assert `POST /api/send` with a simple message returns a structured JSON reply.
+  - Shut the server down cleanly.
+
 - Self-improvement batch:
   - Creates multiple isolated session workspaces from a master root.
   - Uses `git worktree` for session workspaces when the master is a clean git checkout; otherwise falls back to file copying.
   - Evaluates each session and selects a winner deterministically.
   - Merges the winner back to master and re-runs evaluation.
-  - When master is a clean git checkout, winner merge uses `git merge --squash` (conflict-aware) and commits only on passing evaluation.
+  - When master is a clean git checkout, winner merge uses `git merge --squash` and commits only on passing evaluation.
+  - Merges are serialised via an OS-level lock; merge conflicts are auto-resolved (prefer winner changes).
   - Runs all configured batches even when:
     - merge is disabled (`--no-merge` / report-only mode), or
     - a batch fails to produce a mergeable winner (evaluation fails).

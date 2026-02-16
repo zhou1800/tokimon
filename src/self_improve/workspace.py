@@ -2,13 +2,21 @@
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import shutil
 import subprocess
+import tempfile
 import threading
+import time
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
+
+try:  # pragma: no cover
+    import fcntl
+except ImportError:  # pragma: no cover
+    fcntl = None
 
 
 @dataclass(frozen=True)
@@ -75,6 +83,70 @@ def can_use_git_merge(master_root: Path) -> bool:
     return _can_use_git_worktree(master_root)
 
 
+@contextlib.contextmanager
+def merge_lock(master_root: Path, *, timeout_s: float = 600.0) -> contextlib.AbstractContextManager[None]:
+    """Serialise merge operations across processes for a single git checkout."""
+    lock_path = _merge_lock_path(master_root)
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    with lock_path.open("a", encoding="utf-8") as handle:
+        if fcntl is None:
+            yield
+            return
+        start = time.monotonic()
+        while True:
+            try:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except BlockingIOError:
+                if time.monotonic() - start >= timeout_s:
+                    raise TimeoutError(f"Timed out waiting for merge lock: {lock_path}")
+                time.sleep(0.1)
+        try:
+            yield
+        finally:
+            try:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+            except Exception:
+                pass
+
+
+def create_workspace_candidate_commit(workspace_root: Path, include_paths: list[str], message: str) -> str | None:
+    """Commit winner changes inside the session workspace and return the commit hash."""
+    try:
+        inside = _git(workspace_root, ["rev-parse", "--is-inside-work-tree"], check=False)
+    except Exception:
+        return None
+    if (inside.stdout or "").strip().lower() != "true":
+        return None
+
+    paths = sorted({path for path in include_paths if str(path).strip()})
+    if not paths:
+        return None
+    _git(workspace_root, ["add", "-A", "--", *paths], check=False)
+    diff = _git(workspace_root, ["diff", "--cached", "--name-only"], check=False)
+    if not (diff.stdout or "").strip():
+        return None
+
+    commit_result = _git(
+        workspace_root,
+        [
+            "-c",
+            "user.email=tokimon@local",
+            "-c",
+            "user.name=Tokimon",
+            "commit",
+            "-m",
+            message,
+            "--no-gpg-sign",
+        ],
+        check=False,
+    )
+    if commit_result.returncode != 0:
+        return None
+    commit = (_git(workspace_root, ["rev-parse", "HEAD"], check=False).stdout or "").strip()
+    return commit or None
+
+
 def create_git_merge_candidate(
     master_root: Path,
     workspace_root: Path,
@@ -86,9 +158,7 @@ def create_git_merge_candidate(
     """
     token = uuid.uuid4().hex[:12]
     branch = f"tokimon/self-improve/candidate-{token}"
-    worktree_root = (master_root / ".tokimon-tmp" / "merge-worktrees").resolve()
-    worktree_path = worktree_root / f"candidate-{token}"
-    worktree_root.mkdir(parents=True, exist_ok=True)
+    worktree_path = Path(tempfile.mkdtemp(prefix="tokimon-merge-worktree-"))
 
     delete_branch_after = False
     with _WORKTREE_LOCK:
@@ -135,8 +205,20 @@ def create_git_merge_candidate(
             delete_branch(master_root, branch)
 
 
-def squash_merge_candidate(master_root: Path, candidate: GitMergeCandidate) -> subprocess.CompletedProcess[str]:
-    return _git(master_root, ["merge", "--squash", candidate.commit], check=False)
+def squash_merge_candidate(
+    master_root: Path, candidate: GitMergeCandidate, *, strategy_option: str | None = None
+) -> subprocess.CompletedProcess[str]:
+    return squash_merge_commit(master_root, candidate.commit, strategy_option=strategy_option)
+
+
+def squash_merge_commit(
+    master_root: Path, commit: str, *, strategy_option: str | None = None
+) -> subprocess.CompletedProcess[str]:
+    args = ["merge", "--squash"]
+    if strategy_option:
+        args.extend(["-X", strategy_option])
+    args.append(commit)
+    return _git(master_root, args, check=False)
 
 
 def abort_squash_merge(master_root: Path) -> None:
@@ -168,6 +250,23 @@ def delete_branch(master_root: Path, branch: str) -> None:
 def purge_bytecode_for_changes(root: Path, changes: list[WorkspaceChange]) -> None:
     for change in changes:
         _purge_bytecode_for_file(root, change.relpath)
+
+
+def list_unmerged_paths(master_root: Path) -> list[str]:
+    result = _git(master_root, ["diff", "--name-only", "--diff-filter=U"], check=False)
+    return [line.strip() for line in (result.stdout or "").splitlines() if line.strip()]
+
+
+def resolve_unmerged_paths(master_root: Path, commit: str, paths: list[str]) -> bool:
+    """Resolve unmerged paths by preferring the given commit's version."""
+    for relpath in paths:
+        exists = _git(master_root, ["cat-file", "-e", f"{commit}:{relpath}"], check=False).returncode == 0
+        if exists:
+            _git(master_root, ["checkout", commit, "--", relpath], check=False)
+            _git(master_root, ["add", "--", relpath], check=False)
+        else:
+            _git(master_root, ["rm", "-f", "--ignore-unmatch", "--", relpath], check=False)
+    return not list_unmerged_paths(master_root)
 
 
 def _collect_files(root: Path, include_paths: list[str]) -> set[str]:
@@ -313,3 +412,24 @@ def _apply_changes(workspace_root: Path, target_root: Path, changes: list[Worksp
             raise FileNotFoundError(f"missing winner file: {change.relpath}")
         dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(src, dst)
+
+
+def _merge_lock_path(master_root: Path) -> Path:
+    git_dir = _git_dir(master_root)
+    if git_dir is None:
+        return (master_root / ".tokimon-tmp" / "self-improve-merge.lock").resolve()
+    return (git_dir / "tokimon-self-improve-merge.lock").resolve()
+
+
+def _git_dir(master_root: Path) -> Path | None:
+    try:
+        result = _git(master_root, ["rev-parse", "--git-dir"], check=False)
+    except Exception:
+        return None
+    raw = (result.stdout or "").strip()
+    if not raw:
+        return None
+    path = Path(raw)
+    if not path.is_absolute():
+        path = (master_root / path).resolve()
+    return path

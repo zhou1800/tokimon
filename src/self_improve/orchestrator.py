@@ -24,10 +24,14 @@ from .workspace import can_use_git_merge
 from .workspace import commit_squash_merge
 from .workspace import clone_master
 from .workspace import compute_changes
+from .workspace import create_workspace_candidate_commit
 from .workspace import create_git_merge_candidate
 from .workspace import delete_branch
+from .workspace import list_unmerged_paths
+from .workspace import merge_lock
 from .workspace import purge_bytecode_for_changes
-from .workspace import squash_merge_candidate
+from .workspace import squash_merge_commit
+from .workspace import resolve_unmerged_paths
 
 
 @dataclass(frozen=True)
@@ -258,35 +262,58 @@ class SelfImproveOrchestrator:
             return False, None
         if not winner.changes:
             return True, self._evaluate_workspace(self.master_root)
-        if not can_use_git_merge(self.master_root):
-            return False, None
 
-        candidate = create_git_merge_candidate(self.master_root, Path(winner.workspace_root), winner.changes)
-        if candidate is None:
-            return True, self._evaluate_workspace(self.master_root)
+        winner_workspace = Path(winner.workspace_root)
+        candidate_commit = create_workspace_candidate_commit(
+            winner_workspace,
+            include_paths=self.settings.include_paths,
+            message=f"tokimon: self-improve candidate {winner.session_id}",
+        )
 
-        try:
-            merge_result = squash_merge_candidate(self.master_root, candidate)
-            if merge_result.returncode != 0:
-                abort_squash_merge(self.master_root)
+        candidate_branch: str | None = None
+        with merge_lock(self.master_root):
+            if not can_use_git_merge(self.master_root):
                 return False, None
 
-            purge_bytecode_for_changes(self.master_root, winner.changes)
-            master_eval = self._evaluate_workspace(self.master_root)
-            if not master_eval.ok:
-                abort_squash_merge(self.master_root)
-                return False, master_eval
+            if candidate_commit is None:
+                candidate = create_git_merge_candidate(self.master_root, winner_workspace, winner.changes)
+                if candidate is None:
+                    return True, self._evaluate_workspace(self.master_root)
+                candidate_commit = candidate.commit
+                candidate_branch = candidate.branch
 
-            commit_result = commit_squash_merge(
-                self.master_root,
-                f"tokimon: self-improve winner session {winner.session_id}",
-            )
-            if commit_result.returncode != 0:
-                abort_squash_merge(self.master_root)
-                return False, master_eval
-            return True, master_eval
-        finally:
-            delete_branch(self.master_root, candidate.branch)
+            try:
+                merge_result = squash_merge_commit(self.master_root, candidate_commit)
+                if merge_result.returncode != 0:
+                    abort_squash_merge(self.master_root)
+                    merge_result = squash_merge_commit(self.master_root, candidate_commit, strategy_option="theirs")
+                    if merge_result.returncode != 0:
+                        conflicted = list_unmerged_paths(self.master_root)
+                        if not conflicted or not resolve_unmerged_paths(self.master_root, candidate_commit, conflicted):
+                            abort_squash_merge(self.master_root)
+                            return False, None
+
+                if list_unmerged_paths(self.master_root):
+                    abort_squash_merge(self.master_root)
+                    return False, None
+
+                purge_bytecode_for_changes(self.master_root, winner.changes)
+                master_eval = self._evaluate_workspace(self.master_root)
+                if not master_eval.ok:
+                    abort_squash_merge(self.master_root)
+                    return False, master_eval
+
+                commit_result = commit_squash_merge(
+                    self.master_root,
+                    f"tokimon: self-improve winner session {winner.session_id}",
+                )
+                if commit_result.returncode != 0:
+                    abort_squash_merge(self.master_root)
+                    return False, master_eval
+                return True, master_eval
+            finally:
+                if candidate_branch:
+                    delete_branch(self.master_root, candidate_branch)
 
     def _create_self_improve_run(self) -> RunContext:
         project_root = _project_root(self.master_root)

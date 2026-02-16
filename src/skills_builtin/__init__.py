@@ -4,6 +4,14 @@ from skills.spec import SkillSpec
 
 SKILLS = [
     SkillSpec(
+        name="Chat",
+        purpose="Interactive chat assistant for Tokimon's chat UI.",
+        contract="Given a chat message (and optional history), respond conversationally in `summary`. Use tools when needed; keep outputs structured.",
+        required_tools=["grep", "file", "patch", "pytest", "web"],
+        retrieval_prefs={"stage1": "recent chat context", "stage2": "related lessons", "stage3": "cross-task patterns"},
+        module="skills_builtin",
+    ),
+    SkillSpec(
         name="Planner",
         purpose="Decompose goals into workflows and step contracts.",
         contract="Return a workflow spec with steps and dependencies.",

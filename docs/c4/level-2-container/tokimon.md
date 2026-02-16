@@ -4,7 +4,9 @@
 ```mermaid
 flowchart TB
   User[Developer/Researcher] --> CLI[CLI: tokimon]
+  User --> ChatUI[Chat UI: tokimon chat-ui]
   CLI --> Core[Core Library]
+  ChatUI --> Core
   Core --> WF[Workflow Engine]
   Core --> MEM[Memory Store]
   Core --> REG[Skill Registry]
@@ -20,6 +22,7 @@ flowchart TB
 
 ## Containers
 - CLI: command interface for running tasks, suites, and inspecting runs.
+- Chat UI: local web app (server + browser UI) for interactive chat with Tokimon.
 - Core Library: orchestration, manager/worker logic, retry gating, skill lifecycle.
 - Workflow Engine: DAG execution, persistence, resume.
 - Memory Store: Lessons, artifact index, staged retrieval, lexical index.
@@ -32,6 +35,7 @@ This section consolidates the system architecture plan for Tokimon.
 
 ### Components and Responsibilities
 - CLI (`tokimon`): entry point for running tasks, suites, resuming runs, inspecting artifacts, listing/building skills.
+- Chat UI (`tokimon chat-ui`): local web server that serves a chat UI and routes messages into the core runner.
 - Core Orchestrator: coordinates workflow execution, run state, and artifacts.
 - Workflow Engine: validates DAGs, manages step state machine, persists state, and resumes runs.
 - Manager Agent: converts goals into workflows, delegates to workers, enforces retry/novelty rules, and maintains delegation graph.
@@ -184,7 +188,7 @@ Transitions:
 ### Self-Improvement (Batch Sessions)
 - A self-improvement “run” executes one or more **batches**.
 - Each batch spawns N **sessions** in parallel (threads/processes), each with an isolated workspace clone of master.
-- Session workspaces may be created via `git worktree` (preferred for speed when master is a clean git checkout) or via file copying as a fallback.
+- Session workspaces may be created via `git worktree` (preferred for speed when the master workspace is the git toplevel and `git status --porcelain` is empty) or via file copying as a fallback (so sessions can include uncommitted changes or work in non-git folders).
 - For safety, cloning and merging may be restricted to a configured set of paths (defaults should include `src/` and `docs/`).
 - Session workspaces should include the repo entrypoint `AGENTS.md` so agents can follow the documented start sequence.
 - Before launching each batch, the orchestrator evaluates the current master (pytest by default) and provides the results summary to all sessions as context.
@@ -200,5 +204,6 @@ Transitions:
     - Create a temporary commit for the winner changes.
     - Apply via `git merge --squash` onto master, then re-run evaluation.
     - On success, commit the squashed changes to keep master clean for subsequent batches.
-    - On conflicts or failing evaluation, abort and leave master unchanged (winner workspace remains available for manual review).
+    - Serialise merges across processes via an OS-level lock so multiple self-improve runs can safely merge into the same checkout.
+    - On merge conflicts, automatically resolve (prefer winner changes) and continue; on failing evaluation, abort and leave master unchanged (winner workspace remains available for manual review).
   - A batch report is persisted with links to session artifacts and the merged changes.

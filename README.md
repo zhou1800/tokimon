@@ -41,6 +41,14 @@ List skills (built-in + generated):
 source .venv/bin/activate && tokimon list-skills
 ```
 
+Start the local chat UI (open the printed URL in a browser):
+```bash
+source .venv/bin/activate && tokimon chat-ui
+
+# Use a real model via Codex CLI:
+source .venv/bin/activate && tokimon chat-ui --llm codex
+```
+
 Self-improve (experimental; uses the current working directory as the "master" workspace):
 ```bash
 source .venv/bin/activate && tokimon self-improve --goal "Improve tokimon based on docs and failing tests."
