@@ -19,8 +19,6 @@ dev = [
 
 [project.scripts]
 tokimon = "cli:main"
-agent-flow = "cli:main"
-super-agent = "cli:main"
 
 [tool.setuptools]
 package-dir = {"" = "."}

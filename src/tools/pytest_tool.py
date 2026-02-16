@@ -94,7 +94,7 @@ def _elapsed_ms(start: float) -> float:
 
 def _ensure_tmp_root(root: Path) -> Path | None:
     try:
-        tmp_root = (root / ".agent-flow-tmp").resolve()
+        tmp_root = (root / ".tokimon-tmp").resolve()
         tmp_root.mkdir(parents=True, exist_ok=True)
         return tmp_root
     except Exception:

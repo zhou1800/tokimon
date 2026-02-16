@@ -31,7 +31,7 @@ flowchart TB
 This section consolidates the system architecture plan for Tokimon.
 
 ### Components and Responsibilities
-- CLI (`tokimon`, aliases: `agent-flow`, `super-agent`): entry point for running tasks, suites, resuming runs, inspecting artifacts, listing/building skills.
+- CLI (`tokimon`): entry point for running tasks, suites, resuming runs, inspecting artifacts, listing/building skills.
 - Core Orchestrator: coordinates workflow execution, run state, and artifacts.
 - Workflow Engine: validates DAGs, manages step state machine, persists state, and resumes runs.
 - Manager Agent: converts goals into workflows, delegates to workers, enforces retry/novelty rules, and maintains delegation graph.

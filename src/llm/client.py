@@ -64,18 +64,18 @@ class CodexCLISettings:
     @staticmethod
     def from_env() -> "CodexCLISettings":
         cli_command = os.environ.get("CODEX_CLI", "codex")
-        model = _env_first("TOKIMON_CODEX_MODEL", "AGENT_FLOW_CODEX_MODEL")
-        profile = _env_first("TOKIMON_CODEX_PROFILE", "AGENT_FLOW_CODEX_PROFILE")
-        sandbox = _env_first("TOKIMON_CODEX_SANDBOX", "AGENT_FLOW_CODEX_SANDBOX", default="read-only")
-        ask_for_approval = _env_first("TOKIMON_CODEX_APPROVAL", "AGENT_FLOW_CODEX_APPROVAL", default="never")
-        search_raw = _env_first("TOKIMON_CODEX_SEARCH", "AGENT_FLOW_CODEX_SEARCH", default="")
+        model = os.environ.get("TOKIMON_CODEX_MODEL")
+        profile = os.environ.get("TOKIMON_CODEX_PROFILE")
+        sandbox = os.environ.get("TOKIMON_CODEX_SANDBOX", "read-only")
+        ask_for_approval = os.environ.get("TOKIMON_CODEX_APPROVAL", "never")
+        search_raw = os.environ.get("TOKIMON_CODEX_SEARCH", "")
         search = (search_raw or "").strip().lower() in {"1", "true", "yes", "on"}
-        timeout_raw = _env_first("TOKIMON_CODEX_TIMEOUT_S", "AGENT_FLOW_CODEX_TIMEOUT_S", default="900")
+        timeout_raw = os.environ.get("TOKIMON_CODEX_TIMEOUT_S", "900")
         try:
             timeout_s = int(timeout_raw)
         except ValueError:
             timeout_s = 900
-        config = _load_json_env("TOKIMON_CODEX_CONFIG_JSON") or _load_json_env("AGENT_FLOW_CODEX_CONFIG_JSON") or {}
+        config = _load_json_env("TOKIMON_CODEX_CONFIG_JSON") or {}
         return CodexCLISettings(
             cli_command=cli_command,
             model=model,
@@ -114,7 +114,7 @@ class CodexCLIClient:
         if tmp_root is not None:
             env.update({"TMPDIR": str(tmp_root), "TEMP": str(tmp_root), "TMP": str(tmp_root)})
 
-        tmp_kwargs: dict[str, Any] = {"prefix": "agent-flow-codex-"}
+        tmp_kwargs: dict[str, Any] = {"prefix": "tokimon-codex-"}
         if tmp_root is not None:
             tmp_kwargs["dir"] = str(tmp_root)
 
@@ -333,7 +333,7 @@ def _first_nonempty_line(text: str) -> str:
 
 def _ensure_tmp_root(workspace_dir: Path) -> Path | None:
     try:
-        tmp_root = (workspace_dir / ".agent-flow-tmp").resolve()
+        tmp_root = (workspace_dir / ".tokimon-tmp").resolve()
         tmp_root.mkdir(parents=True, exist_ok=True)
         return tmp_root
     except Exception:
@@ -352,9 +352,3 @@ def _load_json_env(var_name: str) -> dict[str, Any] | None:
         return parsed
     return None
 
-
-def _env_first(*names: str, default: str | None = None) -> str | None:
-    for name in names:
-        if name in os.environ:
-            return os.environ.get(name)
-    return default

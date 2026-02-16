@@ -55,8 +55,8 @@ def build_parser() -> argparse.ArgumentParser:
     self_improve.add_argument(
         "--llm",
         choices=["mock", "codex"],
-        default=os.environ.get("TOKIMON_LLM") or os.environ.get("AGENT_FLOW_LLM", "mock"),
-        help="LLM provider to use for self-improve sessions (or set TOKIMON_LLM / AGENT_FLOW_LLM).",
+        default=os.environ.get("TOKIMON_LLM", "mock"),
+        help="LLM provider to use for self-improve sessions (or set TOKIMON_LLM).",
     )
 
     return parser
@@ -149,13 +149,13 @@ def main(argv: list[str] | None = None) -> int:
         def llm_factory(_session_id: str, workspace_dir: Path):
             if llm_provider in {"codex", "codex-cli"}:
                 codex_settings = CodexCLISettings.from_env()
-                if "TOKIMON_CODEX_SANDBOX" not in os.environ and "AGENT_FLOW_CODEX_SANDBOX" not in os.environ:
+                if "TOKIMON_CODEX_SANDBOX" not in os.environ:
                     codex_settings = replace(codex_settings, sandbox="workspace-write")
-                if "TOKIMON_CODEX_APPROVAL" not in os.environ and "AGENT_FLOW_CODEX_APPROVAL" not in os.environ:
+                if "TOKIMON_CODEX_APPROVAL" not in os.environ:
                     codex_settings = replace(codex_settings, ask_for_approval="never")
-                if "TOKIMON_CODEX_SEARCH" not in os.environ and "AGENT_FLOW_CODEX_SEARCH" not in os.environ:
+                if "TOKIMON_CODEX_SEARCH" not in os.environ:
                     codex_settings = replace(codex_settings, search=True)
-                if "TOKIMON_CODEX_TIMEOUT_S" not in os.environ and "AGENT_FLOW_CODEX_TIMEOUT_S" not in os.environ:
+                if "TOKIMON_CODEX_TIMEOUT_S" not in os.environ:
                     codex_settings = replace(codex_settings, timeout_s=240)
                 return CodexCLIClient(workspace_dir, settings=codex_settings)
             return build_llm_client(llm_provider, workspace_dir=workspace_dir)

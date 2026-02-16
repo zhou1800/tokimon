@@ -2,7 +2,7 @@
 
 Doc-led hierarchical manager/worker agent system with workflow orchestration, novelty-gated retries, offline benchmarks, and a self-improvement mode.
 
-The CLI entrypoint is `tokimon` (aliases: `agent-flow`, `super-agent`).
+The CLI entrypoint is `tokimon`.
 
 ## Install
 Run from the repository root:
@@ -49,7 +49,7 @@ source .venv/bin/activate && tokimon self-improve --goal "Improve tokimon based 
 source .venv/bin/activate && tokimon self-improve --llm codex --goal "Improve tokimon based on docs and failing tests."
 ```
 
-Note: by default, self-improve uses `MockLLMClient` (no real model calls). To use Codex CLI as the LLM, pass `--llm codex` (or set `TOKIMON_LLM=codex` / `AGENT_FLOW_LLM=codex`).
+Note: by default, self-improve uses `MockLLMClient` (no real model calls). To use Codex CLI as the LLM, pass `--llm codex` (or set `TOKIMON_LLM=codex`).
 
 ## Development
 Run tests:
