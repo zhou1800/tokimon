@@ -19,7 +19,7 @@ class WebTool:
         start = time.perf_counter()
         try:
             parsed = _validate_url(url)
-            req = urllib.request.Request(parsed.geturl(), headers={"User-Agent": "agent-flow-web-tool"})
+            req = urllib.request.Request(parsed.geturl(), headers={"User-Agent": "tokimon-web-tool"})
             with urllib.request.urlopen(req, timeout=timeout_s) as resp:
                 raw = resp.read(max_bytes + 1)
                 content_type = resp.headers.get("Content-Type")
@@ -57,7 +57,7 @@ class WebTool:
                 return ToolResult(ok=True, summary="no results requested", data={"query": query, "results": []}, elapsed_ms=_elapsed_ms(start))
             api_url = _duckduckgo_api_url(query.strip())
             parsed = _validate_url(api_url)
-            req = urllib.request.Request(parsed.geturl(), headers={"User-Agent": "agent-flow-web-tool"})
+            req = urllib.request.Request(parsed.geturl(), headers={"User-Agent": "tokimon-web-tool"})
             with urllib.request.urlopen(req, timeout=timeout_s) as resp:
                 raw = resp.read(2_000_000)
             payload = json.loads(raw.decode(errors="replace"))
@@ -143,4 +143,3 @@ def _validate_url(url: str) -> urllib.parse.ParseResult:
 
 def _elapsed_ms(start: float) -> float:
     return (time.perf_counter() - start) * 1000
-

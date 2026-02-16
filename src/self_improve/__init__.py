@@ -1,4 +1,4 @@
-"""Self-improvement orchestration for Agent-Flow."""
+"""Self-improvement orchestration for Tokimon."""
 
 from .orchestrator import SelfImproveOrchestrator
 from .orchestrator import SelfImproveReport

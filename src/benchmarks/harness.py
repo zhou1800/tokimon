@@ -1,4 +1,4 @@
-"""Benchmark harness for Agent-Flow."""
+"""Benchmark harness for Tokimon."""
 
 from __future__ import annotations
 
@@ -133,7 +133,7 @@ class EvaluationHarness:
 
 def _format_markdown_report(results: list[TaskResult]) -> str:
     lines = [
-        "# Agent-Flow Benchmark Report",
+        "# Tokimon Benchmark Report",
         "",
         "| Task | Runner | Passed | Failed | Best Passed | Best Failed | Model Calls | Tool Calls | Wall Time (s) | Lessons | Artifacts |",
         "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",

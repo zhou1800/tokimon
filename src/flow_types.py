@@ -1,4 +1,4 @@
-"""Shared types and enums for Agent-Flow."""
+"""Shared types and enums for Tokimon."""
 
 from __future__ import annotations
 

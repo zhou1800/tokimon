@@ -300,7 +300,7 @@ class SelfImproveOrchestrator:
         md_path.write_text(
             "\n".join(
                 [
-                    "# Agent-Flow Self-Improve Report",
+                    "# Tokimon Self-Improve Report",
                     "",
                     f"Status: {status}",
                     "",
@@ -448,7 +448,7 @@ def _report_to_dict(report: SelfImproveReport) -> dict[str, Any]:
 
 def _report_to_markdown(report: SelfImproveReport) -> str:
     lines = [
-        "# Agent-Flow Self-Improve Report",
+        "# Tokimon Self-Improve Report",
         "",
         "Status: COMPLETED",
         "",

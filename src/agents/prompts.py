@@ -11,7 +11,7 @@ _SKILL_SPECS = {spec.name: spec for spec in SKILLS}
 def build_system_prompt(role: str) -> str:
     spec = _SKILL_SPECS.get(role)
     lines: list[str] = [
-        f"You are a {role} worker in Agent-Flow.",
+        f"You are a {role} worker in Tokimon.",
         "",
         "Method (Helix): documentation under `docs/` is the source of truth. If behavior changes, update docs and tests before code.",
         "",

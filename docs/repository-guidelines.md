@@ -1,6 +1,6 @@
 # Repository Guidelines
 
-This document records the rules, conventions, and guardrails that govern work across this repository. It explains how contributors should structure, build, test, and safeguard changes in Agent-Flow.
+This document records the rules, conventions, and guardrails that govern work across this repository. It explains how contributors should structure, build, test, and safeguard changes in Tokimon.
 
 ## Purpose & Scope
 - Helix is doc-led: files under `docs/` (plus component READMEs) are the single source of truth for requirements, architecture, and acceptance criteria. If the spec and code diverge, update the docs first and regenerate artifacts.
@@ -41,7 +41,7 @@ This document records the rules, conventions, and guardrails that govern work ac
 
 ## Commit & Pull Request Guidelines
 - Follow the Helix task template: Context, Change Summary, Artifacts, Verification, Doc Deltas, Risks & Rollback. Reference the exact doc section IDs or headings that govern the change.
-- Commit messages are imperative and scoped (e.g., `feat(agent-flow): add retry gate`, `docs(repo): clarify test commands`). Include AI tool attribution in the body when applicable.
+- Commit messages are imperative and scoped (e.g., `feat(tokimon): add retry gate`, `docs(repo): clarify test commands`). Include AI tool attribution in the body when applicable.
 - PRs link to their governing spec, paste relevant verification output, and attach artifacts (screenshots, `npm run build` logs, etc.) when changes touch UI or infrastructure.
 - Keep mirrored or archived directories aligned with their upstream workflow if they are actively synced. Use this workspace for cross-repo documentation or tooling, not for direct commits against mirrored codebases.
 - Large command outputs or generated artifacts stay out of version control; summarise results and store references in docs instead.

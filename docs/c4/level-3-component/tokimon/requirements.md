@@ -1,7 +1,7 @@
-# Agent-Flow Requirements
+# Tokimon Requirements
 
 ## Overview
-Agent-Flow is a production-grade manager/worker (hierarchical) agent system that orchestrates multi-step workflows, enforces novelty-gated retries, and persists long-term memory to disk with staged retrieval. It also provides a benchmark harness to compare a baseline single-agent runner against the hierarchical system.
+Tokimon is a production-grade manager/worker (hierarchical) agent system that orchestrates multi-step workflows, enforces novelty-gated retries, and persists long-term memory to disk with staged retrieval. It also provides a benchmark harness to compare a baseline single-agent runner against the hierarchical system.
 
 ## Goals
 - Orchestrate workflows with typed step contracts, dependencies, parallel execution, and resume support.
@@ -136,7 +136,7 @@ Agent-Flow is a production-grade manager/worker (hierarchical) agent system that
   - Use tools for repo context retrieval (grep/file), patching, and evaluation.
 
 ## Repository Layout
-- Agent-Flow project root lives under `src/` in this repository.
+- Tokimon project root lives under `src/` in this repository.
 - Python sources live directly under `src/` (e.g., `cli.py`, `agents/`, `workflow/`).
 - Tests live under `src/tests/`.
 - Generated skills live under `src/skills_generated/`.

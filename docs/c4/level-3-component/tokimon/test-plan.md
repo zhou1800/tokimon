@@ -1,4 +1,4 @@
-# Agent-Flow Test Plan
+# Tokimon Test Plan
 
 This document maps requirements to automated tests.
 
@@ -39,4 +39,4 @@ This document maps requirements to automated tests.
 - From repo root: `source .venv/bin/activate && pytest --maxfail=1 -c src/pyproject.toml src/tests`
 
 ## Coverage Expectations
-- All key requirements in `docs/c4/level-3-component/agent-flow/requirements.md` have corresponding tests.
+- All key requirements in `docs/c4/level-3-component/tokimon/requirements.md` have corresponding tests.

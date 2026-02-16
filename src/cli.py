@@ -1,4 +1,4 @@
-"""CLI entrypoint for Agent-Flow."""
+"""CLI entrypoint for Tokimon."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ from skills.spec import SkillSpec
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="agent-flow")
+    parser = argparse.ArgumentParser(prog="tokimon")
     subparsers = parser.add_subparsers(dest="command")
 
     run_task = subparsers.add_parser("run-task")
@@ -46,7 +46,7 @@ def build_parser() -> argparse.ArgumentParser:
     build_skill.add_argument("--justification", required=True)
 
     self_improve = subparsers.add_parser("self-improve")
-    self_improve.add_argument("--goal", default="Improve agent-flow based on docs and failing tests.")
+    self_improve.add_argument("--goal", default="Improve tokimon based on docs and failing tests.")
     self_improve.add_argument("--input", default=None)
     self_improve.add_argument("--sessions", type=int, default=4)
     self_improve.add_argument("--batches", type=int, default=1)
@@ -55,8 +55,8 @@ def build_parser() -> argparse.ArgumentParser:
     self_improve.add_argument(
         "--llm",
         choices=["mock", "codex"],
-        default=os.environ.get("AGENT_FLOW_LLM", "mock"),
-        help="LLM provider to use for self-improve sessions (or set AGENT_FLOW_LLM).",
+        default=os.environ.get("TOKIMON_LLM") or os.environ.get("AGENT_FLOW_LLM", "mock"),
+        help="LLM provider to use for self-improve sessions (or set TOKIMON_LLM / AGENT_FLOW_LLM).",
     )
 
     return parser

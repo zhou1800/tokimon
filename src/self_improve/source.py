@@ -56,7 +56,7 @@ def read_optional_input(ref: str | None, max_bytes: int = 512_000) -> InputPaylo
 
 def _read_url(url: str, max_bytes: int) -> InputPayload:
     parsed = _validate_url(url)
-    req = urllib.request.Request(parsed.geturl(), headers={"User-Agent": "agent-flow-self-improve"})
+    req = urllib.request.Request(parsed.geturl(), headers={"User-Agent": "tokimon-self-improve"})
     with urllib.request.urlopen(req, timeout=15) as resp:
         data = resp.read(max_bytes + 1)
     if len(data) > max_bytes:

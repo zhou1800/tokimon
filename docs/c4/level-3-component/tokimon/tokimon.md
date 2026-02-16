@@ -1,4 +1,4 @@
-# C4 Level 3 - Components - Agent-Flow Core
+# C4 Level 3 - Components - Tokimon Core
 
 ## Component Diagram (Core Library)
 ```mermaid
@@ -33,4 +33,4 @@ flowchart TB
 - Parallel Executor: async task queue, concurrency control.
 
 ## Notes
-- The workspace is where Agent-Flow writes runs, memory, and artifacts; it is configurable and defaults under the repo root.
+- The workspace is where Tokimon writes runs, memory, and artifacts; it is configurable and defaults under the repo root.

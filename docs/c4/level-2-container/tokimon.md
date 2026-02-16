@@ -1,9 +1,9 @@
-# C4 Level 2 - Containers - Agent-Flow
+# C4 Level 2 - Containers - Tokimon
 
 ## Container Diagram
 ```mermaid
 flowchart TB
-  User[Developer/Researcher] --> CLI[CLI: agent-flow]
+  User[Developer/Researcher] --> CLI[CLI: tokimon]
   CLI --> Core[Core Library]
   Core --> WF[Workflow Engine]
   Core --> MEM[Memory Store]
@@ -28,10 +28,10 @@ flowchart TB
 - Trace/Logs: structured logs and trace.jsonl.
 
 ## Architecture Plan
-This section consolidates the system architecture plan for Agent-Flow.
+This section consolidates the system architecture plan for Tokimon.
 
 ### Components and Responsibilities
-- CLI (`agent-flow`, alias: `super-agent`): entry point for running tasks, suites, resuming runs, inspecting artifacts, listing/building skills.
+- CLI (`tokimon`, aliases: `agent-flow`, `super-agent`): entry point for running tasks, suites, resuming runs, inspecting artifacts, listing/building skills.
 - Core Orchestrator: coordinates workflow execution, run state, and artifacts.
 - Workflow Engine: validates DAGs, manages step state machine, persists state, and resumes runs.
 - Manager Agent: converts goals into workflows, delegates to workers, enforces retry/novelty rules, and maintains delegation graph.
@@ -67,7 +67,7 @@ flowchart LR
 
 ### On-Disk Layout
 ```
-agent-flow/ (repo)
+tokimon/ (repo)
   docs/
     c4/
   src/
@@ -110,7 +110,7 @@ agent-flow/ (repo)
       index.sqlite
 ```
 
-Note: The workspace is where Agent-Flow writes runs, memory, and artifacts. By default it lives under `src/`, but it can be configured to another path.
+Note: The workspace is where Tokimon writes runs, memory, and artifacts. By default it lives under `src/`, but it can be configured to another path.
 
 ### Workflow Step State Machine
 - NEW: created, not yet validated.

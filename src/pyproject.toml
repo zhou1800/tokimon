@@ -3,7 +3,7 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "agent-flow"
+name = "tokimon"
 version = "0.1.0"
 description = "Hierarchical manager/worker agent system with workflow orchestration and benchmarks"
 readme = "README.md"
@@ -18,6 +18,7 @@ dev = [
 ]
 
 [project.scripts]
+tokimon = "cli:main"
 agent-flow = "cli:main"
 super-agent = "cli:main"
 
