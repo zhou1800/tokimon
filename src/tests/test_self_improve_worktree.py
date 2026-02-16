@@ -29,7 +29,7 @@ def test_clone_master_uses_git_worktree_when_clean_repo(tmp_path: Path) -> None:
     assert (workspace / ".git").exists() and (workspace / ".git").is_file()
 
 
-def test_clone_master_falls_back_to_copy_when_repo_dirty(tmp_path: Path) -> None:
+def test_clone_master_errors_when_repo_dirty(tmp_path: Path) -> None:
     if shutil.which("git") is None:
         pytest.skip("git not available")
 
@@ -44,10 +44,8 @@ def test_clone_master_falls_back_to_copy_when_repo_dirty(tmp_path: Path) -> None
 
     (master / "file.txt").write_text("modified\n")
     workspace = tmp_path / "workspace"
-    clone_master(master, workspace, include_paths=["file.txt"])
-
-    assert (workspace / "file.txt").read_text() == "modified\n"
-    assert not (workspace / ".git").exists()
+    with pytest.raises(RuntimeError, match="clean git checkout"):
+        clone_master(master, workspace, include_paths=["file.txt"])
 
 
 def _git(cwd: Path, args: list[str]) -> None:
@@ -58,4 +56,3 @@ def _git(cwd: Path, args: list[str]) -> None:
         capture_output=True,
         text=True,
     )
-

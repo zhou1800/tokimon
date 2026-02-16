@@ -173,7 +173,10 @@ def main(argv: list[str] | None = None) -> int:
             return build_llm_client(llm_provider, workspace_dir=workspace_dir)
 
         orchestrator = SelfImproveOrchestrator(master_root, llm_factory=llm_factory, settings=settings)
-        report = orchestrator.run(args.goal, input_ref=args.input)
+        try:
+            report = orchestrator.run(args.goal, input_ref=args.input)
+        except RuntimeError as exc:
+            raise SystemExit(str(exc)) from exc
         print(json.dumps({"run_root": report.run_root}, indent=2))
         return 0
 

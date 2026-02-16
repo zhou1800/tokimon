@@ -27,6 +27,7 @@ from .workspace import compute_changes
 from .workspace import create_workspace_candidate_commit
 from .workspace import create_git_merge_candidate
 from .workspace import delete_branch
+from .workspace import git_toplevel
 from .workspace import list_unmerged_paths
 from .workspace import merge_lock
 from .workspace import purge_bytecode_for_changes
@@ -101,11 +102,17 @@ class SelfImproveOrchestrator:
         llm_factory: Callable[..., LLMClient] | None = None,
         settings: SelfImproveSettings | None = None,
     ) -> None:
-        self.master_root = master_root.resolve()
+        resolved = master_root.resolve()
+        self.master_root = git_toplevel(resolved) or resolved
         self.settings = settings or SelfImproveSettings()
         self.llm_factory = _wrap_llm_factory(llm_factory) if llm_factory else (lambda _sid, _ws: MockLLMClient(script=[]))
 
     def run(self, goal: str, input_ref: str | None = None) -> SelfImproveReport:
+        if not can_use_git_merge(self.master_root):
+            raise RuntimeError(
+                "self-improve requires a clean git checkout so sessions can be created as `git worktree`s "
+                "and winners can be merged deterministically (ensure `git status --porcelain` is empty)."
+            )
         input_payload = read_goal_input(goal, input_ref)
         run_context = self._create_self_improve_run()
         self._write_status(run_context, goal, input_payload, status="RUNNING", batches=[])

@@ -188,7 +188,8 @@ Transitions:
 ### Self-Improvement (Batch Sessions)
 - A self-improvement “run” executes one or more **batches**.
 - Each batch spawns N **sessions** in parallel (threads/processes), each with an isolated workspace clone of master.
-- Session workspaces may be created via `git worktree` (preferred for speed when the master workspace is the git toplevel and `git status --porcelain` is empty) or via file copying as a fallback (so sessions can include uncommitted changes or work in non-git folders).
+- Session workspaces are created via `git worktree` (detached HEAD) so sessions can run in parallel without colliding on files.
+- Self-improve requires the master workspace to be a clean git checkout (no local changes); otherwise it aborts with an actionable error.
 - For safety, cloning and merging may be restricted to a configured set of paths (defaults should include `src/` and `docs/`).
 - Session workspaces should include the repo entrypoint `AGENTS.md` so agents can follow the documented start sequence.
 - Before launching each batch, the orchestrator evaluates the current master (pytest by default) and provides the results summary to all sessions as context.
@@ -204,6 +205,6 @@ Transitions:
     - Create a temporary commit for the winner changes.
     - Apply via `git merge --squash` onto master, then re-run evaluation.
     - On success, commit the squashed changes to keep master clean for subsequent batches.
-    - Serialise merges across processes via an OS-level lock so multiple self-improve runs can safely merge into the same checkout.
+    - Use an OS-level lock so multiple self-improve runs perform safe queued merges into the same checkout.
     - On merge conflicts, automatically resolve (prefer winner changes) and continue; on failing evaluation, abort and leave master unchanged (winner workspace remains available for manual review).
   - A batch report is persisted with links to session artifacts and the merged changes.

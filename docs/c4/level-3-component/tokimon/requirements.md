@@ -120,18 +120,19 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
 - The system runs a batch of N independent improvement sessions in parallel.
 - Before launching each batch, the system runs an evaluation on the current master workspace (pytest by default) and passes a compact summary (pass/fail counts + failing test ids) into every session as context.
 - Each session:
-  - Materializes the master workspace into an isolated session workspace (prefer `git worktree` for fast cloning when the master workspace is the git toplevel and `git status --porcelain` is empty; otherwise fall back to file copying).
+  - Materializes the master workspace into an isolated session workspace using `git worktree` (detached HEAD) so sessions can run in parallel without colliding on files.
+  - Self-improve requires the master workspace to be a clean git checkout (no local changes) so worktrees and merges are deterministic; otherwise it aborts with an actionable error.
   - Runs the hierarchical agent system within that workspace to attempt improvements.
   - Runs the configured evaluation command after each workflow step when `pytest_args` are provided, so retry/progress gating has objective signals.
   - Evaluates the result (pytest by default; optionally benchmark suite).
   - Produces a session report, metrics, and a diff/changed-file set.
   - After each batch:
     - A comparer selects a winner by deterministic criteria (tests passing is primary).
-    - A merger applies the winner back onto master (restricted to configured paths; defaults should include `src/` and `docs/`) using a conflict-aware git integration (preferred when master is a clean git checkout):
+    - A merger applies the winner back onto master (restricted to configured paths; defaults should include `src/` and `docs/`) using a conflict-aware git integration:
       - Create a temporary commit capturing the winner changes.
       - Apply via `git merge --squash` onto master.
       - Re-evaluate master; on success, commit the squashed changes.
-      - Use an OS-level lock to serialise merges so multiple self-improve runs can safely merge into the same checkout.
+      - Use an OS-level lock so multiple self-improve runs perform safe queued merges into the same checkout.
       - On merge conflicts, automatically resolve (prefer winner changes) and continue; on failing evaluation, abort and leave master unchanged.
 - The system runs up to the configured number of batches, even when merge is disabled (report-only mode) or when a batch fails to produce a mergeable winner.
 

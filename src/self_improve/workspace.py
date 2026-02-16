@@ -35,27 +35,12 @@ _WORKTREE_LOCK = threading.Lock()
 
 
 def clone_master(master_root: Path, workspace_root: Path, include_paths: list[str]) -> None:
-    if _can_use_git_worktree(master_root):
-        try:
-            _create_git_worktree(master_root, workspace_root)
-            return
-        except Exception:
-            # Fall back to file copying when worktrees are unavailable.
-            pass
-
-    workspace_root.mkdir(parents=True, exist_ok=True)
-    for rel in include_paths:
-        src = master_root / rel
-        dst = workspace_root / rel
-        if not src.exists():
-            continue
-        if src.is_dir():
-            if dst.exists():
-                shutil.rmtree(dst)
-            shutil.copytree(src, dst, ignore=_ignore_cache_dirs)
-        else:
-            dst.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(src, dst)
+    if not _can_use_git_worktree(master_root):
+        raise RuntimeError(
+            "self-improve requires a clean git checkout to create isolated workspaces via `git worktree` "
+            "(run from a git repo and ensure `git status --porcelain` is empty)."
+        )
+    _create_git_worktree(master_root, workspace_root)
 
 
 def compute_changes(master_root: Path, workspace_root: Path, include_paths: list[str]) -> list[WorkspaceChange]:
@@ -81,6 +66,20 @@ def compute_changes(master_root: Path, workspace_root: Path, include_paths: list
 def can_use_git_merge(master_root: Path) -> bool:
     """Return True when master_root is a clean git toplevel suitable for conflict-aware merges."""
     return _can_use_git_worktree(master_root)
+
+
+def git_toplevel(master_root: Path) -> Path | None:
+    """Return the git toplevel for master_root (or None when not in a git repo)."""
+    try:
+        result = _git(master_root, ["rev-parse", "--show-toplevel"], check=False)
+    except Exception:
+        return None
+    if result.returncode != 0:
+        return None
+    raw = (result.stdout or "").strip()
+    if not raw:
+        return None
+    return Path(raw).resolve()
 
 
 @contextlib.contextmanager
@@ -303,18 +302,6 @@ def _is_ignored(root: Path, path: Path) -> bool:
     if path.suffix in {".pyc", ".pyo"}:
         return True
     return False
-
-
-def _ignore_cache_dirs(directory: str, names: list[str]) -> set[str]:
-    ignored: set[str] = set()
-    for name in names:
-        if name in {"__pycache__", ".pytest_cache", "runs", "build", "dist"}:
-            ignored.add(name)
-        if name.endswith((".pyc", ".pyo")):
-            ignored.add(name)
-        if name.endswith(".egg-info"):
-            ignored.add(name)
-    return ignored
 
 
 def _file_digest(path: Path) -> str:

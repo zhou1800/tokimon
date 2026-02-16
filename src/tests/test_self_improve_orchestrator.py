@@ -133,9 +133,17 @@ def test_self_improve_merge_resolves_conflicts_and_commits(tmp_path: Path) -> No
 
 
 def test_compute_changes_detects_added_files_when_workspace_path_contains_runs(tmp_path: Path) -> None:
+    if shutil.which("git") is None:
+        pytest.skip("git not available")
+
     master = tmp_path / "master"
     (master / "proj").mkdir(parents=True, exist_ok=True)
     (master / "proj" / "app.py").write_text("print('hello')\n")
+    _git(master, ["init"])
+    _git(master, ["config", "user.email", "test@example.com"])
+    _git(master, ["config", "user.name", "Test User"])
+    _git(master, ["add", "."])
+    _git(master, ["commit", "-m", "init"])
 
     workspace_root = tmp_path / "runs" / "session-workspace"
     clone_master(master, workspace_root, include_paths=["proj"])
@@ -149,14 +157,23 @@ def test_compute_changes_detects_added_files_when_workspace_path_contains_runs(t
 
 
 def test_self_improve_runs_all_batches_when_merge_disabled(tmp_path: Path) -> None:
+    if shutil.which("git") is None:
+        pytest.skip("git not available")
+
     master = tmp_path / "master"
     (master / "proj").mkdir(parents=True, exist_ok=True)
     (master / "proj" / "__init__.py").write_text("")
     (master / "proj" / "app.py").write_text("def add(a, b):\n    return a + b\n")
     (master / "proj" / "tests").mkdir(parents=True, exist_ok=True)
+    (master / ".gitignore").write_text(".tokimon-tmp/\nruns/\n__pycache__/\n.pytest_cache/\n")
     (master / "proj" / "tests" / "test_app.py").write_text(
         "from proj.app import add\n\n\ndef test_add():\n    assert add(2, 3) == 5\n"
     )
+    _git(master, ["init"])
+    _git(master, ["config", "user.email", "test@example.com"])
+    _git(master, ["config", "user.name", "Test User"])
+    _git(master, ["add", "."])
+    _git(master, ["commit", "-m", "init"])
 
     def llm_factory(_session_id: str) -> MockLLMClient:
         plan = {
@@ -247,14 +264,23 @@ def test_self_improve_continues_after_failed_batch_then_merges(tmp_path: Path) -
 
 
 def test_self_improve_records_per_step_pytest_metrics(tmp_path: Path) -> None:
+    if shutil.which("git") is None:
+        pytest.skip("git not available")
+
     master = tmp_path / "master"
     (master / "proj").mkdir(parents=True, exist_ok=True)
     (master / "proj" / "__init__.py").write_text("")
     (master / "proj" / "app.py").write_text("def add(a, b):\n    return a + b\n")
     (master / "proj" / "tests").mkdir(parents=True, exist_ok=True)
+    (master / ".gitignore").write_text(".tokimon-tmp/\nruns/\n__pycache__/\n.pytest_cache/\n")
     (master / "proj" / "tests" / "test_app.py").write_text(
         "from proj.app import add\n\n\ndef test_add():\n    assert add(2, 3) == 5\n"
     )
+    _git(master, ["init"])
+    _git(master, ["config", "user.email", "test@example.com"])
+    _git(master, ["config", "user.name", "Test User"])
+    _git(master, ["add", "."])
+    _git(master, ["commit", "-m", "init"])
 
     def llm_factory(_session_id: str) -> MockLLMClient:
         plan = {
@@ -290,14 +316,23 @@ def test_self_improve_records_per_step_pytest_metrics(tmp_path: Path) -> None:
 
 
 def test_self_improve_counts_skipped_steps_as_succeeded(tmp_path: Path) -> None:
+    if shutil.which("git") is None:
+        pytest.skip("git not available")
+
     master = tmp_path / "master"
     (master / "proj").mkdir(parents=True, exist_ok=True)
     (master / "proj" / "__init__.py").write_text("")
     (master / "proj" / "app.py").write_text("def add(a, b):\n    return a + b\n")
     (master / "proj" / "tests").mkdir(parents=True, exist_ok=True)
+    (master / ".gitignore").write_text(".tokimon-tmp/\nruns/\n__pycache__/\n.pytest_cache/\n")
     (master / "proj" / "tests" / "test_app.py").write_text(
         "from proj.app import add\n\n\ndef test_add():\n    assert add(2, 3) == 5\n"
     )
+    _git(master, ["init"])
+    _git(master, ["config", "user.email", "test@example.com"])
+    _git(master, ["config", "user.name", "Test User"])
+    _git(master, ["add", "."])
+    _git(master, ["commit", "-m", "init"])
 
     def llm_factory(_session_id: str) -> MockLLMClient:
         return MockLLMClient(
