@@ -12,8 +12,10 @@ This document maps requirements to automated tests.
 - Memory staged retrieval: Stage 1/2/3 selection logic with deterministic lexical index.
 - Dynamic skill registration: register only after tests pass; hot reload behavior.
 - Parallel execution correctness: basic ordering, backpressure, and cancellation.
-- Tool schemas: FileTool path traversal protection, PatchTool validation, PytestTool parsing, WebTool allowlists/domain-secrets behavior.
+- Tool schemas: FileTool path traversal protection, PatchTool validation, PytestTool parsing, WebTool URL validation and network policy (allowlists + domain secrets).
 - Worker tool loop: tool calls execute and are reflected in worker metrics (model/tool call counts).
+- Trace loop unrolling: worker model/tool calls are recorded to `trace.jsonl` with bounded payload sizes.
+- Codex CLI prompt rendering: deterministic prompt envelope with stable tool ordering and explicit context sections.
 
 ## Integration Tests
 - End-to-end run of at least two benchmark tasks using the mock model:

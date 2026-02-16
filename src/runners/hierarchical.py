@@ -54,7 +54,13 @@ class HierarchicalRunner:
         trace = TraceLogger(run_context.trace_path)
         tools = self._build_tools()
         if task_steps is None:
-            planned = manager.plan_steps(goal, self.llm_client, tools)
+            planned = manager.plan_steps(
+                goal,
+                self.llm_client,
+                tools,
+                trace=trace,
+                trace_context={"task_id": task_id or run_context.run_id, "worker_type": "Planner"},
+            )
             if planned:
                 task_steps = planned
         workflow_spec = manager.build_workflow(goal, task_steps)
@@ -180,7 +186,21 @@ class HierarchicalRunner:
         engine.mark_running(step_id)
         memory = [lesson.body for lesson in manager.memory_store.retrieve(step_id, strategy.retrieval_stage, limit=3)]
         worker = Worker(worker_type, self.llm_client, tools)
-        output = worker.run(engine.spec.goal, step_id, step_state.inputs, memory)
+        output = worker.run(
+            engine.spec.goal,
+            step_id,
+            step_state.inputs,
+            memory,
+            trace=trace,
+            trace_context={
+                "task_id": task_id,
+                "call_id": call_id,
+                "call_signature": call_signature,
+                "worker_type": worker_type,
+                "strategy_id": strategy.strategy_id,
+                "retrieval_stage": strategy.retrieval_stage,
+            },
+        )
         log_to_file(worker_log, f"Output status {output.status} summary {output.summary}")
         if output.failure_signature:
             log_to_file(worker_log, f"Failure signature: {output.failure_signature}")

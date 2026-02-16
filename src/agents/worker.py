@@ -12,6 +12,7 @@ from agents.prompts import build_system_prompt
 from flow_types import ToolCallRecord, WorkerStatus
 from llm.client import LLMClient
 from tools.base import ToolResult
+from tracing import TraceLogger
 
 
 class Worker:
@@ -21,23 +22,47 @@ class Worker:
         self.tools = tools
 
     def run(self, goal: str, step_id: str, inputs: dict[str, Any], memory: list[str],
-            max_iterations: int = 20) -> WorkerOutput:
+            max_iterations: int = 20, *, trace: TraceLogger | None = None,
+            trace_context: dict[str, Any] | None = None) -> WorkerOutput:
         start = time.perf_counter()
         model_calls = 0
         tool_call_records: list[ToolCallRecord] = []
         touched_files: set[str] = set()
+        trace_base = _trace_base(
+            {
+                "worker_role": self.role,
+                "step_id": step_id,
+                **(trace_context or {}),
+            }
+        )
         messages = [
             {"role": "system", "content": build_system_prompt(self.role)},
             {"role": "user", "content": f"Goal: {goal}\nStep: {step_id}\nInputs: {inputs}\nMemory: {memory}"},
         ]
         for iteration in range(1, max_iterations + 1):
+            _trace_log(
+                trace,
+                "worker_model_call",
+                {
+                    **trace_base,
+                    "iteration": iteration,
+                    "message_count": len(messages),
+                    "tool_count": len(self.tools),
+                },
+            )
             response = self.llm_client.send(messages, tools=_tool_descriptors(self.tools))
             model_calls += 1
+            _trace_log(trace, "worker_model_response", {**trace_base, "iteration": iteration, **_response_meta(response)})
 
             try:
                 tool_calls = _parse_tool_calls(response)
             except Exception as exc:
                 elapsed_ms = (time.perf_counter() - start) * 1000
+                _trace_log(
+                    trace,
+                    "worker_invalid_tool_calls",
+                    {**trace_base, "iteration": iteration, "error": str(exc)},
+                )
                 return WorkerOutput(
                     status=WorkerStatus.FAILURE,
                     summary=f"invalid tool_calls: {exc}",
@@ -54,9 +79,31 @@ class Worker:
                 )
             if tool_calls:
                 for call in tool_calls:
+                    _trace_log(
+                        trace,
+                        "worker_tool_call",
+                        {
+                            **trace_base,
+                            "iteration": iteration,
+                            "call": _truncate_jsonish(call, max_str=4_000, max_list=50, max_depth=4),
+                        },
+                    )
                     touched_files.update(_touched_files_from_call(call))
                     record = _invoke_tool_call(self.tools, call)
                     tool_call_records.append(record)
+                    _trace_log(
+                        trace,
+                        "worker_tool_result",
+                        {
+                            **trace_base,
+                            "iteration": iteration,
+                            "tool_name": record.tool_name,
+                            "ok": record.ok,
+                            "summary": record.summary,
+                            "elapsed_ms": record.elapsed_ms,
+                            "error": record.error,
+                        },
+                    )
                     messages.append(
                         {
                             "role": "tool",
@@ -75,9 +122,35 @@ class Worker:
             output.metrics.setdefault("iteration_count", iteration)
             output.metrics.setdefault("tool_call_records", [record.__dict__ for record in tool_call_records])
             output.metrics.setdefault("touched_files", sorted(touched_files))
+            _trace_log(
+                trace,
+                "worker_final",
+                {
+                    **trace_base,
+                    "iteration": iteration,
+                    "status": output.status.value,
+                    "summary": output.summary,
+                    "failure_signature": output.failure_signature,
+                    "model_calls": model_calls,
+                    "tool_calls": len(tool_call_records),
+                    "elapsed_ms": elapsed_ms,
+                },
+            )
             return output
 
         elapsed_ms = (time.perf_counter() - start) * 1000
+        _trace_log(
+            trace,
+            "worker_max_iterations",
+            {
+                **trace_base,
+                "iteration": max_iterations,
+                "max_iterations": max_iterations,
+                "model_calls": model_calls,
+                "tool_calls": len(tool_call_records),
+                "elapsed_ms": elapsed_ms,
+            },
+        )
         return WorkerOutput(
             status=WorkerStatus.FAILURE,
             summary=f"worker exceeded max_iterations={max_iterations}",
@@ -115,7 +188,8 @@ def _coerce_output(data: dict[str, Any]) -> WorkerOutput:
 
 def _tool_descriptors(tools: dict[str, Any]) -> list[dict[str, Any]]:
     descriptors: list[dict[str, Any]] = []
-    for name, tool in tools.items():
+    for name in sorted(tools):
+        tool = tools[name]
         actions: list[str] = [
             attr
             for attr in dir(tool)
@@ -324,3 +398,51 @@ def _truncate_jsonish(value: Any, *, max_str: int, max_list: int, max_depth: int
             for k, v in value.items()
         }
     return value
+
+
+def _trace_log(trace: TraceLogger | None, event_type: str, payload: dict[str, Any]) -> None:
+    if trace is None:
+        return
+    try:
+        trace.log(event_type, payload)
+    except Exception:
+        return
+
+
+def _trace_base(raw: dict[str, Any]) -> dict[str, Any]:
+    base: dict[str, Any] = {}
+    for key, value in (raw or {}).items():
+        if not isinstance(key, str) or not key.strip():
+            continue
+        base[key.strip()] = _make_json_safe(_truncate_jsonish(value, max_str=2_000, max_list=50, max_depth=4))
+    return base
+
+
+def _response_meta(response: dict[str, Any]) -> dict[str, Any]:
+    meta: dict[str, Any] = {}
+    if not isinstance(response, dict):
+        return {"response_type": "invalid"}
+    meta["response_keys"] = sorted(str(key) for key in response.keys())
+    if "status" in response:
+        meta["response_type"] = "final"
+        meta["status"] = str(response.get("status") or "")
+        meta["summary"] = str(response.get("summary") or "")[:500]
+        meta["failure_signature"] = str(response.get("failure_signature") or "")[:200]
+        return meta
+    tool_calls = response.get("tool_calls")
+    if isinstance(tool_calls, list):
+        meta["response_type"] = "tool_calls"
+        meta["tool_calls_count"] = len([call for call in tool_calls if isinstance(call, dict)])
+    else:
+        meta["response_type"] = "partial"
+    return meta
+
+
+def _make_json_safe(value: Any) -> Any:
+    if value is None or isinstance(value, (bool, int, float, str)):
+        return value
+    if isinstance(value, list):
+        return [_make_json_safe(v) for v in value]
+    if isinstance(value, dict):
+        return {str(k): _make_json_safe(v) for k, v in value.items()}
+    return str(value)

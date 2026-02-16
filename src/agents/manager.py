@@ -13,6 +13,7 @@ from agents.worker import Worker
 from flow_types import ProgressMetrics, StepStatus
 from llm.client import LLMClient
 from memory.store import MemoryStore
+from tracing import TraceLogger
 from workflow.models import StepSpec, WorkflowSpec
 
 
@@ -39,10 +40,26 @@ class Manager:
         self.delegation_graph = DelegationGraph()
         self._call_counter = 0
 
-    def plan_steps(self, goal: str, llm_client: LLMClient, tools: dict[str, Any], max_steps: int = 12) -> list[dict[str, Any]] | None:
+    def plan_steps(
+        self,
+        goal: str,
+        llm_client: LLMClient,
+        tools: dict[str, Any],
+        max_steps: int = 12,
+        *,
+        trace: TraceLogger | None = None,
+        trace_context: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]] | None:
         memory = [lesson.body for lesson in self.memory_store.retrieve(goal, stage=1, limit=3)]
         worker = Worker("Planner", llm_client, tools)
-        output = worker.run(goal, "plan-workflow", {"max_steps": max_steps}, memory)
+        output = worker.run(
+            goal,
+            "plan-workflow",
+            {"max_steps": max_steps},
+            memory,
+            trace=trace,
+            trace_context=trace_context,
+        )
 
         workflow = output.data.get("workflow")
         if isinstance(workflow, dict):

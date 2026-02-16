@@ -52,7 +52,14 @@ class BaselineRunner:
             "pytest": PytestTool(self.repo_root),
         }
         worker = Worker("Implementer", self.llm_client, tools)
-        output = worker.run(goal, "single-step", {}, [])
+        output = worker.run(
+            goal,
+            "single-step",
+            {},
+            [],
+            trace=trace,
+            trace_context={"task_id": task_id or "baseline", "worker_type": "Implementer"},
+        )
         log_to_file(run_context.logs_dir / "baseline.log", f"Output status {output.status} summary {output.summary}")
         pytest_metrics = None
         if test_args:

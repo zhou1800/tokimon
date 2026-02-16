@@ -104,7 +104,7 @@ class CodexCLIClient:
         tools: list[dict[str, Any]] | None = None,
         response_schema: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        prompt = _render_prompt(messages, tools=tools)
+        prompt = _render_prompt(messages, tools=tools, preamble=_codex_cli_preamble(self.settings, self.workspace_dir))
 
         # Note: Codex CLI supports `--output-schema`, but its accepted JSON Schema subset
         # is stricter than standard Draft-07. For portability, we capture the last agent
@@ -234,43 +234,54 @@ def _build_codex_exec_command(
     return cmd
 
 
-def _render_prompt(messages: list[dict[str, Any]], *, tools: list[dict[str, Any]] | None) -> str:
-    tool_lines: list[str] = []
+def _render_prompt(
+    messages: list[dict[str, Any]],
+    *,
+    tools: list[dict[str, Any]] | None,
+    preamble: str | None = None,
+) -> str:
+    lines: list[str] = []
+    if preamble:
+        lines.append(preamble.strip())
+        lines.append("")
+
+    lines.extend(
+        [
+            "You are the language model driving an agent workflow runner.",
+            "",
+            "Output contract:",
+            "- Reply with exactly one JSON object and nothing else (no markdown).",
+            "- If you need to call tools, reply with: {\"tool_calls\": [{\"tool\": \"...\", \"action\": \"...\", \"args\": {...}}]}",
+            "- Tool call args must be a JSON object with keys matching the action parameter names.",
+            "- Otherwise, reply with a final object that includes at least: {\"status\": \"SUCCESS|FAILURE|BLOCKED|PARTIAL\", \"summary\": \"...\"}",
+            "",
+        ]
+    )
+
     if tools:
-        tool_lines.append("Available tools (request via tool_calls JSON; args keys must match parameter names):")
-        for tool in tools:
+        lines.append("<tools>")
+        lines.append("Request tools via tool_calls JSON; args keys must match the action parameter names.")
+        for tool in sorted(tools, key=lambda t: str(t.get("name", ""))):
             name = str(tool.get("name", ""))
             actions = tool.get("actions", [])
             signatures = tool.get("signatures")
             if not name:
                 continue
             if isinstance(signatures, dict) and isinstance(actions, list) and actions:
-                tool_lines.append(f"- {name}:")
+                lines.append(f"- {name}:")
                 for action in sorted(str(a) for a in actions):
                     rendered = signatures.get(action) if isinstance(signatures.get(action), str) else None
-                    tool_lines.append(f"  - {rendered or action}")
+                    lines.append(f"  - {rendered or action}")
                 continue
             if isinstance(actions, list):
                 actions_text = ", ".join(str(action) for action in actions)
             else:
                 actions_text = str(actions)
-            tool_lines.append(f"- {name}: {actions_text}")
-
-    lines = [
-        "You are the language model driving an agent workflow runner.",
-        "",
-        "Output contract:",
-        "- Reply with exactly one JSON object and nothing else (no markdown).",
-        "- If you need to call tools, reply with: {\"tool_calls\": [{\"tool\": \"...\", \"action\": \"...\", \"args\": {...}}]}",
-        "- Tool call args must be a JSON object with keys matching the action parameter names.",
-        "- Otherwise, reply with a final object that includes at least: {\"status\": \"SUCCESS|FAILURE|BLOCKED|PARTIAL\", \"summary\": \"...\"}",
-        "",
-    ]
-    if tool_lines:
-        lines.extend(tool_lines)
+            lines.append(f"- {name}: {actions_text}")
+        lines.append("</tools>")
         lines.append("")
 
-    lines.append("Conversation:")
+    lines.append("<conversation>")
     for msg in messages:
         role = str(msg.get("role", ""))
         content = msg.get("content", "")
@@ -279,8 +290,28 @@ def _render_prompt(messages: list[dict[str, Any]], *, tools: list[dict[str, Any]
         if name:
             prefix = f"{prefix}({name})"
         lines.append(f"{prefix}: {content}")
+    lines.append("</conversation>")
     lines.append("")
     return "\n".join(lines)
+
+
+def _codex_cli_preamble(settings: CodexCLISettings, workspace_dir: Path) -> str:
+    shell = os.environ.get("SHELL", "")
+    shell_name = Path(shell).name if shell else ""
+    permissions = [
+        "<permissions instructions>",
+        f"sandbox_mode: {settings.sandbox}",
+        f"approval_policy: {settings.ask_for_approval}",
+        f"search_enabled: {settings.search}",
+        "</permissions instructions>",
+    ]
+    env = [
+        "<environment_context>",
+        f"  <cwd>{workspace_dir}</cwd>",
+        f"  <shell>{shell_name}</shell>",
+        "</environment_context>",
+    ]
+    return "\n".join([*permissions, "", *env]).strip()
 
 
 def _extract_json_text(text: str) -> str:
@@ -351,4 +382,3 @@ def _load_json_env(var_name: str) -> dict[str, Any] | None:
     if isinstance(parsed, dict):
         return parsed
     return None
-

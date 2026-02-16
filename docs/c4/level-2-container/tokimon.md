@@ -182,7 +182,7 @@ Transitions:
 - Asyncio task queue schedules worker calls and workflow steps.
 - Concurrency controller provides high concurrency with backpressure, timeouts, and cancellation.
 - Per-step and per-worker logs are deterministic and stored under run folder.
-- Consolidated trace.jsonl records all state changes and tool calls in order.
+- Consolidated trace.jsonl records state changes plus unrolled worker loops (model calls + tool calls/results) in order.
 - Artifact writes are atomic; step output writes are versioned to avoid races.
 
 ### Self-Improvement (Batch Sessions)

@@ -93,10 +93,15 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
 - Robust cancellation and timeouts at tool level.
 - Deterministic run folder layout with per-step and per-worker logs and a consolidated run trace (jsonl).
 
+### Trace & Loop Unrolling
+- `trace.jsonl` captures workflow state transitions plus unrolled worker loops (model calls + tool calls/results).
+- Trace events include stable identifiers when available (task_id, step_id, worker role, call_id, call_signature) and use bounded payload sizes (truncate large fields).
+
 ### Model Integration
 - Abstract `LLMClient.send(messages, tools=None, response_schema=None)`.
 - Provide stub adapter, deterministic mock adapter, and a documented placeholder for a real adapter.
 - Optional real adapter: Codex CLI-backed client that shells out to `codex exec` and returns structured JSON (controlled via `TOKIMON_LLM=codex` or CLI flags).
+- Codex CLI prompt rendering is deterministic and caching-friendly (stable tool ordering; explicit sections such as `<permissions instructions>` and `<environment_context>`).
 - No hard dependency on a vendor SDK.
 
 ### Benchmarks & Harness
