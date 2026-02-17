@@ -18,7 +18,7 @@ Show commands:
 source .venv/bin/activate && tokimon --help
 ```
 
-Run the benchmark suite (baseline vs hierarchical) and write a report under `src/runs/`:
+Run the benchmark suite (baseline vs hierarchical) and write a report under `runs/`:
 ```bash
 source .venv/bin/activate && tokimon run-suite
 ```
@@ -32,8 +32,8 @@ Task ids live in `src/benchmarks/tasks/*/task.json`.
 
 Inspect or resume a run:
 ```bash
-source .venv/bin/activate && tokimon inspect-run --run-path src/runs/run-<id>
-source .venv/bin/activate && tokimon resume-run --run-path src/runs/run-<id>
+source .venv/bin/activate && tokimon inspect-run --run-path runs/run-<id>
+source .venv/bin/activate && tokimon resume-run --run-path runs/run-<id>
 ```
 
 List skills (built-in + generated):

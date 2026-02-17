@@ -81,6 +81,8 @@ def main(argv: list[str] | None = None) -> int:
         parser.print_help()
         return 0
     repo_root = Path(__file__).resolve().parent
+    workspace_root = repo_root.parent
+    runs_root = workspace_root / "runs"
     llm_client = MockLLMClient(script=[])
 
     if args.command == "run-task":
@@ -89,7 +91,7 @@ def main(argv: list[str] | None = None) -> int:
             raise SystemExit(f"Unknown task: {args.task_id}")
         spec_path = task_dir / "task.json"
         spec = json.loads(spec_path.read_text())
-        workspace = repo_root / "runs" / "workspaces" / args.task_id / args.runner
+        workspace = runs_root / "workspaces" / args.task_id / args.runner
         if workspace.exists():
             shutil.rmtree(workspace)
         shutil.copytree(task_dir / "starter", workspace)
@@ -97,15 +99,15 @@ def main(argv: list[str] | None = None) -> int:
         shutil.copytree(task_dir / "tests", tests_dst)
         test_args = [str(tests_dst)]
         if args.runner == "baseline":
-            runner = BaselineRunner(workspace, llm_client, base_dir=repo_root / "runs")
+            runner = BaselineRunner(workspace, llm_client, base_dir=runs_root)
             runner.run(spec.get("description", ""), task_id=args.task_id, test_args=test_args)
         else:
-            runner = HierarchicalRunner(workspace, llm_client, base_dir=repo_root / "runs")
+            runner = HierarchicalRunner(workspace, llm_client, base_dir=runs_root)
             runner.run(spec.get("description", ""), task_steps=None, task_id=args.task_id, test_args=test_args)
         return 0
 
     if args.command == "run-suite":
-        harness = EvaluationHarness(repo_root)
+        harness = EvaluationHarness(repo_root, runs_dir=runs_root)
         harness.run_suite()
         return 0
 
@@ -114,7 +116,7 @@ def main(argv: list[str] | None = None) -> int:
         workflow_state = run_path / "workflow_state.json"
         if not workflow_state.exists():
             raise SystemExit("workflow_state.json not found")
-        runner = HierarchicalRunner(repo_root, llm_client, base_dir=repo_root / "runs")
+        runner = HierarchicalRunner(repo_root, llm_client, base_dir=runs_root)
         runner.resume(run_path)
         return 0
 

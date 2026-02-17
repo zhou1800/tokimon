@@ -323,8 +323,7 @@ class SelfImproveOrchestrator:
                     delete_branch(self.master_root, candidate_branch)
 
     def _create_self_improve_run(self) -> RunContext:
-        project_root = _project_root(self.master_root)
-        base_dir = project_root / "runs" / "self-improve"
+        base_dir = self.master_root / "runs" / "self-improve"
         base_dir.mkdir(parents=True, exist_ok=True)
         return create_run_context(base_dir)
 
@@ -383,12 +382,6 @@ class SelfImproveOrchestrator:
             "pytest_args": self.settings.pytest_args,
             "merge_on_success": self.settings.merge_on_success,
         }
-
-
-def _project_root(master_root: Path) -> Path:
-    if (master_root / "src" / "pyproject.toml").exists():
-        return master_root / "src"
-    return master_root
 
 
 def _session_goal(

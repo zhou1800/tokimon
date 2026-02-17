@@ -70,7 +70,7 @@ class EvaluationHarness:
     def __init__(self, repo_root: Path, runs_dir: Path | None = None) -> None:
         self.repo_root = repo_root
         self.suite = BenchmarkSuite(repo_root)
-        self.base_runs_dir = runs_dir or (repo_root / "runs")
+        self.base_runs_dir = runs_dir or (repo_root.parent / "runs")
         self.base_runs_dir.mkdir(parents=True, exist_ok=True)
 
     def run_suite(self) -> RunContext:

@@ -75,7 +75,7 @@ tokimon/ (repo)
   docs/
     c4/
   src/
-    (project root; default workspace location)
+    (project root; sources + config)
     pyproject.toml
     README.md
     benchmarks/
@@ -83,38 +83,38 @@ tokimon/ (repo)
     tests/
     skills_builtin/
     skills_generated/
-    runs/
-      run-<timestamp>-<id>/
-        run.json
-        workflow_state.json
-        trace.jsonl
-        logs/
-          manager.log
-          worker-<id>.log
-        artifacts/
-          steps/
-            <step-id>/
-              outputs.json
-        lessons/
-          lesson-<id>.md
-        reports/
-          suite-report.json
-          suite-report.md
-      self-improve/
-        run-<timestamp>-<id>/
-          self_improve.json
-          self_improve.md
-          sessions/
-            session-<n>/
-              workspace/        (clone of master used by that session)
-              session.json      (plan, metrics, evaluation)
-    memory/
-      lessons/
+  runs/
+    run-<timestamp>-<id>/
+      run.json
+      workflow_state.json
+      trace.jsonl
+      logs/
+        manager.log
+        worker-<id>.log
       artifacts/
-      index.sqlite
+        steps/
+          <step-id>/
+            outputs.json
+      lessons/
+        lesson-<id>.md
+      reports/
+        suite-report.json
+        suite-report.md
+    self-improve/
+      run-<timestamp>-<id>/
+        self_improve.json
+        self_improve.md
+        sessions/
+          session-<n>/
+            workspace/        (clone of master used by that session)
+            session.json      (plan, metrics, evaluation)
+  memory/
+    lessons/
+    artifacts/
+    index.sqlite
 ```
 
-Note: The workspace is where Tokimon writes runs, memory, and artifacts. By default it lives under `src/`, but it can be configured to another path.
+Note: The workspace is where Tokimon writes runs, memory, and artifacts. By default it lives at the repository root (sibling of `src/` and `docs/`), but it can be configured to another path.
 
 ### Workflow Step State Machine
 - NEW: created, not yet validated.
