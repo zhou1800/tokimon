@@ -13,14 +13,22 @@ from typing import Any, Protocol
 
 
 class LLMClient(Protocol):
-    def send(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None,
-             response_schema: dict[str, Any] | None = None) -> dict[str, Any]:
+    def send(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
+        response_schema: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         ...
 
 
 class StubLLMClient:
-    def send(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None,
-             response_schema: dict[str, Any] | None = None) -> dict[str, Any]:
+    def send(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
+        response_schema: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         raise NotImplementedError("Stub client not configured")
 
 
@@ -28,8 +36,12 @@ class StubLLMClient:
 class MockLLMClient:
     script: list[dict[str, Any]]
 
-    def send(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None,
-             response_schema: dict[str, Any] | None = None) -> dict[str, Any]:
+    def send(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
+        response_schema: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         if self.script:
             return self.script.pop(0)
         return {
@@ -45,8 +57,12 @@ class MockLLMClient:
 class PlaceholderLLMClient:
     """Placeholder for plugging in a real client. Override send()."""
 
-    def send(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None,
-             response_schema: dict[str, Any] | None = None) -> dict[str, Any]:
+    def send(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
+        response_schema: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         raise NotImplementedError("Integrate your LLM client here.")
 
 
@@ -104,7 +120,11 @@ class CodexCLIClient:
         tools: list[dict[str, Any]] | None = None,
         response_schema: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        prompt = _render_prompt(messages, tools=tools, preamble=_codex_cli_preamble(self.settings, self.workspace_dir))
+        prompt = _render_prompt(
+            messages,
+            tools=tools,
+            preamble=_codex_cli_preamble(self.settings, self.workspace_dir),
+        )
 
         # Note: Codex CLI supports `--output-schema`, but its accepted JSON Schema subset
         # is stricter than standard Draft-07. For portability, we capture the last agent
@@ -113,6 +133,7 @@ class CodexCLIClient:
         env = os.environ.copy()
         if tmp_root is not None:
             env.update({"TMPDIR": str(tmp_root), "TEMP": str(tmp_root), "TMP": str(tmp_root)})
+        env = _maybe_apply_codex_ripgrep_guard(env, tmp_root=tmp_root)
 
         tmp_kwargs: dict[str, Any] = {"prefix": "tokimon-codex-"}
         if tmp_root is not None:
@@ -122,7 +143,11 @@ class CodexCLIClient:
             tmp = Path(tmpdir)
             last_message_path = tmp / "last_message.txt"
 
-            cmd = _build_codex_exec_command(self.settings, workspace_dir=self.workspace_dir, last_message_path=last_message_path)
+            cmd = _build_codex_exec_command(
+                self.settings,
+                workspace_dir=self.workspace_dir,
+                last_message_path=last_message_path,
+            )
             try:
                 completed = subprocess.run(
                     cmd,
@@ -154,7 +179,10 @@ class CodexCLIClient:
 
             raw_last = ""
             if last_message_path.exists():
-                raw_last = last_message_path.read_text(encoding="utf-8", errors="replace").strip()
+                raw_last = last_message_path.read_text(
+                    encoding="utf-8",
+                    errors="replace",
+                ).strip()
 
             if completed.returncode != 0 and not raw_last:
                 details = _truncate(completed.stderr or completed.stdout, 2000)
@@ -270,7 +298,11 @@ def _render_prompt(
             if isinstance(signatures, dict) and isinstance(actions, list) and actions:
                 lines.append(f"- {name}:")
                 for action in sorted(str(a) for a in actions):
-                    rendered = signatures.get(action) if isinstance(signatures.get(action), str) else None
+                    rendered = (
+                        signatures.get(action)
+                        if isinstance(signatures.get(action), str)
+                        else None
+                    )
                     lines.append(f"  - {rendered or action}")
                 continue
             if isinstance(actions, list):
@@ -332,7 +364,12 @@ def _extract_json_text(text: str) -> str:
     return candidate
 
 
-def _llm_error(summary: str, *, failure_signature: str, details: str | None = None) -> dict[str, Any]:
+def _llm_error(
+    summary: str,
+    *,
+    failure_signature: str,
+    details: str | None = None,
+) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "status": "FAILURE",
         "summary": summary,
@@ -369,6 +406,92 @@ def _ensure_tmp_root(workspace_dir: Path) -> Path | None:
         return tmp_root
     except Exception:
         return None
+
+
+_DEFAULT_CODEX_RIPGREP_MAX_COLUMNS = 4096
+
+_CODEX_RIPGREP_GUARD_GLOBS: tuple[str, ...] = (
+    "--glob=!**/runs/**",
+    "--glob=!**/.tokimon-tmp/**",
+    "--glob=!**/.venv/**",
+    "--glob=!**/node_modules/**",
+    "--glob=!**/dist/**",
+    "--glob=!**/build/**",
+    "--glob=!**/*.jsonl",
+    "--glob=!**/*.ndjson",
+)
+
+
+def _parse_env_bool(raw: str | None, *, default: bool) -> bool:
+    if raw is None:
+        return default
+    normalized = raw.strip().lower()
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "off"}:
+        return False
+    return default
+
+
+def _parse_env_int(raw: str | None, *, default: int) -> int:
+    if raw is None:
+        return default
+    normalized = raw.strip()
+    if not normalized:
+        return default
+    try:
+        return int(normalized)
+    except ValueError:
+        return default
+
+
+def _maybe_apply_codex_ripgrep_guard(
+    env: dict[str, str],
+    *,
+    tmp_root: Path | None,
+) -> dict[str, str]:
+    guard_enabled = _parse_env_bool(
+        env.get("TOKIMON_CODEX_RIPGREP_GUARD"),
+        default=True,
+    )
+    if not guard_enabled:
+        return env
+    if tmp_root is None:
+        return env
+
+    guard_path = tmp_root / "tokimon-codex.ripgreprc"
+    original_env = env.copy()
+
+    try:
+        base_text = ""
+        base_config_path = (env.get("RIPGREP_CONFIG_PATH") or "").strip()
+        if base_config_path:
+            base_path = Path(base_config_path)
+            if base_path.is_file() and os.access(base_path, os.R_OK):
+                base_text = base_path.read_text(encoding="utf-8", errors="replace")
+                if base_text and not base_text.endswith("\n"):
+                    base_text += "\n"
+
+        max_columns = _parse_env_int(
+            env.get("TOKIMON_CODEX_RIPGREP_MAX_COLUMNS"),
+            default=_DEFAULT_CODEX_RIPGREP_MAX_COLUMNS,
+        )
+        if max_columns < 0:
+            max_columns = _DEFAULT_CODEX_RIPGREP_MAX_COLUMNS
+
+        guard_lines: list[str] = []
+        if max_columns > 0:
+            guard_lines.append(f"--max-columns={max_columns}")
+            guard_lines.append("--max-columns-preview")
+        guard_lines.extend(_CODEX_RIPGREP_GUARD_GLOBS)
+
+        guard_text = "\n".join(guard_lines) + "\n"
+        guard_path.write_text(base_text + guard_text, encoding="utf-8")
+
+        env["RIPGREP_CONFIG_PATH"] = str(guard_path)
+        return env
+    except Exception:
+        return original_env
 
 
 def _load_json_env(var_name: str) -> dict[str, Any] | None:
