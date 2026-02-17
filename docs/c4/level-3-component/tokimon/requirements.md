@@ -120,6 +120,10 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
 - Chat endpoint: `POST /api/send` accepts JSON `{message: string, history?: [{role, content}]}` and returns a structured JSON reply including `status` and a human-readable assistant message (in `reply` or `summary`).
 - The chat handler uses the same tool set as the hierarchical runner (file, grep, patch, pytest, web).
 - Default LLM provider is `mock`; `--llm codex` (or `TOKIMON_LLM=codex`) enables the Codex CLI-backed client.
+- The Chat UI includes a Self-Improve dashboard:
+  - Start endpoint: `POST /api/self_improve/start` launches a self-improve run from the UI using the same orchestrator as `tokimon self-improve`.
+  - The UI renders each self-improve session as a separate tab (“thread”).
+  - Per-session streaming is provided via Server-Sent Events (SSE) that follow the session’s `trace.jsonl` output (unrolled worker loop events + step events). Token-level streaming is not required.
 
 ### Self-Improvement Mode (Multi-Session / Batch)
 - When invoked with a self-improvement goal, the system can accept optional “inputs”:

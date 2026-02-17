@@ -28,6 +28,11 @@ This document maps requirements to automated tests.
   - Assert `POST /api/send` with a simple message returns a structured JSON reply.
   - Shut the server down cleanly.
 
+- Chat UI self-improve dashboard smoke test (mock model):
+  - Start `tokimon chat-ui` on an ephemeral port with a git-backed workspace.
+  - Call `POST /api/self_improve/start` with `sessions=1` and `no_merge=true`.
+  - Assert the run reports a `run_id` and that session trace SSE emits `worker_*` events.
+
 - Self-improvement batch:
   - Creates multiple isolated session workspaces from a master root.
   - Uses `git worktree` (detached HEAD) for all session workspaces and aborts with an actionable error when the master is not a clean git checkout.

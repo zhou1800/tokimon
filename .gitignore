@@ -1,5 +1,7 @@
 .venv/
 .tokimon-tmp/
+runs/
+src/runs/
 __pycache__/
 *.py[cod]
 .pytest_cache/
