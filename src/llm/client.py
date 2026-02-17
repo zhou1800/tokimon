@@ -120,12 +120,6 @@ class CodexCLIClient:
         tools: list[dict[str, Any]] | None = None,
         response_schema: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        prompt = _render_prompt(
-            messages,
-            tools=tools,
-            preamble=_codex_cli_preamble(self.settings, self.workspace_dir),
-        )
-
         # Note: Codex CLI supports `--output-schema`, but its accepted JSON Schema subset
         # is stricter than standard Draft-07. For portability, we capture the last agent
         # message and parse JSON ourselves (mirrors the ai-agent-cli approach).
@@ -134,6 +128,16 @@ class CodexCLIClient:
         if tmp_root is not None:
             env.update({"TMPDIR": str(tmp_root), "TEMP": str(tmp_root), "TMP": str(tmp_root)})
         env = _maybe_apply_codex_ripgrep_guard(env, tmp_root=tmp_root)
+        env, delegation_depth = _mark_tokimon_delegated_env(env)
+        prompt = _render_prompt(
+            messages,
+            tools=tools,
+            preamble=_codex_cli_preamble(
+                self.settings,
+                self.workspace_dir,
+                delegation_depth=delegation_depth,
+            ),
+        )
 
         tmp_kwargs: dict[str, Any] = {"prefix": "tokimon-codex-"}
         if tmp_root is not None:
@@ -327,7 +331,12 @@ def _render_prompt(
     return "\n".join(lines)
 
 
-def _codex_cli_preamble(settings: CodexCLISettings, workspace_dir: Path) -> str:
+def _codex_cli_preamble(
+    settings: CodexCLISettings,
+    workspace_dir: Path,
+    *,
+    delegation_depth: int,
+) -> str:
     shell = os.environ.get("SHELL", "")
     shell_name = Path(shell).name if shell else ""
     permissions = [
@@ -343,7 +352,13 @@ def _codex_cli_preamble(settings: CodexCLISettings, workspace_dir: Path) -> str:
         f"  <shell>{shell_name}</shell>",
         "</environment_context>",
     ]
-    return "\n".join([*permissions, "", *env]).strip()
+    tokimon_context = [
+        "<tokimon_context>",
+        "  <delegated>true</delegated>",
+        f"  <delegation_depth>{delegation_depth}</delegation_depth>",
+        "</tokimon_context>",
+    ]
+    return "\n".join([*permissions, "", *env, "", *tokimon_context]).strip()
 
 
 def _extract_json_text(text: str) -> str:
@@ -443,6 +458,16 @@ def _parse_env_int(raw: str | None, *, default: int) -> int:
         return int(normalized)
     except ValueError:
         return default
+
+
+def _mark_tokimon_delegated_env(env: dict[str, str]) -> tuple[dict[str, str], int]:
+    prior_depth = _parse_env_int(env.get("TOKIMON_DELEGATION_DEPTH"), default=0)
+    if prior_depth < 0:
+        prior_depth = 0
+    delegation_depth = prior_depth + 1
+    env["TOKIMON_DELEGATED"] = "1"
+    env["TOKIMON_DELEGATION_DEPTH"] = str(delegation_depth)
+    return env, delegation_depth
 
 
 def _maybe_apply_codex_ripgrep_guard(

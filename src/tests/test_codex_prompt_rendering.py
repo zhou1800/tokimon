@@ -9,7 +9,7 @@ def test_codex_cli_preamble_includes_permissions_and_environment(monkeypatch, tm
     monkeypatch.setenv("SHELL", "/bin/bash")
     settings = CodexCLISettings(sandbox="read-only", ask_for_approval="never", search=True)
 
-    preamble = _codex_cli_preamble(settings, tmp_path)
+    preamble = _codex_cli_preamble(settings, tmp_path, delegation_depth=1)
     assert "<permissions instructions>" in preamble
     assert "sandbox_mode: read-only" in preamble
     assert "approval_policy: never" in preamble
@@ -17,6 +17,9 @@ def test_codex_cli_preamble_includes_permissions_and_environment(monkeypatch, tm
     assert "<environment_context>" in preamble
     assert f"<cwd>{tmp_path}</cwd>" in preamble
     assert "<shell>bash</shell>" in preamble
+    assert "<tokimon_context>" in preamble
+    assert "<delegated>true</delegated>" in preamble
+    assert "<delegation_depth>1</delegation_depth>" in preamble
 
 
 def test_render_prompt_is_deterministic_and_sorts_tools() -> None:

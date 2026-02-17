@@ -103,6 +103,7 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
 - Optional real adapter: Codex CLI-backed client that shells out to `codex exec` and returns structured JSON (controlled via `TOKIMON_LLM=codex` or CLI flags).
 - Codex CLI prompt rendering is deterministic and caching-friendly (stable tool ordering; explicit sections such as `<permissions instructions>` and `<environment_context>`).
 - No hard dependency on a vendor SDK.
+- Delegation recursion safety: when Tokimon launches Codex CLI, it MUST mark the subprocess environment with `TOKIMON_DELEGATED=1` and increment `TOKIMON_DELEGATION_DEPTH` (defaulting from 0 to 1), and include the delegation depth in prompt context.
 - Codex CLI ripgrep guard: when launching Codex CLI, Tokimon MUST set `RIPGREP_CONFIG_PATH` for the Codex subprocess to a workspace-local guard config at `<workspace>/.tokimon-tmp/tokimon-codex.ripgreprc` to prevent OOM from scanning generated artifacts.
   - Preserve user config: if the incoming environment has `RIPGREP_CONFIG_PATH` pointing to a readable file, prepend its contents to the generated guard config before Tokimon guard flags.
   - Default exclusions (minimum): `**/runs/**`, `**/.tokimon-tmp/**`, `**/.venv/**`, `**/node_modules/**`, `**/dist/**`, `**/build/**`, `**/*.jsonl`, `**/*.ndjson`.

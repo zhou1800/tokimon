@@ -39,6 +39,41 @@ def _install_fake_subprocess_run(monkeypatch):
     return captured
 
 
+def test_codex_client_sets_delegation_markers(monkeypatch, tmp_path):
+    monkeypatch.delenv("TOKIMON_DELEGATED", raising=False)
+    monkeypatch.delenv("TOKIMON_DELEGATION_DEPTH", raising=False)
+
+    captured = _install_fake_subprocess_run(monkeypatch)
+
+    cli = client.CodexCLIClient(
+        workspace_dir=tmp_path,
+        settings=client.CodexCLISettings(cli_command="codex"),
+    )
+    cli.send(messages=[{"role": "user", "content": "hi"}])
+
+    env = captured.get("env")
+    assert isinstance(env, dict)
+    assert env.get("TOKIMON_DELEGATED") == "1"
+    assert env.get("TOKIMON_DELEGATION_DEPTH") == "1"
+
+
+def test_codex_client_increments_delegation_depth(monkeypatch, tmp_path):
+    monkeypatch.setenv("TOKIMON_DELEGATION_DEPTH", "2")
+
+    captured = _install_fake_subprocess_run(monkeypatch)
+
+    cli = client.CodexCLIClient(
+        workspace_dir=tmp_path,
+        settings=client.CodexCLISettings(cli_command="codex"),
+    )
+    cli.send(messages=[{"role": "user", "content": "hi"}])
+
+    env = captured.get("env")
+    assert isinstance(env, dict)
+    assert env.get("TOKIMON_DELEGATED") == "1"
+    assert env.get("TOKIMON_DELEGATION_DEPTH") == "3"
+
+
 def test_guard_disabled_does_not_override_ripgrep_config(monkeypatch, tmp_path):
     base_config = tmp_path / "base.ripgreprc"
     base_config.write_text("# base-config\n", encoding="utf-8")
