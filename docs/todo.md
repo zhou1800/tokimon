@@ -18,8 +18,9 @@ This document tracks prioritized follow-up work to reduce OOM risk and improve r
    - Acceptance criteria: Learn from `~/clover/joey-playground/apps/` how to use Claude CLI, then enforce a `claude:codex` session mix of `1:4` in every self-improve task.
 8. [x] Ensure self-improve uses the agent loop (Owner: TBD)
    - Acceptance criteria: Confirm and enforce that Tokimon self-improve tasks run through the full agent loop (iterative model/tool cycle), not a one-shot execution path.
-9. [ ] Self-improve entry-point request handling loop (Owner: TBD)
+9. [x] Self-improve entry-point request handling loop (Owner: TBD)
    - Acceptance criteria: For Tokimon entry-point tasks, enforce this flow: (1) understand the user's request and ask clarifying questions immediately if it is unclear or ambiguous, (2) once the request is clear move to step 3, (3) generate a prompt, (4) run the agent with the prompt, (5) monitor and report progress, and (6) verify the final outcome; if step 6 fails, restart from step 3.
+   - Verification: `pytest --maxfail=1 -c src/pyproject.toml src/tests` (passes); see `src/tests/test_self_improve_entrypoint_loop.py` and `src/self_improve/orchestrator.py`.
 10. [ ] Schema-driven structured outputs (Owner: TBD)
    - Acceptance criteria: Define a per-step "success schema" and enforce schema-valid structured results (not just valid JSON), with bounded repair on validation failures.
 11. [ ] Persist and render structured results + UI blocks (Owner: TBD)
