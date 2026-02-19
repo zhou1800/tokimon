@@ -104,6 +104,158 @@ class CodexCLISettings:
         )
 
 
+@dataclass(frozen=True)
+class ClaudeCLISettings:
+    """Configuration for `ClaudeCLIClient` (Claude Code CLI adapter)."""
+
+    cli_command: str = "claude"
+    model: str | None = None
+    timeout_s: int = 900
+    dangerously_skip_permissions: bool = False
+    settings_path: str | None = None
+    settings_json: dict[str, Any] = field(default_factory=dict)
+    extra_args: list[str] = field(default_factory=list)
+
+    @staticmethod
+    def from_env() -> "ClaudeCLISettings":
+        cli_command = os.environ.get("CLAUDE_CODE_CLI") or os.environ.get("TOKIMON_CLAUDE_CLI") or "claude"
+        model = os.environ.get("TOKIMON_CLAUDE_MODEL")
+        timeout_s = _parse_env_int(os.environ.get("TOKIMON_CLAUDE_TIMEOUT_S"), default=900)
+        dangerously_skip_permissions = _parse_env_bool(
+            os.environ.get("TOKIMON_CLAUDE_DANGEROUSLY_SKIP_PERMISSIONS"),
+            default=False,
+        )
+        settings_path = os.environ.get("TOKIMON_CLAUDE_SETTINGS_PATH")
+        settings_json = _load_json_env("TOKIMON_CLAUDE_SETTINGS_JSON") or {}
+        extra_args = shlex.split(os.environ.get("TOKIMON_CLAUDE_ARGS", ""))
+        return ClaudeCLISettings(
+            cli_command=cli_command,
+            model=model,
+            timeout_s=timeout_s,
+            dangerously_skip_permissions=dangerously_skip_permissions,
+            settings_path=settings_path,
+            settings_json=settings_json,
+            extra_args=extra_args,
+        )
+
+
+class ClaudeCLIClient:
+    """LLMClient backed by Claude Code CLI (`claude`) structured output.
+
+    Invokes Claude in non-interactive mode (`--print`) and sends prompts via stdin
+    (`--input-format text`). The adapter requests JSON output via `--output-format json`
+    and expects the agent result to decode as a JSON object.
+    """
+
+    def __init__(self, workspace_dir: Path, settings: ClaudeCLISettings | None = None) -> None:
+        self.workspace_dir = workspace_dir.resolve()
+        self.settings = settings or ClaudeCLISettings.from_env()
+
+    def send(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
+        response_schema: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        tmp_root = _ensure_tmp_root(self.workspace_dir)
+        env = os.environ.copy()
+        if tmp_root is not None:
+            env.update({"TMPDIR": str(tmp_root), "TEMP": str(tmp_root), "TMP": str(tmp_root)})
+        env, delegation_depth = _mark_tokimon_delegated_env(env)
+        prompt = _render_prompt(
+            messages,
+            tools=tools,
+            preamble=_claude_cli_preamble(
+                self.settings,
+                self.workspace_dir,
+                delegation_depth=delegation_depth,
+            ),
+        )
+
+        settings_path = (self.settings.settings_path or "").strip() or None
+        if settings_path is None and self.settings.settings_json and tmp_root is not None:
+            candidate_path = tmp_root / "tokimon-claude-settings.json"
+            try:
+                candidate_path.write_text(
+                    json.dumps(self.settings.settings_json, indent=2),
+                    encoding="utf-8",
+                )
+                settings_path = str(candidate_path)
+            except Exception:
+                settings_path = None
+
+        cmd = _build_claude_exec_command(
+            self.settings,
+            settings_path=settings_path,
+            force_json=True,
+        )
+        try:
+            completed = subprocess.run(
+                cmd,
+                input=prompt,
+                text=True,
+                capture_output=True,
+                env=env,
+                cwd=str(self.workspace_dir),
+                timeout=self.settings.timeout_s,
+                check=False,
+            )
+        except FileNotFoundError as exc:
+            return _llm_error(
+                "claude cli not found",
+                failure_signature="llm-claude-cli-missing",
+                details=str(exc),
+            )
+        except subprocess.TimeoutExpired:
+            return _llm_error(
+                f"claude cli timed out after {self.settings.timeout_s}s",
+                failure_signature="llm-claude-timeout",
+            )
+        except Exception as exc:  # pragma: no cover
+            return _llm_error(
+                "claude cli error",
+                failure_signature="llm-claude-exception",
+                details=str(exc),
+            )
+
+        stdout = (completed.stdout or "").strip()
+        if completed.returncode != 0 and not stdout:
+            details = _truncate(completed.stderr or "", 2000)
+            reason = _first_nonempty_line(details)
+            summary = f"claude cli exited {completed.returncode}"
+            if reason:
+                summary = f"{summary}: {reason}"
+            return _llm_error(
+                summary,
+                failure_signature="llm-claude-nonzero-exit",
+                details=details,
+            )
+
+        candidate: Any = stdout
+        try:
+            if stdout:
+                candidate = json.loads(stdout)
+        except json.JSONDecodeError:
+            candidate = stdout
+
+        json_text = _extract_json_text(_extract_json_payload(candidate))
+        try:
+            payload = json.loads(json_text)
+        except json.JSONDecodeError as exc:
+            return _llm_error(
+                f"claude returned invalid JSON: {exc}",
+                failure_signature="llm-claude-invalid-json",
+                details=_truncate(stdout, 2000),
+            )
+        if not isinstance(payload, dict):
+            return _llm_error(
+                "claude returned non-object JSON",
+                failure_signature="llm-claude-non-object",
+                details=_truncate(json.dumps(payload), 2000),
+            )
+        return payload
+
+
 class CodexCLIClient:
     """LLMClient backed by Codex CLI (`codex exec`) structured output.
 
@@ -225,6 +377,7 @@ def build_llm_client(provider: str, *, workspace_dir: Path) -> LLMClient:
     Supported providers:
     - mock: deterministic scripted client (default)
     - codex: Codex CLI-backed client
+    - claude: Claude Code CLI-backed client
     """
 
     normalized = (provider or "").strip().lower()
@@ -232,6 +385,8 @@ def build_llm_client(provider: str, *, workspace_dir: Path) -> LLMClient:
         return MockLLMClient(script=[])
     if normalized in {"codex", "codex-cli"}:
         return CodexCLIClient(workspace_dir)
+    if normalized in {"claude", "claude-cli"}:
+        return ClaudeCLIClient(workspace_dir)
     raise ValueError(f"Unknown LLM provider: {provider}")
 
 
@@ -263,6 +418,27 @@ def _build_codex_exec_command(
             "-",
         ]
     )
+    return cmd
+
+
+def _build_claude_exec_command(
+    settings: ClaudeCLISettings,
+    *,
+    settings_path: str | None,
+    force_json: bool,
+) -> list[str]:
+    cmd = shlex.split(settings.cli_command) or ["claude"]
+    cmd.extend(["--print", "--input-format", "text"])
+    if force_json:
+        cmd.extend(["--output-format", "json"])
+    if settings.dangerously_skip_permissions:
+        cmd.append("--dangerously-skip-permissions")
+    if settings.model:
+        cmd.extend(["--model", settings.model])
+    if settings_path:
+        cmd.extend(["--settings", settings_path])
+    if settings.extra_args:
+        cmd.extend(settings.extra_args)
     return cmd
 
 
@@ -361,6 +537,35 @@ def _codex_cli_preamble(
     return "\n".join([*permissions, "", *env, "", *tokimon_context]).strip()
 
 
+def _claude_cli_preamble(
+    settings: ClaudeCLISettings,
+    workspace_dir: Path,
+    *,
+    delegation_depth: int,
+) -> str:
+    shell = os.environ.get("SHELL", "")
+    shell_name = Path(shell).name if shell else ""
+    permissions = [
+        "<permissions instructions>",
+        "provider: claude",
+        f"dangerously_skip_permissions: {settings.dangerously_skip_permissions}",
+        "</permissions instructions>",
+    ]
+    env = [
+        "<environment_context>",
+        f"  <cwd>{workspace_dir}</cwd>",
+        f"  <shell>{shell_name}</shell>",
+        "</environment_context>",
+    ]
+    tokimon_context = [
+        "<tokimon_context>",
+        "  <delegated>true</delegated>",
+        f"  <delegation_depth>{delegation_depth}</delegation_depth>",
+        "</tokimon_context>",
+    ]
+    return "\n".join([*permissions, "", *env, "", *tokimon_context]).strip()
+
+
 def _extract_json_text(text: str) -> str:
     candidate = (text or "").strip()
     if not candidate:
@@ -377,6 +582,22 @@ def _extract_json_text(text: str) -> str:
     if candidate.endswith("```"):
         candidate = candidate[: -len("```")].strip()
     return candidate
+
+
+def _extract_json_payload(candidate: Any) -> str:
+    """Extract an agent message string from provider JSON wrappers."""
+
+    if isinstance(candidate, str):
+        return candidate
+    if isinstance(candidate, dict):
+        if "result" in candidate:
+            return _extract_json_payload(candidate["result"])
+        if "message" in candidate:
+            return _extract_json_payload(candidate["message"])
+        return json.dumps(candidate)
+    if isinstance(candidate, list):
+        return json.dumps(candidate)
+    return json.dumps(candidate)
 
 
 def _llm_error(

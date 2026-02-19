@@ -47,6 +47,9 @@ source .venv/bin/activate && tokimon chat-ui
 
 # Use a real model via Codex CLI:
 source .venv/bin/activate && tokimon chat-ui --llm codex
+
+# Or via Claude Code CLI:
+source .venv/bin/activate && tokimon chat-ui --llm claude
 ```
 
 Self-improve (experimental; uses the current working directory as the "master" workspace):
@@ -55,9 +58,15 @@ source .venv/bin/activate && tokimon self-improve --goal "Improve tokimon based 
 
 # Use a real model via Codex CLI (requires `codex` on PATH, or set CODEX_CLI=/path/to/codex):
 source .venv/bin/activate && tokimon self-improve --llm codex --goal "Improve tokimon based on docs and failing tests."
+
+# Use a real model via Claude Code CLI (requires `claude` on PATH, or set CLAUDE_CODE_CLI=/path/to/claude):
+source .venv/bin/activate && tokimon self-improve --llm claude --goal "Improve tokimon based on docs and failing tests."
+
+# Mixed-provider self-improve (exact claude:codex=1:4; requires --sessions multiple of 5):
+source .venv/bin/activate && tokimon self-improve --llm mixed --sessions 5 --goal "Improve tokimon based on docs and failing tests."
 ```
 
-Note: by default, self-improve uses `MockLLMClient` (no real model calls). To use Codex CLI as the LLM, pass `--llm codex` (or set `TOKIMON_LLM=codex`).
+Note: by default, self-improve uses `MockLLMClient` (no real model calls). To use an agent CLI as the LLM, pass `--llm codex|claude|mixed` (or set `TOKIMON_LLM`).
 
 ## Development
 Run tests:

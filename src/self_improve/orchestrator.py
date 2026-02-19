@@ -60,9 +60,9 @@ SCORING_RUBRIC = [
 
 @dataclass(frozen=True)
 class SelfImproveSettings:
-    sessions_per_batch: int = 4
+    sessions_per_batch: int = 5
     batches: int = 1
-    max_workers: int = 4
+    max_workers: int = 5
     session_concurrency: int = 4
     include_paths: list[str] = field(
         default_factory=lambda: ["AGENTS.md", "README.md", "requirements.txt", "src", "docs"]

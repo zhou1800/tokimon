@@ -18,6 +18,8 @@ This document maps requirements to automated tests.
 - Codex CLI prompt rendering: deterministic prompt envelope with stable tool ordering and explicit context sections.
 - Codex CLI ripgrep guard: guard on/off, guard config contents, `RIPGREP_CONFIG_PATH` override/preservation, max-columns default and disable=0.
 - Codex CLI delegation markers: subprocess env includes `TOKIMON_DELEGATED=1`, increments `TOKIMON_DELEGATION_DEPTH`, and prompt context reflects delegation depth.
+- Claude CLI adapter: subprocess args include non-interactive flags (`--print`, `--input-format text`, `--output-format json`) and delegation markers are set in the subprocess environment (see `src/tests/test_claude_cli_client.py`).
+- Self-improve mixed provider schedule: deterministic session_id→provider assignment and validation that mixed mode requires `--sessions` multiple of 5 (see `src/tests/test_self_improve_provider_mix.py`).
 - Constitution doc exists and includes required headings (see `src/tests/test_self_improve_constitution.py`).
 - Entry-point prompt includes Constitution Acknowledgement, Immutable Invariants, and `## Evaluation Plan (Required)` (see `src/tests/test_self_improve_constitution.py`).
 - Winner selection tie-breaker uses lowest `session_id` when scores tie (see `src/tests/test_self_improve_constitution.py`).

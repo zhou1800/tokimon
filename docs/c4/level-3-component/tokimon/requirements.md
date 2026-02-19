@@ -101,9 +101,12 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
 - Abstract `LLMClient.send(messages, tools=None, response_schema=None)`.
 - Provide stub adapter, deterministic mock adapter, and a documented placeholder for a real adapter.
 - Optional real adapter: Codex CLI-backed client that shells out to `codex exec` and returns structured JSON (controlled via `TOKIMON_LLM=codex` or CLI flags).
+- Optional real adapter: Claude Code CLI-backed client that shells out to `claude` and returns structured JSON (controlled via `TOKIMON_LLM=claude` or CLI flags).
+- Claude Code CLI invocation: send prompts via stdin in `--print` mode (`claude --print --input-format text --output-format json`) and optionally pass a settings file via `--settings <path>` (mirrors `~/clover/joey-playground/apps/ai-agent-cli`).
+  - Config surface (env): `CLAUDE_CODE_CLI` (binary override), `TOKIMON_CLAUDE_MODEL`, `TOKIMON_CLAUDE_TIMEOUT_S`, `TOKIMON_CLAUDE_SETTINGS_PATH` or `TOKIMON_CLAUDE_SETTINGS_JSON`, `TOKIMON_CLAUDE_DANGEROUSLY_SKIP_PERMISSIONS`, `TOKIMON_CLAUDE_ARGS`.
 - Codex CLI prompt rendering is deterministic and caching-friendly (stable tool ordering; explicit sections such as `<permissions instructions>` and `<environment_context>`).
 - No hard dependency on a vendor SDK.
-- Delegation recursion safety: when Tokimon launches Codex CLI, it MUST mark the subprocess environment with `TOKIMON_DELEGATED=1` and increment `TOKIMON_DELEGATION_DEPTH` (defaulting from 0 to 1), and include the delegation depth in prompt context.
+- Delegation recursion safety: when Tokimon launches an agent CLI (Codex or Claude), it MUST mark the subprocess environment with `TOKIMON_DELEGATED=1` and increment `TOKIMON_DELEGATION_DEPTH` (defaulting from 0 to 1), and include the delegation depth in prompt context.
 - Codex CLI ripgrep guard: when launching Codex CLI, Tokimon MUST set `RIPGREP_CONFIG_PATH` for the Codex subprocess to a workspace-local guard config at `<workspace>/.tokimon-tmp/tokimon-codex.ripgreprc` to prevent OOM from scanning generated artifacts.
   - Preserve user config: if the incoming environment has `RIPGREP_CONFIG_PATH` pointing to a readable file, prepend its contents to the generated guard config before Tokimon guard flags.
   - Default exclusions (minimum): `**/runs/**`, `**/.tokimon-tmp/**`, `**/.venv/**`, `**/node_modules/**`, `**/dist/**`, `**/build/**`, `**/*.jsonl`, `**/*.ndjson`.
@@ -125,13 +128,14 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
 - Health endpoint: `GET /healthz` returns JSON indicating the server is running.
 - Chat endpoint: `POST /api/send` accepts JSON `{message: string, history?: [{role, content}]}` and returns a structured JSON reply including `status` and a human-readable assistant message (in `reply` or `summary`).
 - The chat handler uses the same tool set as the hierarchical runner (file, grep, patch, pytest, web).
-- Default LLM provider is `mock`; `--llm codex` (or `TOKIMON_LLM=codex`) enables the Codex CLI-backed client.
+- Default LLM provider is `mock`; `--llm codex` / `--llm claude` (or `TOKIMON_LLM=codex|claude`) enables the corresponding CLI-backed client.
 
 ### Self-Improvement Mode (Multi-Session / Batch)
 - When invoked with a self-improvement goal, the system can accept optional “inputs”:
   - URL (http/https), local file path, or inline text (or none).
 - If `--input` is not provided, the system may auto-detect URL(s) embedded in the `--goal` text and fetch at least the first URL as the session input payload (bounded by byte/time limits and the WebTool network policy).
 - The system runs a batch of N independent improvement sessions in parallel.
+- Mixed-provider mode: when `--llm mixed`, enforce a deterministic `claude:codex=1:4` session mix by assigning Claude to session indices 1, 6, 11, ... (i.e., `(index - 1) % 5 == 0`) and Codex to the other sessions. `--sessions` MUST be a multiple of 5 (default: 5).
 - Before launching each batch, the system runs an evaluation on the current master workspace (pytest by default) and passes a compact summary (pass/fail counts + failing test ids) into every session as context.
 - Each session:
   - Materializes the master workspace into an isolated session workspace using `git worktree` (detached HEAD) so sessions can run in parallel without colliding on files.

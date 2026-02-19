@@ -11,11 +11,12 @@ from pathlib import Path
 
 from chat_ui.server import ChatUIConfig, run_chat_ui
 from benchmarks.harness import EvaluationHarness
-from llm.client import CodexCLIClient, CodexCLISettings, MockLLMClient, build_llm_client
+from llm.client import ClaudeCLIClient, ClaudeCLISettings, CodexCLIClient, CodexCLISettings, MockLLMClient, build_llm_client
 from memory.store import MemoryStore
 from runners.baseline import BaselineRunner
 from runners.hierarchical import HierarchicalRunner
 from self_improve.orchestrator import SelfImproveOrchestrator, SelfImproveSettings
+from self_improve.provider_mix import mixed_provider_for_session, validate_mixed_sessions_per_batch
 from skills.builder import SkillBuilder
 from skills.registry import SkillRegistry
 from skills.spec import SkillSpec
@@ -49,15 +50,15 @@ def build_parser() -> argparse.ArgumentParser:
     self_improve = subparsers.add_parser("self-improve")
     self_improve.add_argument("--goal", default="Improve tokimon based on docs and failing tests.")
     self_improve.add_argument("--input", default=None)
-    self_improve.add_argument("--sessions", type=int, default=4)
+    self_improve.add_argument("--sessions", type=int, default=5)
     self_improve.add_argument("--batches", type=int, default=1)
     self_improve.add_argument("--workers", type=int, default=4)
     self_improve.add_argument("--no-merge", action="store_true")
     self_improve.add_argument(
         "--llm",
-        choices=["mock", "codex"],
+        choices=["mock", "codex", "claude", "mixed"],
         default=os.environ.get("TOKIMON_LLM", "mock"),
-        help="LLM provider to use for self-improve sessions (or set TOKIMON_LLM).",
+        help="LLM provider to use for self-improve sessions (or set TOKIMON_LLM); mixed enforces claude:codex=1:4 and requires --sessions multiple of 5.",
     )
 
     chat_ui = subparsers.add_parser("chat-ui")
@@ -65,7 +66,7 @@ def build_parser() -> argparse.ArgumentParser:
     chat_ui.add_argument("--port", type=int, default=8765)
     chat_ui.add_argument(
         "--llm",
-        choices=["mock", "codex"],
+        choices=["mock", "codex", "claude"],
         default=os.environ.get("TOKIMON_LLM", "mock"),
         help="LLM provider to use for chat-ui (or set TOKIMON_LLM).",
     )
@@ -159,9 +160,15 @@ def main(argv: list[str] | None = None) -> int:
             merge_on_success=not args.no_merge,
         )
         llm_provider = str(args.llm or "mock").strip().lower()
+        if llm_provider == "mixed":
+            validate_mixed_sessions_per_batch(int(args.sessions))
 
         def llm_factory(_session_id: str, workspace_dir: Path):
-            if llm_provider in {"codex", "codex-cli"}:
+            session_provider = llm_provider
+            if llm_provider == "mixed":
+                session_provider = mixed_provider_for_session(_session_id)
+
+            if session_provider in {"codex", "codex-cli"}:
                 codex_settings = CodexCLISettings.from_env()
                 if "TOKIMON_CODEX_SANDBOX" not in os.environ:
                     codex_settings = replace(codex_settings, sandbox="workspace-write")
@@ -172,7 +179,14 @@ def main(argv: list[str] | None = None) -> int:
                 if "TOKIMON_CODEX_TIMEOUT_S" not in os.environ:
                     codex_settings = replace(codex_settings, timeout_s=240)
                 return CodexCLIClient(workspace_dir, settings=codex_settings)
-            return build_llm_client(llm_provider, workspace_dir=workspace_dir)
+
+            if session_provider in {"claude", "claude-cli"}:
+                claude_settings = ClaudeCLISettings.from_env()
+                if "TOKIMON_CLAUDE_TIMEOUT_S" not in os.environ:
+                    claude_settings = replace(claude_settings, timeout_s=240)
+                return ClaudeCLIClient(workspace_dir, settings=claude_settings)
+
+            return build_llm_client(session_provider, workspace_dir=workspace_dir)
 
         orchestrator = SelfImproveOrchestrator(master_root, llm_factory=llm_factory, settings=settings)
         try:

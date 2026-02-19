@@ -15,8 +15,9 @@ This document tracks prioritized follow-up work to reduce OOM risk and improve r
    - Acceptance criteria: Deliver a Tokimon chat UI flow that supports routine interaction without CLI invocation for each step.
 6. [x] Generalized arbitrary-goal self-improvement mode (Owner: TBD)
    - Acceptance criteria: Provide a super-concise workflow that takes an arbitrary goal and executes end-to-end self-improvement with measurable output.
-7. [ ] Claude CLI learning + mixed-provider self-improve ratio (Owner: TBD)
+7. [x] Claude CLI learning + mixed-provider self-improve ratio (Owner: TBD)
    - Acceptance criteria: Learn from `~/clover/joey-playground/apps/` how to use Claude CLI, then enforce a `claude:codex` session mix of `1:4` in every self-improve task.
+   - Verification: `pytest --maxfail=1 -c src/pyproject.toml src/tests` (passes); see `src/llm/client.py`, `src/self_improve/provider_mix.py`, `src/cli.py`, `src/tests/test_claude_cli_client.py`, and `src/tests/test_self_improve_provider_mix.py`.
 8. [x] Ensure self-improve uses the agent loop (Owner: TBD)
    - Acceptance criteria: Confirm and enforce that Tokimon self-improve tasks run through the full agent loop (iterative model/tool cycle), not a one-shot execution path.
 9. [x] Self-improve entry-point request handling loop (Owner: TBD)
