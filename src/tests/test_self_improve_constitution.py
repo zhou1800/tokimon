@@ -10,6 +10,7 @@ from self_improve.orchestrator import (
     _entrypoint_prompt,
     _rank_sessions,
     _report_to_markdown,
+    _score,
 )
 from self_improve.source import InputPayload
 
@@ -133,3 +134,10 @@ def test_report_markdown_includes_constitution_headings_and_energy() -> None:
     actual_energy = (2 + 3) + (1 + 4)
     assert f"Planned energy: {planned_energy}" in markdown
     assert f"Actual energy: {actual_energy}" in markdown
+
+
+def test_scoring_does_not_optimize_for_energy() -> None:
+    evaluation = EvaluationResult(ok=True, passed=10, failed=None, failing_tests=[], elapsed_s=0.0)
+    score_low_energy = _score(True, evaluation, True, 1, 1, 1)
+    score_high_energy = _score(True, evaluation, True, 1, 100, 200)
+    assert score_low_energy == score_high_energy

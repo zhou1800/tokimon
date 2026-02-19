@@ -54,7 +54,7 @@ SCORING_RUBRIC = [
     "Workflow outcome (success=1, otherwise=0)",
     "Concrete changes produced (yes=1, no=0)",
     "Passed test count (higher is better)",
-    "Energy efficiency (lower energy is better)",
+    "Failed test count (lower is better)",
 ]
 
 
@@ -680,17 +680,18 @@ def _score(
     evaluation: EvaluationResult,
     workflow_ok: bool | None,
     changed_files: int,
-    model_calls: int,
-    tool_calls: int,
+    _model_calls: int,
+    _tool_calls: int,
 ) -> tuple[int, int, int, int, int, int]:
     verified = 1 if verification_ok else 0
     ok = 1 if evaluation.ok else 0
     workflow = 1 if workflow_ok else 0
     has_changes = 1 if changed_files > 0 else 0
     passed = int(evaluation.passed or 0)
-    failed = int(evaluation.failed or 9999)
-    # Primary: verification outcome; Secondary: tests pass; then workflow and concrete changes.
-    return (verified, ok, workflow, has_changes, passed, -failed - tool_calls - model_calls)
+    failed = int(evaluation.failed or 0) if evaluation.ok else int(evaluation.failed or 9999)
+    # Primary: verification outcome; Secondary: evaluation ok; then workflow, concrete changes, and test counts.
+    # Energy is reported for auditability but must not influence scoring/winner selection.
+    return (verified, ok, workflow, has_changes, passed, -failed)
 
 
 def _planned_energy_budget(sessions: int, max_attempts: int) -> int:
@@ -793,6 +794,7 @@ def _report_to_markdown(report: SelfImproveReport) -> str:
         *[f"- {item}" for item in SCORING_RUBRIC],
         "",
         "Tie-breaker: lowest session_id (lexicographic) when scores tie.",
+        "Energy is tracked for auditability and reporting, not winner selection.",
         "",
         "## Energy Budget",
         "",

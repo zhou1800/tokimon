@@ -22,7 +22,7 @@ This constitution is the immutable, binding contract for Tokimon self-improve ru
 ### Red Lines (Soft)
 - Avoid unnecessary changes that do not improve capability or verification outcomes.
 - Avoid non-deterministic selection criteria.
-- Avoid excessive energy usage when a lower-energy plan would meet the same objective.
+- Avoid optimizing for lower energy at the expense of verified quality or parallel exploration.
 
 ## Evaluation Plan (Required)
 - Evaluation must be explicit and executable (pytest by default for this repo).
@@ -36,6 +36,6 @@ Scoring is deterministic and ordered by the following tuple (higher is better):
 3. Workflow outcome (success=1, otherwise=0)
 4. Concrete changes produced (yes=1, no=0)
 5. Passed test count (higher is better)
-6. Energy efficiency (lower energy is better)
 
 Tie-breaker: if scores tie, the winner is the lowest `session_id` (lexicographic).
+Energy is reported for auditability, but it must not influence scoring or winner selection.
