@@ -63,7 +63,14 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
 - FileTool: safe read/write within workspace and prevents path traversal.
 - PatchTool: apply unified diffs with validation.
 - PytestTool: run pytest, capture output, pass/fail counts, failing tests list.
-- GrepTool: search within repo.
+- GrepTool: search within repo with bounded output.
+  - Uses `rg` (ripgrep) when available, otherwise falls back to a Python regex scan.
+  - Output is bounded by default to prevent OOM and oversized traces:
+    - Config surface: `TOKIMON_GREP_MAX_BYTES` (default: 200_000; `0` disables the cap).
+    - Tool result includes `data.output` (string) and `data.truncated` (bool).
+  - Default excludes apply only when `path` is omitted (repo-wide search). Excluded by default:
+    - `**/runs/**`, `**/.tokimon-tmp/**`, `**/.venv/**`, `**/node_modules/**`, `**/dist/**`, `**/build/**`, `**/*.jsonl`, `**/*.ndjson`
+    - Supplying an explicit `path` disables these default excludes so targeted searches (e.g., within `runs/`) still work.
 - WebTool: fetch URL content (and optional lightweight search) with byte/time limits.
   - Networking supports a two-layer allowlist model: an operator-configured org allowlist (maximum destinations) plus an optional request allowlist (must be a subset).
   - WebTool may inject per-domain secret headers from environment-backed configuration (domain secrets) without exposing raw credential values in tool outputs.

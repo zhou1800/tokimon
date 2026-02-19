@@ -15,8 +15,16 @@ This document tracks prioritized follow-up work to reduce OOM risk and improve r
      - Context compaction: compact long conversation histories when near limits rather than continuing to append unbounded context.
    - Implemented: Tool call correlation (`call_id`) is recorded in `tool_call_records`, echoed in tool result payloads, and logged in trace events.
    - Verification: `pytest --maxfail=1 -c src/pyproject.toml src/tests` (passes)
-4. [ ] Self-improve from skills shell tips article (Owner: TBD)
+4. [x] Self-improve from skills shell tips article (Owner: TBD)
    - Acceptance criteria: Use Tokimon to extract improvements from https://developers.openai.com/blog/skills-shell-tips and apply at least one validated enhancement.
+   - Extracted candidate improvements:
+     - Skill metadata as routing logic: include concrete “use when vs don’t use when”, outputs, and success criteria.
+     - Add negative examples + edge cases in skill descriptions to reduce misfires.
+     - Move templates/examples into skills to avoid prompt bloat.
+     - Design for long runs early: container reuse and compaction as defaults.
+     - Prefer deterministic workflows by explicitly instructing the model to use a named skill when needed.
+   - Implemented: GrepTool now enforces bounded output (`TOKIMON_GREP_MAX_BYTES`) and applies safe default excludes for repo-wide searches to reduce OOM risk and speed up grep (see `src/tools/grep_tool.py` + `src/tests/test_tool_grep_tool.py`).
+   - Verification: `pytest --maxfail=1 -c src/pyproject.toml src/tests` (passes)
 5. [x] Chat UI-first interaction flow (Owner: TBD)
    - Acceptance criteria: Deliver a Tokimon chat UI flow that supports routine interaction without CLI invocation for each step.
 6. [x] Generalized arbitrary-goal self-improvement mode (Owner: TBD)
@@ -39,3 +47,4 @@ This document tracks prioritized follow-up work to reduce OOM risk and improve r
    - Acceptance criteria: Migrate the chat UI to a React frontend using Tambo to render Tokimon UI blocks (charts/forms/panels), add the required JS build+serve workflow, and keep `/healthz` and `/api/send` stable.
 14. [x] Tokimon constitution enforcement (Owner: TBD)
    - Acceptance criteria: Add binding constitution doc, enforce entry-point prompt and report headings, deterministic tie-breaker, and energy budget reporting for self-improve.
+   - Verification: `pytest --maxfail=1 -c src/pyproject.toml src/tests` (passes); see `docs/tokimon-constitution.md`, `src/self_improve/orchestrator.py`, and `src/tests/test_self_improve_constitution.py`.

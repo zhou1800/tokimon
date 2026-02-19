@@ -12,7 +12,7 @@ This document maps requirements to automated tests.
 - Memory staged retrieval: Stage 1/2/3 selection logic with deterministic lexical index.
 - Dynamic skill registration: register only after tests pass; hot reload behavior.
 - Parallel execution correctness: basic ordering, backpressure, and cancellation.
-- Tool schemas: FileTool path traversal protection, PatchTool validation, PytestTool parsing, WebTool URL validation and network policy (allowlists + domain secrets).
+- Tool schemas: FileTool path traversal protection, PatchTool validation, PytestTool parsing, GrepTool bounded output + default excludes, WebTool URL validation and network policy (allowlists + domain secrets).
 - Worker tool loop: tool calls execute and are reflected in worker metrics (model/tool call counts).
 - Tool call correlation: tool calls with `call_id` are echoed into tool results and recorded in `tool_call_records`.
 - Trace loop unrolling: worker model/tool calls are recorded to `trace.jsonl` with bounded payload sizes.
