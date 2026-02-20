@@ -209,6 +209,7 @@ class SelfImproveOrchestrator:
         workspace_dir = session_dir / "workspace"
         session_dir.mkdir(parents=True, exist_ok=True)
         clone_master(self.master_root, workspace_dir, include_paths=self.settings.include_paths)
+        session_input_payload = _materialize_session_input(workspace_dir, input_payload)
 
         llm_client = self.llm_factory(session_id, workspace_dir)
         runner = HierarchicalRunner(workspace_dir, llm_client, base_dir=workspace_dir / "runs")
@@ -229,7 +230,7 @@ class SelfImproveOrchestrator:
         session_report: dict[str, Any] = {
             "session_id": session_id,
             "goal": goal,
-            "input": {"kind": input_payload.kind, "ref": input_payload.ref},
+            "input": {"kind": session_input_payload.kind, "ref": session_input_payload.ref},
             "master_baseline_evaluation": baseline_master_eval.__dict__,
             "pytest_args": list(self.settings.pytest_args),
             "entrypoint_max_attempts": entrypoint_max_attempts,
@@ -303,10 +304,11 @@ class SelfImproveOrchestrator:
         for attempt_index in range(1, entrypoint_max_attempts + 1):
             entrypoint_attempts = attempt_index
             retry_reason = verification.reason if attempt_index > 1 else None
+            session_input_payload = _materialize_session_input(workspace_dir, session_input_payload)
             session_goal = _entrypoint_prompt(
                 goal,
                 session_id,
-                input_payload,
+                session_input_payload,
                 baseline_master_eval,
                 self.settings.pytest_args,
                 planned_energy,
@@ -659,6 +661,43 @@ def _wrap_llm_factory(factory: Callable[..., LLMClient]) -> Callable[[str, Path]
     if len(params) <= 1:
         return lambda session_id, _ws: factory(session_id)
     return lambda session_id, workspace_dir: factory(session_id, workspace_dir)
+
+
+def _materialize_session_input(workspace_dir: Path, input_payload: InputPayload) -> InputPayload:
+    """Ensure local file inputs referenced in the prompt exist inside the session workspace.
+
+    For safe/deterministic sessions, avoid path traversal and never leak absolute host paths into the agent prompt.
+    """
+
+    if input_payload.kind != "file" or not input_payload.ref:
+        return input_payload
+
+    raw_ref = str(input_payload.ref)
+    ref_path = Path(raw_ref)
+    fallback_relpath = Path(".tokimon-tmp") / "self-improve-inputs" / (ref_path.name or "input.txt")
+    dest_relpath = ref_path
+    if ref_path.is_absolute() or any(part == ".." for part in ref_path.parts):
+        dest_relpath = fallback_relpath
+
+    workspace_root = workspace_dir.resolve()
+    dest_path = (workspace_dir / dest_relpath).resolve()
+    if dest_path != workspace_root and workspace_root not in dest_path.parents:
+        dest_relpath = fallback_relpath
+        dest_path = (workspace_dir / dest_relpath).resolve()
+
+    if dest_path.exists():
+        if dest_path.is_file():
+            if str(dest_relpath) == raw_ref:
+                return input_payload
+            return InputPayload(kind="file", ref=str(dest_relpath), content=input_payload.content)
+        dest_relpath = fallback_relpath
+        dest_path = (workspace_dir / dest_relpath).resolve()
+
+    dest_path.parent.mkdir(parents=True, exist_ok=True)
+    dest_path.write_text(input_payload.content, encoding="utf-8")
+    if str(dest_relpath) == raw_ref:
+        return input_payload
+    return InputPayload(kind="file", ref=str(dest_relpath), content=input_payload.content)
 
 
 def _strategy_hint(session_id: str) -> str:

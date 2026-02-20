@@ -71,6 +71,115 @@ def test_self_improve_runs_sessions_and_merges_winner(tmp_path: Path) -> None:
     assert "return a + b" in (master / "proj" / "app.py").read_text()
 
 
+def test_self_improve_materializes_file_input_in_session_workspace(tmp_path: Path, monkeypatch) -> None:
+    if shutil.which("git") is None:
+        pytest.skip("git not available")
+
+    master = tmp_path / "master"
+    (master / "proj").mkdir(parents=True, exist_ok=True)
+    (master / "proj" / "__init__.py").write_text("")
+    (master / "proj" / "app.py").write_text("def add(a, b):\n    return a + b\n")
+    (master / "proj" / "tests").mkdir(parents=True, exist_ok=True)
+    (master / ".gitignore").write_text(".tokimon-tmp/\nruns/\n__pycache__/\n.pytest_cache/\ntmp/\n")
+    (master / "proj" / "tests" / "test_app.py").write_text(
+        "from proj.app import add\n\n\ndef test_add():\n    assert add(2, 3) == 5\n"
+    )
+    _git(master, ["init"])
+    _git(master, ["config", "user.email", "test@example.com"])
+    _git(master, ["config", "user.name", "Test User"])
+    _git(master, ["add", "."])
+    _git(master, ["commit", "-m", "init"])
+
+    (master / "tmp").mkdir(parents=True, exist_ok=True)
+    (master / "tmp" / "input.md").write_text("hello input\n")
+
+    monkeypatch.chdir(master)
+
+    def llm_factory(_session_id: str) -> MockLLMClient:
+        plan = {
+            "status": "SUCCESS",
+            "summary": "planned",
+            "workflow": {"steps": [{"id": "noop", "worker": "Implementer"}]},
+        }
+        return MockLLMClient(script=[plan, {"status": "SUCCESS", "summary": "done"}])
+
+    settings = SelfImproveSettings(
+        sessions_per_batch=1,
+        batches=1,
+        max_workers=1,
+        include_paths=["proj"],
+        pytest_args=["proj/tests"],
+        entrypoint_max_attempts=1,
+        merge_on_success=False,
+    )
+    orchestrator = SelfImproveOrchestrator(master, llm_factory=llm_factory, settings=settings)
+    report = orchestrator.run("No-op", input_ref=str(Path("tmp") / "input.md"))
+
+    session = report.batches[0].sessions[0]
+    session_workspace = Path(session.workspace_root)
+    assert (session_workspace / "tmp" / "input.md").read_text() == "hello input\n"
+
+
+def test_self_improve_materializes_absolute_file_input_without_leaking_host_path(
+    tmp_path: Path, monkeypatch
+) -> None:
+    if shutil.which("git") is None:
+        pytest.skip("git not available")
+
+    master = tmp_path / "master"
+    (master / "proj").mkdir(parents=True, exist_ok=True)
+    (master / "proj" / "__init__.py").write_text("")
+    (master / "proj" / "app.py").write_text("def add(a, b):\n    return a + b\n")
+    (master / "proj" / "tests").mkdir(parents=True, exist_ok=True)
+    (master / ".gitignore").write_text(".tokimon-tmp/\nruns/\n__pycache__/\n.pytest_cache/\ntmp/\n")
+    (master / "proj" / "tests" / "test_app.py").write_text(
+        "from proj.app import add\n\n\ndef test_add():\n    assert add(2, 3) == 5\n"
+    )
+    _git(master, ["init"])
+    _git(master, ["config", "user.email", "test@example.com"])
+    _git(master, ["config", "user.name", "Test User"])
+    _git(master, ["add", "."])
+    _git(master, ["commit", "-m", "init"])
+
+    (master / "tmp").mkdir(parents=True, exist_ok=True)
+    input_file = (master / "tmp" / "input.md").resolve()
+    input_file.write_text("hello input\n")
+
+    monkeypatch.chdir(master)
+
+    def llm_factory(_session_id: str) -> MockLLMClient:
+        plan = {
+            "status": "SUCCESS",
+            "summary": "planned",
+            "workflow": {"steps": [{"id": "noop", "worker": "Implementer"}]},
+        }
+        return MockLLMClient(script=[plan, {"status": "SUCCESS", "summary": "done"}])
+
+    settings = SelfImproveSettings(
+        sessions_per_batch=1,
+        batches=1,
+        max_workers=1,
+        include_paths=["proj"],
+        pytest_args=["proj/tests"],
+        entrypoint_max_attempts=1,
+        merge_on_success=False,
+    )
+    orchestrator = SelfImproveOrchestrator(master, llm_factory=llm_factory, settings=settings)
+    report = orchestrator.run("No-op", input_ref=str(input_file))
+
+    session = report.batches[0].sessions[0]
+    session_workspace = Path(session.workspace_root)
+    expected_relpath = Path(".tokimon-tmp") / "self-improve-inputs" / "input.md"
+    assert (session_workspace / expected_relpath).read_text() == "hello input\n"
+
+    session_report = json.loads(
+        (Path(report.run_root) / "sessions" / "session-1-1" / "session.json").read_text()
+    )
+    assert session_report["input"]["ref"] == str(expected_relpath)
+    assert str(input_file) not in session_report["attempts"][0]["prompt"]
+    assert str(expected_relpath) in session_report["attempts"][0]["prompt"]
+
+
 def test_self_improve_merge_resolves_conflicts_and_commits(tmp_path: Path) -> None:
     if shutil.which("git") is None:
         pytest.skip("git not available")
