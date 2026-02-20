@@ -56,7 +56,7 @@ class GrepTool:
             cmd = ["rg"]
             if apply_default_excludes:
                 cmd.extend(_DEFAULT_EXCLUDE_GLOBS)
-            cmd.extend([pattern, str(target)])
+            cmd.extend(["--", pattern, str(target)])
             returncode, stdout, truncated = _run_bounded(cmd, cwd=self.root, max_bytes=max_bytes)
             output = stdout.decode(errors="replace")
             ok = truncated or returncode in (0, 1)

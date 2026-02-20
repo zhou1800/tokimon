@@ -53,6 +53,60 @@ def test_grep_tool_uses_rg_when_available(monkeypatch, tmp_path: Path) -> None:
     assert result.data["truncated"] is False
 
 
+def test_grep_tool_rg_pattern_starting_with_dash_is_passed_after_dashdash(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(shutil, "which", lambda name: "/usr/bin/rg" if name == "rg" else None)
+
+    captured: dict[str, object] = {}
+
+    def fake_popen(cmd: list[str], cwd: Path, stdout: Any, stderr: Any) -> _FakePopen:
+        captured["cmd"] = cmd
+        return _FakePopen(cmd, output=b"", returncode=1)
+
+    monkeypatch.setattr(subprocess, "Popen", fake_popen)
+
+    result = GrepTool(tmp_path).search("--input")
+    assert result.ok is True
+
+    cmd = captured.get("cmd")
+    assert isinstance(cmd, list)
+    dashdash_pos = cmd.index("--")
+    assert cmd[dashdash_pos + 1] == "--input"
+    assert cmd[dashdash_pos + 2] == str(tmp_path)
+
+
+def test_grep_tool_rg_pattern_starting_with_dash_is_passed_after_dashdash_when_using_subprocess_run(
+    monkeypatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(shutil, "which", lambda name: "/usr/bin/rg" if name == "rg" else None)
+    monkeypatch.setenv("TOKIMON_GREP_MAX_BYTES", "0")
+
+    captured: dict[str, object] = {}
+
+    class _FakeCompleted:
+        def __init__(self, *, stdout: bytes, returncode: int) -> None:
+            self.stdout = stdout
+            self.returncode = returncode
+
+    def fake_run(cmd: list[str], *, cwd: Path, capture_output: bool, text: bool, check: bool) -> _FakeCompleted:
+        assert cwd == tmp_path
+        assert capture_output is True
+        assert text is False
+        assert check is False
+        captured["cmd"] = cmd
+        return _FakeCompleted(stdout=b"", returncode=1)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    result = GrepTool(tmp_path).search("--input")
+    assert result.ok is True
+
+    cmd = captured.get("cmd")
+    assert isinstance(cmd, list)
+    dashdash_pos = cmd.index("--")
+    assert cmd[dashdash_pos + 1] == "--input"
+    assert cmd[dashdash_pos + 2] == str(tmp_path)
+
+
 def test_grep_tool_rg_no_matches_is_ok(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setattr(shutil, "which", lambda name: "/usr/bin/rg" if name == "rg" else None)
 
