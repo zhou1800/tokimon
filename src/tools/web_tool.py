@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import deque
 import ipaddress
 import json
 import os
@@ -145,9 +146,9 @@ def _extract_duckduckgo_results(payload: dict[str, Any], *, limit: int) -> list[
 
     related = payload.get("RelatedTopics", [])
     if isinstance(related, list):
-        stack: list[Any] = list(related)
-        while stack and len(results) < limit:
-            item = stack.pop(0)
+        queue: deque[Any] = deque(related)
+        while queue and len(results) < limit:
+            item = queue.popleft()
             if not isinstance(item, dict):
                 continue
             if "FirstURL" in item and "Text" in item:
@@ -155,7 +156,7 @@ def _extract_duckduckgo_results(payload: dict[str, Any], *, limit: int) -> list[
                 continue
             topics = item.get("Topics")
             if isinstance(topics, list):
-                stack.extend(topics)
+                queue.extend(topics)
     return results
 
 
