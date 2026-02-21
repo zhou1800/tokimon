@@ -74,28 +74,31 @@ class GrepTool:
             remaining = budget
             regex = re.compile(pattern)
             for file_path in target.rglob("*"):
-                if file_path.is_file():
-                    if apply_default_excludes:
-                        if file_path.suffix in _DEFAULT_EXCLUDED_SUFFIXES:
-                            continue
-                        rel_parts = file_path.relative_to(target).parts
-                        if any(part in _DEFAULT_EXCLUDED_DIR_PARTS for part in rel_parts):
-                            continue
-                    content = file_path.read_text(errors="ignore")
-                    for line_no, line in enumerate(content.splitlines(), start=1):
-                        if regex.search(line):
-                            entry = f"{file_path}:{line_no}:{line}"
-                            if budget > 0:
-                                cost = len((entry + "\n").encode())
-                                if cost > remaining:
-                                    truncated = True
-                                    break
-                                remaining -= cost
-                            matches.append(entry)
-                    if truncated:
-                        break
                 if truncated:
                     break
+                if not file_path.is_file():
+                    continue
+
+                if apply_default_excludes:
+                    if file_path.suffix in _DEFAULT_EXCLUDED_SUFFIXES:
+                        continue
+                    rel_parts = file_path.relative_to(target).parts
+                    if any(part in _DEFAULT_EXCLUDED_DIR_PARTS for part in rel_parts):
+                        continue
+
+                content = file_path.read_text(errors="ignore")
+                for line_no, line in enumerate(content.splitlines(), start=1):
+                    if not regex.search(line):
+                        continue
+
+                    entry = f"{file_path}:{line_no}:{line}"
+                    if budget > 0:
+                        cost = len((entry + "\n").encode())
+                        if cost > remaining:
+                            truncated = True
+                            break
+                        remaining -= cost
+                    matches.append(entry)
             output = "\n".join(matches)
             if budget > 0 and len(output.encode()) > budget:
                 output = output.encode()[:budget].decode(errors="replace")
