@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import hashlib
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from agents.delegation import DelegationGraph
 from agents.retry import RetryGate, compute_call_signature
@@ -15,6 +16,9 @@ from llm.client import LLMClient
 from memory.store import MemoryStore
 from tracing import TraceLogger
 from workflow.models import StepSpec, WorkflowSpec
+
+if TYPE_CHECKING:
+    from skills.gap_detector import SkillGapDetector
 
 
 @dataclass
@@ -109,16 +113,45 @@ class Manager:
             return DEFAULT_STRATEGIES[attempt_index]
         return None
 
-    def write_retry_lesson(self, task_id: str, step_id: str, prev_strategy: Strategy, next_strategy: Strategy,
-                           failure_signature: str, note: str) -> str:
+    def write_retry_lesson(
+        self,
+        task_id: str,
+        step_id: str,
+        prev_strategy: Strategy,
+        next_strategy: Strategy,
+        failure_signature: str,
+        note: str,
+        *,
+        step_description: str | None = None,
+        gap_detector: "SkillGapDetector | None" = None,
+    ) -> str:
         lesson_id = str(uuid.uuid4())
+        normalized_failure = str(failure_signature or "").strip()
+        if not normalized_failure:
+            normalized_failure = f"unknown:{task_id}:{step_id}"
+        description = str(step_description or "").strip()
+        description_hash = hashlib.sha1(description.encode("utf-8")).hexdigest()[:10]
+        subtask_signature = f"{step_id}|{next_strategy.worker_type}|{description_hash}"
+        tools = [str(tool).strip().lower() for tool in (next_strategy.tool_sequence or []) if str(tool).strip()]
+        tool_workflow_signature = f"{next_strategy.strategy_id}|{','.join(tools)}"
+
         metadata = {
             "id": lesson_id,
             "timestamp": datetime.now(timezone.utc).isoformat(),
+            "lesson_type": "retry",
             "task_id": task_id,
             "step_id": step_id,
-            "failure_signature": failure_signature,
+            "worker_type": next_strategy.worker_type,
+            "retrieval_stage": next_strategy.retrieval_stage,
             "strategy_id": next_strategy.strategy_id,
+            "failure_signature": normalized_failure,
+            "subtask_signature": subtask_signature,
+            "tool_workflow_signature": tool_workflow_signature,
+            "tool_sequence": tools,
+            "root_cause_hypothesis": f"Unknown; retry after failure_signature={normalized_failure}.",
+            "strategy_change": note,
+            "evidence_of_novelty": f"Strategy changed from {prev_strategy.strategy_id} to {next_strategy.strategy_id}.",
+            "retrieval_tags": ["retry", step_id, next_strategy.worker_type, next_strategy.strategy_id],
             "tags": ["retry", prev_strategy.strategy_id, next_strategy.strategy_id],
             "component": "manager",
         }
@@ -126,10 +159,12 @@ class Manager:
             f"Retrying step {step_id} for task {task_id}.\n"
             f"Previous strategy: {prev_strategy.strategy_id} ({prev_strategy.strategy_class}).\n"
             f"New strategy: {next_strategy.strategy_id} ({next_strategy.strategy_class}).\n"
-            f"Failure signature: {failure_signature}.\n"
+            f"Failure signature: {normalized_failure}.\n"
             f"Plan change: {note}\n"
         )
         self.memory_store.write_lesson(metadata, body)
+        if gap_detector is not None:
+            gap_detector.observe_retry_lesson(metadata)
         return lesson_id
 
     def compute_call_signature(self, goal: str, step_id: str, worker_type: str,

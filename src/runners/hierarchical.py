@@ -15,6 +15,7 @@ from execution.parallel import AsyncExecutor, ConcurrencyConfig
 from flow_types import ProgressMetrics, StepStatus, WorkerStatus
 from logging_utils import log_to_file
 from memory.store import MemoryStore
+from skills.gap_detector import SkillGapDetector
 from runs import RunContext, create_run_context, load_run_context
 from tools.file_tool import FileTool
 from tools.grep_tool import GrepTool
@@ -50,6 +51,7 @@ class HierarchicalRunner:
         run_context.write_manifest({"goal": goal, "task_id": task_id, "runner": "hierarchical"})
         memory_store = MemoryStore(self.repo_root / "memory")
         manager = Manager(memory_store)
+        gap_detector = SkillGapDetector(self.repo_root, memory_store)
         artifact_store = ArtifactStore(run_context.artifacts_dir, memory_store=memory_store)
         trace = TraceLogger(run_context.trace_path)
         tools = self._build_tools()
@@ -77,7 +79,7 @@ class HierarchicalRunner:
                     break
                 tasks = [
                     lambda step_id=step_id: self._run_step(step_id, engine, manager, tools, trace, run_context,
-                                                           task_id or workflow_spec.workflow_id, test_args, artifact_store)
+                                                           task_id or workflow_spec.workflow_id, test_args, artifact_store, gap_detector)
                     for step_id in ready
                 ]
                 await executor.run(tasks)
@@ -108,6 +110,7 @@ class HierarchicalRunner:
         engine = WorkflowEngine.load(run_context.workflow_state_path)
         memory_store = MemoryStore(self.repo_root / "memory")
         manager = Manager(memory_store)
+        gap_detector = SkillGapDetector(self.repo_root, memory_store)
         artifact_store = ArtifactStore(run_context.artifacts_dir, memory_store=memory_store)
         trace = TraceLogger(run_context.trace_path)
         tools = self._build_tools()
@@ -122,7 +125,7 @@ class HierarchicalRunner:
                     break
                 tasks = [
                     lambda step_id=step_id: self._run_step(step_id, engine, manager, tools, trace, run_context,
-                                                           engine.spec.workflow_id, test_args, artifact_store)
+                                                           engine.spec.workflow_id, test_args, artifact_store, gap_detector)
                     for step_id in ready
                 ]
                 await executor.run(tasks)
@@ -158,7 +161,7 @@ class HierarchicalRunner:
 
     async def _run_step(self, step_id: str, engine: WorkflowEngine, manager: Manager, tools: dict[str, Any],
                         trace: TraceLogger, run_context: RunContext, task_id: str, test_args: list[str] | None,
-                        artifact_store: ArtifactStore) -> None:
+                        artifact_store: ArtifactStore, gap_detector: SkillGapDetector | None = None) -> None:
         step_state = engine.state.steps[step_id]
         step_spec = engine.spec.step_map()[step_id]
         worker_log = run_context.logs_dir / f"worker-{step_id}.log"
@@ -173,7 +176,17 @@ class HierarchicalRunner:
         if attempt_index > 0:
             prev = manager.next_strategy(attempt_index - 1)
             if prev:
-                manager.write_retry_lesson(task_id, step_id, prev, strategy, step_state.last_attempt.failure_signature if step_state.last_attempt else "", "Changed strategy")
+                failure_signature = step_state.last_attempt.failure_signature if step_state.last_attempt else ""
+                manager.write_retry_lesson(
+                    task_id,
+                    step_id,
+                    prev,
+                    strategy,
+                    failure_signature,
+                    "Changed strategy",
+                    step_description=step_spec.description,
+                    gap_detector=gap_detector,
+                )
 
         worker_type = step_spec.worker if attempt_index == 0 else strategy.worker_type
         call_signature = manager.compute_call_signature(engine.spec.goal, step_id, worker_type, step_state.inputs, strategy)

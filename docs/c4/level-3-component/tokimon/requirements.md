@@ -37,6 +37,36 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
 - Generated skills live under `src/skills_generated/`.
 - Skill creation requires a justification and a Lesson capturing gap and expected benefit.
 
+#### Skill Asset Protocol: Prompt Skills + Code Skills with Metadata
+- Skill gap detection triggers (SkillBuilder SHOULD propose a candidate skill when any trigger fires):
+  - Repeated subtask pattern across runs: the same normalized subtask plan/subtree is repeatedly emitted across distinct runs without measurable improvement.
+  - Repeated retry failures: the same `failure_signature` recurs across novelty-gated retries for the same step or task family.
+  - Repeatedly re-derived tool workflow: the same normalized tool-call workflow is re-derived across runs instead of being reused as an asset.
+- Skill forms:
+  - Prompt Skill: a prompt-only asset (no executable code) that standardizes a workflow, rubric, or template response and is loaded at runtime.
+  - Code Skill: an executable Python skill module (plus tests) that implements deterministic logic and/or orchestrates tool use and is registered with SkillRegistry.
+- Required metadata for all new skills (Prompt Skill and Code Skill):
+  - `name`: unique, stable identifier (kebab-case).
+  - `purpose`: why the skill exists and what it achieves.
+  - `contract`: explicit `inputs` and `outputs` (and side effects when applicable).
+  - `preconditions`: assumptions that MUST hold before invocation (files present, environment, permissions, etc.).
+  - `required_tools`: the exact tool names the skill is permitted to call (empty if none).
+  - `retrieval_prefs`: how to retrieve supporting context (tags/components, preferred staged retrieval, what to avoid).
+  - `failure_modes`: known ways the skill can fail, detection signals, and required fallback behavior.
+  - `safety_notes`:
+    - hard: MUST NOT behaviors (disallowed actions), including any behavior that violates Non-goals.
+    - soft: SHOULD NOT behaviors and escalation/stop conditions.
+  - `cost_energy_notes`: expected cost profile (model calls, tool calls, runtime) and when to avoid using the skill.
+  - `validation_method`: how promotion is validated (tests to run, expected signals, any manual checks).
+  - `version`: semantic version string.
+  - `deprecation_policy`: how and when the skill is retired, replaced, or migrated (including any compatibility window).
+- Promotion gate:
+  - A skill MUST NOT be registered (or loaded by SkillRegistry) unless `validation_method` passes.
+  - If validation fails, the skill remains a candidate draft (not registered) and the system MUST record a Lesson capturing the gap, the attempted skill, and why validation failed.
+- Budget and red lines:
+  - No unsafe skills: a skill MUST NOT expand Tokimon into disallowed capabilities (see Non-goals) or weaken safety controls (path traversal protections, network allowlists, novelty gates, secret redaction/denial).
+  - Avoid skill sprawl: prefer generalizable skills, merge or deprecate duplicates, and require a documented ROI (time saved and/or failure reduction) before promotion.
+
 ### Workflow Orchestration
 - Workflow engine supports DAG steps, typed input/output schemas, and persistent state with resume.
 - Parallel execution of independent steps.

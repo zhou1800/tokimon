@@ -12,7 +12,11 @@ This document maps requirements to automated tests.
 - Cycle detection: detect delegation cycles and repeated subtrees without new artifacts.
 - Memory staged retrieval: Stage 1/2/3 selection logic with deterministic lexical index, requiring `component`, `retrieval_tags`, and `failure_signature` inputs (see `src/tests/test_memory_retrieval.py`).
 - Memory charter: Lesson schema validation for `lesson_type in {failure,retry}` and deterministic secret redaction/denial (see `src/tests/test_memory_charter.py`).
-- Dynamic skill registration: register only after tests pass; hot reload behavior.
+- Dynamic skill registration: register only after tests pass; hot reload behavior (see `src/tests/test_skill_builder.py`).
+- Skill gap detection triggers: repeated subtask patterns, repeated retry failures, and repeatedly re-derived tool workflows create a candidate skill draft + Lesson, without registering the skill.
+- Skill metadata validation: Prompt Skill and Code Skill assets require the full metadata set (name, purpose, contract inputs/outputs, preconditions, required_tools, retrieval_prefs, failure_modes, safety_notes hard/soft, cost/energy notes, validation method, version, deprecation policy).
+- Skill promotion gate: register/load skills only when validation passes; failed validation leaves a candidate draft unregistered and records a Lesson.
+- Skill budget/red lines: unsafe skills are rejected; sprawl guards prevent promoting redundant low-ROI skills.
 - Parallel execution correctness: basic ordering, backpressure, and cancellation.
 - CLI auto routing: `tokimon auto "<prompt>"` uses an LLM router to produce a validated argv list (tests stub the router/LLM for determinism and cover fallback to heuristic routing) (see `src/tests/test_cli_auto.py`).
 - CLI help surface: default `--help` output hides advanced flags while still accepting them (see `src/tests/test_cli_auto.py`).

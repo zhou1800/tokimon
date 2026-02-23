@@ -19,3 +19,5 @@ This document tracks prioritized follow-up work to reduce OOM risk and improve r
    - Acceptance criteria: Deterministic per-session `path_charter`, enforced per-attempt experiment summary fields (`plan`, `path_charter`, `self_critique`, `lessons` + experiment-loop fields), report includes diversity check + scoring function + per-path comparison + loser reasons/Lessons, and deterministic winner selection aligned with the Constitution.
 8. [ ] Self-improve: Memory-as-Asset charter (Owner: TBD)
    - Acceptance criteria: Persist Lessons for failure/retry decisions with required fields, deny/redact secrets deterministically, and use staged retrieval to stop or force strategy changes on repeated failures.
+9. [ ] Skill Asset Protocol: Prompt Skills + Code Skills with metadata (Owner: TBD)
+   - Acceptance criteria: Detect skill gaps (repeat subtask patterns, repeat retry failures, repeat tool workflows), require metadata for both Prompt Skills and Code Skills, keep failing skills as candidate drafts + record Lessons, and register only on passing validation with sprawl/safety guardrails.
