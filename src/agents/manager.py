@@ -54,7 +54,17 @@ class Manager:
         trace: TraceLogger | None = None,
         trace_context: dict[str, Any] | None = None,
     ) -> list[dict[str, Any]] | None:
-        memory = [lesson.body for lesson in self.memory_store.retrieve(goal, stage=1, limit=3)]
+        memory = [
+            lesson.body
+            for lesson in self.memory_store.retrieve(
+                goal,
+                stage=1,
+                limit=3,
+                component="planner",
+                tags=["plan", "component:planner", f"goal:{goal[:80]}"],
+                failure_signature="unknown:plan-workflow",
+            )
+        ]
         worker = Worker("Planner", llm_client, tools)
         output = worker.run(
             goal,
@@ -112,6 +122,70 @@ class Manager:
         if attempt_index < len(DEFAULT_STRATEGIES):
             return DEFAULT_STRATEGIES[attempt_index]
         return None
+
+    def write_failure_lesson(
+        self,
+        task_id: str,
+        step_id: str,
+        strategy: Strategy,
+        failure_signature: str,
+        summary: str,
+        *,
+        component: str,
+        tool_name: str | None = None,
+        details: str | None = None,
+    ) -> str:
+        lesson_id = str(uuid.uuid4())
+        normalized_failure = str(failure_signature or "").strip()
+        if not normalized_failure:
+            normalized_failure = f"unknown:{task_id}:{step_id}"
+        tools = [str(tool).strip().lower() for tool in (strategy.tool_sequence or []) if str(tool).strip()]
+        if tool_name and tool_name.strip():
+            tools.append(tool_name.strip().lower())
+        tools = sorted(set(tools))
+        retrieval_tags = [
+            "failure",
+            f"task:{task_id}",
+            f"step:{step_id}",
+            f"component:{component}",
+            f"worker:{strategy.worker_type}",
+            f"strategy:{strategy.strategy_id}",
+            *[f"tool:{tool}" for tool in tools],
+        ]
+        metadata = {
+            "id": lesson_id,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "lesson_type": "failure",
+            "task_id": task_id,
+            "step_id": step_id,
+            "worker_type": strategy.worker_type,
+            "retrieval_stage": strategy.retrieval_stage,
+            "strategy_id": strategy.strategy_id,
+            "failure_signature": normalized_failure,
+            "tool_sequence": tools,
+            "root_cause_hypothesis": f"Unknown; failure_signature={normalized_failure}.",
+            "strategy_change": "none",
+            "evidence_of_novelty": "n/a",
+            "retrieval_tags": retrieval_tags,
+            "tags": ["failure", step_id, strategy.worker_type, strategy.strategy_id],
+            "component": component,
+        }
+        safe_summary = str(summary or "").strip()
+        safe_details = str(details or "").strip()
+        body_lines = [
+            f"Failure in step {step_id} for task {task_id}.",
+            f"Strategy: {strategy.strategy_id} ({strategy.strategy_class}).",
+            f"Failure signature: {normalized_failure}.",
+        ]
+        if tools:
+            body_lines.append(f"Tools: {', '.join(tools)}.")
+        if safe_summary:
+            body_lines.append(f"Summary: {safe_summary}")
+        if safe_details:
+            body_lines.append(f"Details: {safe_details}")
+        body = "\n".join(body_lines) + "\n"
+        self.memory_store.write_lesson(metadata, body)
+        return lesson_id
 
     def write_retry_lesson(
         self,
@@ -183,6 +257,45 @@ class Manager:
                              prev_metrics: ProgressMetrics | None, new_metrics: ProgressMetrics | None) -> bool:
         decision = self.retry_gate.can_retry(task_id, call_signature, failure_signature, prev_metrics, new_metrics)
         return decision.allow
+
+    def memory_informed_retry_gate(
+        self,
+        *,
+        task_id: str,
+        step_id: str,
+        strategy: Strategy,
+        component: str,
+        retrieval_tags: list[str],
+        failure_signature: str,
+    ) -> tuple[bool, str, list[str]]:
+        normalized_failure = str(failure_signature or "").strip()
+        if not normalized_failure:
+            normalized_failure = f"unknown:{task_id}:{step_id}"
+        retrieved: list[str] = []
+        matching_failures = 0
+        for stage in (1, 2, 3):
+            lessons = self.memory_store.retrieve(
+                step_id,
+                stage=stage,
+                limit=8,
+                component=component,
+                tags=retrieval_tags,
+                failure_signature=normalized_failure,
+            )
+            for lesson in lessons:
+                lesson_id = str(lesson.metadata.get("id") or "")
+                if lesson_id:
+                    retrieved.append(lesson_id)
+                if lesson.metadata.get("lesson_type") != "failure":
+                    continue
+                if str(lesson.metadata.get("failure_signature") or "").strip() != normalized_failure:
+                    continue
+                matching_failures += 1
+                if str(lesson.metadata.get("strategy_id") or "").strip() == strategy.strategy_id:
+                    return False, "known failure for strategy; force strategy change", retrieved
+        if matching_failures >= 2:
+            return False, "repeated failure; stop to avoid loop", retrieved
+        return True, "no memory block", retrieved
 
     def next_call_id(self) -> str:
         self._call_counter += 1

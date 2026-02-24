@@ -197,7 +197,38 @@ class HierarchicalRunner:
             return
 
         engine.mark_running(step_id)
-        memory = [lesson.body for lesson in manager.memory_store.retrieve(step_id, strategy.retrieval_stage, limit=3)]
+        component = "hierarchical_runner"
+        prev_failure_signature = ""
+        if step_state.last_attempt and step_state.last_attempt.failure_signature:
+            prev_failure_signature = str(step_state.last_attempt.failure_signature)
+        failure_signature_context = prev_failure_signature.strip() or f"unknown:{task_id}:{step_id}"
+        retrieval_tags = [
+            f"task:{task_id}",
+            f"step:{step_id}",
+            f"component:{component}",
+            f"worker:{worker_type}",
+            f"strategy:{strategy.strategy_id}",
+            *[f"tool:{tool}" for tool in (strategy.tool_sequence or [])],
+        ]
+        retrieved_lessons = manager.memory_store.retrieve(
+            step_id,
+            stage=strategy.retrieval_stage,
+            limit=3,
+            component=component,
+            tags=retrieval_tags,
+            failure_signature=failure_signature_context,
+        )
+        trace.log(
+            "memory_retrieved",
+            {
+                "step_id": step_id,
+                "component": component,
+                "stage": strategy.retrieval_stage,
+                "lesson_ids": [lesson.metadata.get("id") for lesson in retrieved_lessons],
+            },
+        )
+        log_to_file(worker_log, f"Retrieved Lessons: {[lesson.metadata.get('id') for lesson in retrieved_lessons]}")
+        memory = [lesson.body for lesson in retrieved_lessons]
         worker = Worker(worker_type, self.llm_client, tools)
         output = worker.run(
             engine.spec.goal,
@@ -292,11 +323,33 @@ class HierarchicalRunner:
             return
 
         if output.status in {WorkerStatus.PARTIAL, WorkerStatus.FAILURE}:
+            manager.write_failure_lesson(
+                task_id,
+                step_id,
+                strategy,
+                output.failure_signature or failure_signature_context,
+                output.summary,
+                component=component,
+                details=details if isinstance(details, str) else None,
+            )
             prev_metrics = _progress_from_attempt(prev_attempt)
             allowed = manager.check_retry_allowed(task_id, call_signature, output.failure_signature, prev_metrics, progress)
+            mem_allowed, mem_reason, mem_lesson_ids = manager.memory_informed_retry_gate(
+                task_id=task_id,
+                step_id=step_id,
+                strategy=strategy,
+                component=component,
+                retrieval_tags=retrieval_tags,
+                failure_signature=output.failure_signature or failure_signature_context,
+            )
+            trace.log(
+                "memory_retry_gate",
+                {"step_id": step_id, "allow": mem_allowed, "reason": mem_reason, "lesson_ids": mem_lesson_ids},
+            )
+            log_to_file(worker_log, f"Memory retry gate: allow={mem_allowed} reason={mem_reason} lessons={mem_lesson_ids}")
             manager.record_progress(task_id, call_signature, output.failure_signature, progress)
             repeated = manager.delegation_graph.record_artifacts(call_signature, progress.artifact_delta_hash or "")
-            if repeated or not allowed:
+            if repeated or not allowed or not mem_allowed:
                 engine.mark_status(step_id, StepStatus.FAILED, error="retry blocked")
                 trace.log("step_failed", {"step_id": step_id, "reason": "retry_blocked"})
             else:
@@ -305,6 +358,15 @@ class HierarchicalRunner:
             return
 
         if output.status == WorkerStatus.BLOCKED:
+            manager.write_failure_lesson(
+                task_id,
+                step_id,
+                strategy,
+                output.failure_signature or failure_signature_context,
+                output.summary,
+                component=component,
+                details=details if isinstance(details, str) else None,
+            )
             manager.record_progress(task_id, call_signature, output.failure_signature, progress)
             manager.delegation_graph.record_artifacts(call_signature, progress.artifact_delta_hash or "")
             engine.mark_status(step_id, StepStatus.BLOCKED, error="worker blocked")

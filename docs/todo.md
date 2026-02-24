@@ -17,8 +17,9 @@ This document tracks prioritized follow-up work to reduce OOM risk and improve r
    - Acceptance criteria: Batch report shows a bounded list of `failing_tests` for baseline and winner post-change evaluations to make deltas auditable.
 7. [x] Self-improve: parallel exploration protocol (Owner: TBD)
    - Acceptance criteria: Deterministic per-session `path_charter`, enforced per-attempt experiment summary fields (`plan`, `path_charter`, `self_critique`, `lessons` + experiment-loop fields), report includes diversity check + scoring function + per-path comparison + loser reasons/Lessons, and deterministic winner selection aligned with the Constitution.
-8. [ ] Self-improve: Memory-as-Asset charter (Owner: TBD)
+8. [x] Self-improve: Memory-as-Asset charter (Owner: TBD)
    - Acceptance criteria: Persist Lessons for failure/retry decisions with required fields, deny/redact secrets deterministically, and use staged retrieval to stop or force strategy changes on repeated failures.
+   - Follow-up complete: Failure Lessons are persisted with required fields + task/component/tool tags; retrieval requires explicit context; staged retrieval includes similar failure signature expansion; memory-aware retry gate logs retrieved Lessons and blocks repeats.
 9. [x] Skill Asset Protocol: Prompt Skills + Code Skills with metadata (Owner: TBD)
    - Acceptance criteria: Detect skill gaps (repeat subtask patterns, repeat retry failures, repeat tool workflows), require metadata for both Prompt Skills and Code Skills, keep failing skills as candidate drafts + record Lessons, and register only on passing validation with sprawl/safety guardrails.
 10. [x] Self-improve: Resource Safety Directive (Hard vs Soft Constraints) (Owner: TBD)

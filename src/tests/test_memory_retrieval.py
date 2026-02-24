@@ -7,6 +7,16 @@ def _lesson_ids(lessons) -> set[str]:
     return {lesson.metadata["id"] for lesson in lessons}
 
 
+def test_retrieve_requires_context(tmp_path: Path) -> None:
+    store = MemoryStore(tmp_path)
+    store.write_lesson({"id": "l1", "tags": ["t"], "component": "c", "failure_signature": "fs1"}, "body")
+    try:
+        store.retrieve("q", stage=1, limit=1, component=None, tags=["t"], failure_signature="fs1")
+    except ValueError:
+        return
+    raise AssertionError("expected retrieval to require component")
+
+
 def test_staged_retrieval(tmp_path: Path) -> None:
     store = MemoryStore(tmp_path)
     store.write_lesson(
@@ -72,3 +82,17 @@ def test_staged_retrieval(tmp_path: Path) -> None:
     assert "l6" in stage3_ids
     assert "l7" not in stage3_ids
     assert "l9" not in stage3_ids
+
+
+def test_stage3_can_expand_by_similar_failure_signature(tmp_path: Path) -> None:
+    store = MemoryStore(tmp_path)
+    store.write_lesson(
+        {"id": "f1", "tags": ["beta"], "component": "core", "failure_signature": "E123:alpha"},
+        "family lesson one",
+    )
+    store.write_lesson(
+        {"id": "f2", "tags": ["beta"], "component": "core", "failure_signature": "E123:bravo"},
+        "family lesson two",
+    )
+    lessons = store.retrieve("q", stage=3, limit=10, component="core", tags=["beta"], failure_signature="E123:charlie")
+    assert {"f1", "f2"} <= _lesson_ids(lessons)

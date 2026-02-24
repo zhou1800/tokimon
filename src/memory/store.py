@@ -57,6 +57,15 @@ def _redact_secrets_in_body(body: str) -> str:
     return _BEARER_TOKEN_PATTERN.sub(r"\1<REDACTED>", body)
 
 
+def _require_retrieval_context(*, component: str | None, tags: list[str] | None, failure_signature: str | None) -> None:
+    if not isinstance(component, str) or not component.strip():
+        raise ValueError("Memory retrieval requires non-empty component")
+    if not isinstance(tags, list) or not tags or not all(isinstance(tag, str) and tag.strip() for tag in tags):
+        raise ValueError("Memory retrieval requires non-empty retrieval tags")
+    if not isinstance(failure_signature, str) or not failure_signature.strip():
+        raise ValueError("Memory retrieval requires non-empty failure_signature")
+
+
 @dataclass
 class Lesson:
     metadata: dict[str, Any]
@@ -109,7 +118,14 @@ class MemoryStore:
         return Lesson(metadata=metadata, body=body, path=path)
 
     def _index_lesson(self, lesson_id: str, metadata: dict[str, Any], body: str) -> None:
-        tags = ",".join(metadata.get("tags", [])) if isinstance(metadata.get("tags"), list) else str(metadata.get("tags", ""))
+        tag_values: list[str] = []
+        for field in ("tags", "retrieval_tags"):
+            value = metadata.get(field)
+            if isinstance(value, list):
+                tag_values.extend([str(item).strip() for item in value if str(item).strip()])
+            elif isinstance(value, str) and value.strip():
+                tag_values.append(value.strip())
+        tags = ",".join(tag_values)
         component = metadata.get("component", "")
         failure_signature = metadata.get("failure_signature", "")
         conn = sqlite3.connect(self.index_path)
@@ -176,8 +192,17 @@ class MemoryStore:
         finally:
             conn.close()
 
-    def retrieve(self, query: str, stage: int, limit: int = 5, tags: list[str] | None = None,
-                 failure_signature: str | None = None, component: str | None = None) -> list[Lesson]:
+    def retrieve(
+        self,
+        query: str,
+        stage: int,
+        limit: int = 5,
+        *,
+        tags: list[str] | None,
+        failure_signature: str | None,
+        component: str | None,
+    ) -> list[Lesson]:
+        _require_retrieval_context(component=component, tags=tags, failure_signature=failure_signature)
         tags = tags or []
         conn = sqlite3.connect(self.index_path)
         try:
@@ -229,6 +254,19 @@ class MemoryStore:
                         failure_signature=failure_signature,
                         limit=limit - len(rows),
                     )
+                if len(rows) < limit and failure_signature:
+                    similar = _similar_failure_signatures(conn, failure_signature=failure_signature, limit=20)
+                    for candidate in similar:
+                        if len(rows) >= limit:
+                            break
+                        rows += _select_lessons(
+                            conn,
+                            query=None,
+                            tags=None,
+                            components=None,
+                            failure_signature=candidate,
+                            limit=limit - len(rows),
+                        )
             lessons = []
             seen = set()
             for row in rows:
@@ -259,6 +297,20 @@ def _adjacent_components(
     cursor = conn.execute(
         f"SELECT DISTINCT component FROM lessons WHERE failure_signature IN ({placeholders}) AND component <> ?",
         [*other_failure_signatures, component],
+    )
+    return [row[0] for row in cursor.fetchall() if row[0]]
+
+
+def _similar_failure_signatures(conn: sqlite3.Connection, *, failure_signature: str, limit: int) -> list[str]:
+    normalized = str(failure_signature).strip()
+    if not normalized:
+        return []
+    family = normalized.split(":", 1)[0].strip()
+    if not family:
+        return []
+    cursor = conn.execute(
+        "SELECT DISTINCT failure_signature FROM lessons WHERE failure_signature LIKE ? AND failure_signature <> ? LIMIT ?",
+        (family + ":%", normalized, limit),
     )
     return [row[0] for row in cursor.fetchall() if row[0]]
 

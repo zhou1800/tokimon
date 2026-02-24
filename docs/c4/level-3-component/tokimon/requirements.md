@@ -85,8 +85,20 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
 - Before retrying, the system consults retrieved Lessons and either stops or forces a strategy change when repeating a known failed pattern without evidence of novelty/progress.
 
 ### Long-term Memory
+- Memory is treated as an **asset**: it is persisted, retrievable, and directly influences retry/stop decisions to avoid repeating known failures.
+
+- Tokimon supports three memory types:
+  - **Episodic memory**: run/step-specific events (attempts, failures, retries, progress signals) persisted as Lessons and traces.
+  - **Semantic memory**: durable facts and requirements about the repo/system (docs, conventions, invariants) captured as Lessons or doc references.
+  - **Procedural memory**: reusable how-to workflows (tool sequences, safe fixes, skills) captured as Lessons and/or Skills with validation gates.
+
 - Lessons persisted as Markdown with a small JSON header (metadata).
-- For `lesson_type in {failure,retry}`, Lesson metadata MUST include: `failure_signature`, `root_cause_hypothesis`, `strategy_change`, `evidence_of_novelty`, and `retrieval_tags`.
+- For `lesson_type in {failure,retry}`, Lesson metadata MUST include:
+  - `failure_signature` (string; placeholder allowed, but MUST be non-empty)
+  - `root_cause_hypothesis` (string; concise)
+  - `strategy_change` (string; what changed or why it did not)
+  - `evidence_of_novelty` (string; why this retry is not identical)
+  - `retrieval_tags` (list of strings; MUST include at least: task, component, tool/workflow)
 - Lesson persistence MUST deterministically deny or redact secrets in both metadata and body.
 - Artifacts indexed with metadata and producing steps.
 - Staged retrieval:
@@ -95,6 +107,11 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
   - Stage 3: target by `failure_signature` similarity (and tags/components).
 - Retrieval callers MUST supply `component`, `retrieval_tags` (or tags), and `failure_signature`.
 - Default lexical index (sqlite FTS or BM25-like) with an interface for optional embeddings later.
+
+- Memory-influenced action:
+  - On failure, the system MUST write a `lesson_type=failure` Lesson (kept concise) that includes the required charter fields and retrieval tags.
+  - Before retrying, the system MUST consult staged retrieval and either stop or force a strategy change when repeating a known failed pattern without evidence of novelty/progress.
+  - When memory indicates a repeated failure, the system SHOULD prefer known safe fixes and existing Skills over re-deriving risky actions.
 
 ### Tools
 - FileTool: safe read/write within workspace and prevents path traversal.
