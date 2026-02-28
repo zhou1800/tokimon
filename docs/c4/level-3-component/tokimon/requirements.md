@@ -182,13 +182,25 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
   - Metrics include at least: pass/fail counts, wall time, model calls, tool calls, and Lessons produced.
 
 ### CLI
-- Commands: auto, run-task, run-suite, resume-run, inspect-run, list-skills, build-skill, self-improve, chat-ui, gateway, doctor, health.
+- Commands: auto, run-task, run-suite, resume-run, inspect-run, list-skills, build-skill, self-improve, chat-ui, gateway, memory, doctor, health.
 - Prompt-driven entrypoint: `tokimon auto "<prompt>"` routes to the appropriate mode by asking an AI router (Codex/Claude) to return a concrete Tokimon argv list.
   - Output contract: the router returns JSON containing `argv: string[]` (argv excludes the leading `tokimon`).
   - Validation: Tokimon MUST validate the router argv against the CLI parser (unknown commands/options are rejected) and MUST prevent `auto` recursion.
   - Fallback: if the router fails (missing CLI, timeout, invalid JSON, invalid argv), Tokimon falls back to deterministic heuristic routing; prompts that ask to learn/improve route to `tokimon self-improve`.
 - Default `--help` output minimizes option surface by hiding advanced flags while still accepting them for power users.
 - CLI outputs are structured and point to run artifacts.
+- Memory (OpenClaw-inspired, Phase 1): `tokimon memory` manages local lesson indexing and search.
+  - Subcommands: `status`, `index`, `search`.
+  - Common flags:
+    - `--root PATH` (default: `<workspace>/memory`)
+    - `--json` emits stable machine-readable JSON
+    - `--verbose` prints additional diagnostics (must not break `--json`)
+  - `memory status` flags:
+    - `--deep` includes additional index/file reconciliation details
+    - `--index` triggers a reindex when the store is dirty
+  - `memory search`:
+    - Query input: positional `[query]` or `--query <text>`; if both are provided, `--query` wins; if neither is provided, exit non-zero.
+    - `--limit N` limits the number of lesson ids returned.
 - Doctor (OpenClaw-inspired, Phase 1): `tokimon doctor` runs local readiness checks and returns non-zero when any required check fails.
   - Output: default human output; `--json` emits a stable machine-readable report.
   - Repairs: `--repair` / `--fix` attempts only safe, non-destructive repairs; otherwise it reports suggested manual remediation.

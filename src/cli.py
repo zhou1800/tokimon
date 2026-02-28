@@ -110,6 +110,25 @@ def build_parser(*, exit_on_error: bool = True) -> argparse.ArgumentParser:
     health.add_argument("--verbose", action="store_true", help="Print additional diagnostics.")
     health.add_argument("--timeout-ms", type=int, default=2_000, help="Overall timeout in milliseconds.")
 
+    memory = subparsers.add_parser("memory")
+    memory_sub = memory.add_subparsers(dest="memory_command")
+
+    memory_common = argparse.ArgumentParser(add_help=False)
+    memory_common.add_argument("--root", default=None, help="Memory store root directory (default: <workspace>/memory).")
+    memory_common.add_argument("--json", action="store_true", help="Emit machine-readable JSON.")
+    memory_common.add_argument("--verbose", action="store_true", help="Print additional diagnostics.")
+
+    memory_status = memory_sub.add_parser("status", parents=[memory_common])
+    memory_status.add_argument("--deep", action="store_true", help="Include additional index/file reconciliation details.")
+    memory_status.add_argument("--index", action="store_true", help="Reindex when the store is dirty.")
+
+    memory_sub.add_parser("index", parents=[memory_common])
+
+    memory_search = memory_sub.add_parser("search", parents=[memory_common])
+    memory_search.add_argument("query", nargs="?", help="Search query text.")
+    memory_search.add_argument("--query", dest="query_flag", default=None, help="Search query text (wins over positional).")
+    memory_search.add_argument("--limit", type=int, default=5, help="Maximum number of hits to return.")
+
     return parser
 
 
@@ -150,6 +169,8 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_doctor(args, workspace_root)
         case "health":
             return _cmd_health(args)
+        case "memory":
+            return _cmd_memory(args, workspace_root)
         case _:
             return 1
 
@@ -343,6 +364,61 @@ def _cmd_health(args: argparse.Namespace) -> int:
         if isinstance(details, dict) and details:
             _write_line(sys.stdout, json.dumps(details, indent=2, sort_keys=True))
     return 1
+
+
+def _cmd_memory(args: argparse.Namespace, workspace_root: Path) -> int:
+    root_value = getattr(args, "root", None)
+    root = Path(root_value).expanduser() if root_value else (workspace_root / "memory")
+    json_output = bool(getattr(args, "json", False))
+    store = MemoryStore(root)
+
+    def emit(payload: object) -> None:
+        if json_output:
+            _write_line(sys.stdout, json.dumps(payload, indent=2, sort_keys=True))
+            return
+        _write_line(sys.stdout, json.dumps(payload, sort_keys=True))
+
+    memory_command = getattr(args, "memory_command", None)
+    match memory_command:
+        case "status":
+            deep = bool(getattr(args, "deep", False))
+            payload = store.cli_status(deep=deep)
+            index_requested = bool(getattr(args, "index", False))
+            if index_requested and payload.get("dirty") is True:
+                index_report = store.cli_reindex()
+                payload = store.cli_status(deep=deep)
+                payload["reindex"] = {
+                    "ok": index_report.get("ok", False),
+                    "indexed_lessons": index_report.get("indexed_lessons", 0),
+                    "errors": index_report.get("errors", []),
+                }
+                emit(payload)
+                return 0 if index_report.get("ok") else 1
+            emit(payload)
+            return 0
+        case "index":
+            payload = store.cli_reindex()
+            emit(payload)
+            return 0 if payload.get("ok") else 1
+        case "search":
+            query_flag = getattr(args, "query_flag", None)
+            query_positional = getattr(args, "query", None)
+            query = str(query_flag).strip() if query_flag else str(query_positional or "").strip()
+            if not query:
+                error_payload = {"ok": False, "error": "query is required"}
+                emit(error_payload)
+                return 2
+            limit = int(getattr(args, "limit", 5) or 5)
+            if limit <= 0:
+                error_payload = {"ok": False, "error": "limit must be positive"}
+                emit(error_payload)
+                return 2
+            payload = store.cli_search(query, limit=limit)
+            emit(payload)
+            return 0
+        case _:
+            emit({"ok": False, "error": "unknown memory subcommand"})
+            return 2
 
 
 def _write_line(stream: TextIO, text: str) -> None:

@@ -118,29 +118,9 @@ class MemoryStore:
         return Lesson(metadata=metadata, body=body, path=path)
 
     def _index_lesson(self, lesson_id: str, metadata: dict[str, Any], body: str) -> None:
-        tag_values: list[str] = []
-        for field in ("tags", "retrieval_tags"):
-            value = metadata.get(field)
-            if isinstance(value, list):
-                tag_values.extend([str(item).strip() for item in value if str(item).strip()])
-            elif isinstance(value, str) and value.strip():
-                tag_values.append(value.strip())
-        tags = ",".join(tag_values)
-        component = metadata.get("component", "")
-        failure_signature = metadata.get("failure_signature", "")
         conn = sqlite3.connect(self.index_path)
         try:
-            conn.execute(
-                "REPLACE INTO lessons (id, metadata, body, tags, component, failure_signature) VALUES (?, ?, ?, ?, ?, ?)",
-                (lesson_id, json.dumps(metadata), body, tags, component, failure_signature),
-            )
-            try:
-                conn.execute(
-                    "REPLACE INTO lessons_fts (id, body, tags, component, failure_signature) VALUES (?, ?, ?, ?, ?)",
-                    (lesson_id, body, tags, component, failure_signature),
-                )
-            except sqlite3.OperationalError:
-                pass
+            _index_lesson_row(conn, lesson_id=lesson_id, metadata=metadata, body=body)
             conn.commit()
         finally:
             conn.close()
@@ -191,6 +171,99 @@ class MemoryStore:
             return results
         finally:
             conn.close()
+
+    def cli_status(self, *, deep: bool = False) -> dict[str, Any]:
+        lesson_ids_on_disk = self._lesson_ids_on_disk()
+        conn = sqlite3.connect(self.index_path)
+        try:
+            indexed_ids = [row[0] for row in conn.execute("SELECT id FROM lessons ORDER BY id").fetchall() if row and row[0]]
+            fts_available = _fts_available(conn)
+        finally:
+            conn.close()
+
+        missing_in_index = sorted(set(lesson_ids_on_disk) - set(indexed_ids))
+        missing_on_disk = sorted(set(indexed_ids) - set(lesson_ids_on_disk))
+        dirty = bool(missing_in_index or missing_on_disk)
+
+        payload: dict[str, Any] = {
+            "ok": True,
+            "root": str(self.root),
+            "index_path": str(self.index_path),
+            "lesson_files": len(lesson_ids_on_disk),
+            "indexed_lessons": len(indexed_ids),
+            "fts_available": fts_available,
+            "dirty": dirty,
+        }
+        if deep:
+            payload["missing_in_index"] = missing_in_index
+            payload["missing_on_disk"] = missing_on_disk
+        return payload
+
+    def cli_reindex(self) -> dict[str, Any]:
+        lesson_paths = sorted(self.lessons_dir.glob("lesson-*.md"))
+        errors: list[dict[str, str]] = []
+
+        conn = sqlite3.connect(self.index_path)
+        indexed = 0
+        try:
+            conn.execute("DELETE FROM lessons")
+            try:
+                conn.execute("DELETE FROM lessons_fts")
+            except sqlite3.OperationalError:
+                pass
+
+            for path in lesson_paths:
+                try:
+                    lesson_id, metadata, body = _parse_lesson_file(path)
+                    _deny_secret_metadata(metadata)
+                    _validate_lesson_charter(metadata)
+                    body = _redact_secrets_in_body(body)
+                    _index_lesson_row(conn, lesson_id=lesson_id, metadata=metadata, body=body)
+                    indexed += 1
+                except Exception as exc:  # noqa: BLE001 - surfaced to CLI in a structured payload.
+                    errors.append({"path": str(path), "error": str(exc)})
+
+            conn.commit()
+        finally:
+            conn.close()
+
+        return {
+            "ok": len(errors) == 0,
+            "root": str(self.root),
+            "index_path": str(self.index_path),
+            "lesson_files": len(lesson_paths),
+            "indexed_lessons": indexed,
+            "errors": errors,
+        }
+
+    def cli_search(self, query: str, *, limit: int = 5) -> dict[str, Any]:
+        normalized = str(query or "").strip()
+        if not normalized:
+            raise ValueError("Query is required")
+
+        conn = sqlite3.connect(self.index_path)
+        try:
+            hits = _search_lesson_ids(conn, normalized, limit=limit)
+        finally:
+            conn.close()
+
+        return {
+            "ok": True,
+            "root": str(self.root),
+            "query": normalized,
+            "limit": int(limit),
+            "hits": hits,
+        }
+
+    def _lesson_ids_on_disk(self) -> list[str]:
+        if not self.lessons_dir.exists():
+            return []
+        ids: list[str] = []
+        for path in sorted(self.lessons_dir.glob("lesson-*.md")):
+            lesson_id = _lesson_id_from_filename(path)
+            if lesson_id:
+                ids.append(lesson_id)
+        return ids
 
     def retrieve(
         self,
@@ -352,31 +425,73 @@ def _select_lessons(
     return cursor.fetchall()
 
 
-def _search(conn: sqlite3.Connection, query: str, tags: list[str], component: str | None,
-            failure_signature: str | None, limit: int) -> list[tuple]:
-    params: list[Any] = []
-    clauses: list[str] = []
-    if component:
-        clauses.append("component = ?")
-        params.append(component)
-    if failure_signature:
-        clauses.append("failure_signature = ?")
-        params.append(failure_signature)
-    if tags:
-        clauses.append("tags LIKE ?")
-        params.append("%" + "%".join(tags) + "%")
-
-    where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
-
+def _index_lesson_row(conn: sqlite3.Connection, *, lesson_id: str, metadata: dict[str, Any], body: str) -> None:
+    tag_values: list[str] = []
+    for field in ("tags", "retrieval_tags"):
+        value = metadata.get(field)
+        if isinstance(value, list):
+            tag_values.extend([str(item).strip() for item in value if str(item).strip()])
+        elif isinstance(value, str) and value.strip():
+            tag_values.append(value.strip())
+    tags = ",".join(tag_values)
+    component = metadata.get("component", "")
+    failure_signature = metadata.get("failure_signature", "")
+    conn.execute(
+        "REPLACE INTO lessons (id, metadata, body, tags, component, failure_signature) VALUES (?, ?, ?, ?, ?, ?)",
+        (lesson_id, json.dumps(metadata), body, tags, component, failure_signature),
+    )
     try:
-        cursor = conn.execute(
-            f"SELECT id FROM lessons_fts WHERE lessons_fts MATCH ? {where} LIMIT ?",
-            [query, *params, limit],
+        conn.execute(
+            "REPLACE INTO lessons_fts (id, body, tags, component, failure_signature) VALUES (?, ?, ?, ?, ?)",
+            (lesson_id, body, tags, component, failure_signature),
         )
-        return cursor.fetchall()
     except sqlite3.OperationalError:
-        cursor = conn.execute(
-            f"SELECT id FROM lessons {where} LIMIT ?",
-            [*params, limit],
-        )
-        return cursor.fetchall()
+        pass
+
+
+def _parse_lesson_file(path: Path) -> tuple[str, dict[str, Any], str]:
+    content = path.read_text()
+    header, body = content.split("---", 1)
+    raw = json.loads(header.strip())
+    if not isinstance(raw, dict):
+        raise ValueError(f"Lesson header must be a JSON object: {path}")
+    lesson_id = raw.get("id") or raw.get("lesson_id") or _lesson_id_from_filename(path)
+    if not isinstance(lesson_id, str) or not lesson_id.strip():
+        raise ValueError(f"Lesson missing id: {path}")
+    return lesson_id.strip(), raw, body.strip()
+
+
+def _lesson_id_from_filename(path: Path) -> str | None:
+    stem = path.stem
+    if not stem.startswith("lesson-"):
+        return None
+    lesson_id = stem[len("lesson-") :]
+    return lesson_id or None
+
+
+def _fts_available(conn: sqlite3.Connection) -> bool:
+    cursor = conn.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'lessons_fts'")
+    return cursor.fetchone() is not None
+
+
+def _search_lesson_ids(conn: sqlite3.Connection, query: str, *, limit: int) -> list[str]:
+    normalized = str(query).strip()
+    if not normalized:
+        return []
+
+    if _fts_available(conn):
+        try:
+            cursor = conn.execute(
+                "SELECT id FROM lessons_fts WHERE lessons_fts MATCH ? ORDER BY id LIMIT ?",
+                (normalized, limit),
+            )
+            return [row[0] for row in cursor.fetchall() if row and row[0]]
+        except sqlite3.OperationalError:
+            pass
+
+    pattern = f"%{normalized}%"
+    cursor = conn.execute(
+        "SELECT id FROM lessons WHERE body LIKE ? OR tags LIKE ? OR component LIKE ? OR failure_signature LIKE ? ORDER BY id LIMIT ?",
+        (pattern, pattern, pattern, pattern, limit),
+    )
+    return [row[0] for row in cursor.fetchall() if row and row[0]]
