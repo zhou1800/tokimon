@@ -9,6 +9,7 @@ import re
 import shlex
 import shutil
 import sys
+import time
 from dataclasses import replace
 from pathlib import Path
 from typing import TextIO
@@ -54,6 +55,11 @@ def build_parser(*, exit_on_error: bool = True) -> argparse.ArgumentParser:
 
     inspect_run = subparsers.add_parser("inspect-run")
     inspect_run.add_argument("--run-path", required=True)
+
+    sessions = subparsers.add_parser("sessions")
+    sessions.add_argument("--root", default=None, help="Self-improve runs root directory (default: <workspace>/runs/self-improve).")
+    sessions.add_argument("--active", type=int, default=None, help="Only include runs modified within the last N minutes.")
+    sessions.add_argument("--json", action="store_true", help="Emit machine-readable JSON.")
 
     subparsers.add_parser("list-skills")
 
@@ -169,6 +175,8 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_doctor(args, workspace_root)
         case "health":
             return _cmd_health(args)
+        case "sessions":
+            return _cmd_sessions(args, workspace_root)
         case "memory":
             return _cmd_memory(args, workspace_root)
         case _:
@@ -364,6 +372,126 @@ def _cmd_health(args: argparse.Namespace) -> int:
         if isinstance(details, dict) and details:
             _write_line(sys.stdout, json.dumps(details, indent=2, sort_keys=True))
     return 1
+
+
+def _cmd_sessions(args: argparse.Namespace, workspace_root: Path) -> int:
+    root_value = getattr(args, "root", None)
+    root = Path(root_value).expanduser() if root_value else (workspace_root / "runs" / "self-improve")
+    active_minutes = getattr(args, "active", None)
+    json_output = bool(getattr(args, "json", False))
+
+    if active_minutes is not None and int(active_minutes) <= 0:
+        payload = {"ok": False, "error": "--active must be a positive integer"}
+        if json_output:
+            _write_line(sys.stdout, json.dumps(payload, indent=2, sort_keys=True))
+        else:
+            _write_line(sys.stdout, json.dumps(payload, sort_keys=True))
+        return 2
+
+    if root.exists() and not root.is_dir():
+        payload = {"ok": False, "error": f"root is not a directory: {root}"}
+        if json_output:
+            _write_line(sys.stdout, json.dumps(payload, indent=2, sort_keys=True))
+        else:
+            _write_line(sys.stdout, json.dumps(payload, sort_keys=True))
+        return 2
+
+    sessions = _list_sessions(root, active_minutes=int(active_minutes) if active_minutes is not None else None)
+    payload = {
+        "ok": True,
+        "root": str(root),
+        "active_minutes": int(active_minutes) if active_minutes is not None else None,
+        "count": len(sessions),
+        "sessions": sessions,
+    }
+
+    if json_output:
+        _write_line(sys.stdout, json.dumps(payload, indent=2, sort_keys=True))
+        return 0
+
+    for session in sessions:
+        goal = str(session.get("goal") or "").replace("\n", " ").strip()
+        _write_line(sys.stdout, f"{session.get('id')} {session.get('status')} {goal} {session.get('path')}")
+    return 0
+
+
+def _list_sessions(root: Path, *, active_minutes: int | None) -> list[dict[str, str]]:
+    if not root.exists():
+        return []
+
+    threshold: float | None = None
+    if active_minutes is not None:
+        threshold = time.time() - (active_minutes * 60)
+
+    sessions: list[dict[str, str]] = []
+    for run_dir in sorted(root.iterdir()):
+        if not run_dir.is_dir():
+            continue
+
+        run_manifest = run_dir / "run.json"
+        run_data = _read_optional_json_dict(run_manifest)
+        modified_at = run_manifest.stat().st_mtime if run_manifest.exists() else run_dir.stat().st_mtime
+
+        if threshold is not None and modified_at < threshold:
+            continue
+
+        sessions.append(
+            {
+                "id": run_dir.name,
+                "path": str(run_dir),
+                "status": _run_status(run_data),
+                "goal": _run_goal(run_data),
+            }
+        )
+
+    return sessions
+
+
+def _read_optional_json_dict(path: Path) -> dict[str, object]:
+    if not path.exists():
+        return {}
+    try:
+        payload = json.loads(path.read_text())
+    except Exception:
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _run_status(run_data: dict[str, object]) -> str:
+    status = run_data.get("status")
+    if isinstance(status, str) and status.strip():
+        return status.strip()
+
+    ok_value = run_data.get("ok")
+    if ok_value is True:
+        return "ok"
+    if ok_value is False:
+        return "failed"
+
+    post_change = run_data.get("post_change_evaluation")
+    if isinstance(post_change, dict):
+        post_ok = post_change.get("ok")
+        if post_ok is True:
+            return "ok"
+        if post_ok is False:
+            return "failed"
+
+    return "unknown"
+
+
+def _run_goal(run_data: dict[str, object]) -> str:
+    for key in ("goal", "goal_summary"):
+        value = run_data.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+
+    settings = run_data.get("settings")
+    if isinstance(settings, dict):
+        goal = settings.get("goal")
+        if isinstance(goal, str) and goal.strip():
+            return goal.strip()
+
+    return ""
 
 
 def _cmd_memory(args: argparse.Namespace, workspace_root: Path) -> int:

@@ -182,7 +182,7 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
   - Metrics include at least: pass/fail counts, wall time, model calls, tool calls, and Lessons produced.
 
 ### CLI
-- Commands: auto, run-task, run-suite, resume-run, inspect-run, list-skills, build-skill, self-improve, chat-ui, gateway, memory, doctor, health.
+- Commands: auto, run-task, run-suite, resume-run, inspect-run, list-skills, build-skill, self-improve, chat-ui, gateway, memory, sessions, doctor, health.
 - Prompt-driven entrypoint: `tokimon auto "<prompt>"` routes to the appropriate mode by asking an AI router (Codex/Claude) to return a concrete Tokimon argv list.
   - Output contract: the router returns JSON containing `argv: string[]` (argv excludes the leading `tokimon`).
   - Validation: Tokimon MUST validate the router argv against the CLI parser (unknown commands/options are rejected) and MUST prevent `auto` recursion.
@@ -201,6 +201,11 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
   - `memory search`:
     - Query input: positional `[query]` or `--query <text>`; if both are provided, `--query` wins; if neither is provided, exit non-zero.
     - `--limit N` limits the number of lesson ids returned.
+- Sessions (OpenClaw-inspired, Phase 1A): `tokimon sessions` lists self-improve runs (default: `<workspace>/runs/self-improve`).
+  - Flags:
+    - `--root PATH` overrides the runs root
+    - `--active MINUTES` filters to runs modified recently
+    - `--json` emits stable machine-readable JSON
 - Doctor (OpenClaw-inspired, Phase 1): `tokimon doctor` runs local readiness checks and returns non-zero when any required check fails.
   - Output: default human output; `--json` emits a stable machine-readable report.
   - Repairs: `--repair` / `--fix` attempts only safe, non-destructive repairs; otherwise it reports suggested manual remediation.

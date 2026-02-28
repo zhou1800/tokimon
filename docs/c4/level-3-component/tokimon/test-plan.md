@@ -22,6 +22,7 @@ This document maps requirements to automated tests.
 - CLI help surface: default `--help` output hides advanced flags while still accepting them (see `src/tests/test_cli_auto.py`).
 - Self-improve CLI LLM default: `--llm` defaults to `$TOKIMON_LLM` when set, else `mixed` (see `src/tests/test_cli_auto.py`).
 - CLI memory: `tokimon memory status/index/search` supports deterministic JSON output, query precedence (`--query` wins), and indexing/search via `--root`, `--deep`, `--index`, `--limit` (see `src/tests/test_memory_cli.py`).
+- CLI sessions: `tokimon sessions` supports deterministic JSON output and `--active` filtering (see `src/tests/test_sessions_cli.py`).
 - CLI doctor: `tokimon doctor` checks and `--json` output are deterministic under dependency injection / monkeypatch (see `src/tests/test_doctor.py`).
 - Tool schemas: FileTool path traversal protection, PatchTool validation, PytestTool parsing, GrepTool bounded output + default excludes, WebTool URL validation and network policy (allowlists + domain secrets).
 - Worker tool loop: tool calls execute and are reflected in worker metrics (model/tool call counts).
