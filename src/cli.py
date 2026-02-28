@@ -134,6 +134,11 @@ def build_parser(*, exit_on_error: bool = True) -> argparse.ArgumentParser:
     doctor.add_argument("--json", action="store_true", help="Emit machine-readable JSON.")
     doctor.add_argument("--repair", "--fix", dest="repair", action="store_true", help="Attempt safe, non-destructive repairs.")
 
+    status = subparsers.add_parser("status", parents=[health_common])
+    status.add_argument("--all", action="store_true", help="Include more detailed diagnostics.")
+    status.add_argument("--deep", action="store_true", help="Run live probes (doctor, gateway health, memory index reconciliation).")
+    status.add_argument("--usage", action="store_true", help="Include process/runtime resource snapshots when feasible.")
+
     subparsers.add_parser("health", parents=[health_common])
 
     logs = subparsers.add_parser("logs")
@@ -200,6 +205,8 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_gateway(args)
         case "doctor":
             return _cmd_doctor(args, workspace_root)
+        case "status":
+            return _cmd_status(args, workspace_root)
         case "health":
             return _cmd_health(args)
         case "logs":
@@ -421,6 +428,85 @@ def _cmd_doctor(args: argparse.Namespace, workspace_root: Path) -> int:
         return 0 if report.ok else 1
     sys.stdout.write(render_human(report))
     return 0 if report.ok else 1
+
+
+def _cmd_status(args: argparse.Namespace, workspace_root: Path) -> int:
+    from doctor.runner import default_deps, report_to_json_dict, run_doctor
+
+    url = str(getattr(args, "url", "") or "").strip()
+    timeout_ms = int(getattr(args, "timeout_ms", 2_000) or 2_000)
+    verbose = bool(getattr(args, "verbose", False))
+    json_output = bool(getattr(args, "json", False))
+    include_all = bool(getattr(args, "all", False))
+    deep = bool(getattr(args, "deep", False))
+    include_usage = bool(getattr(args, "usage", False))
+
+    doctor_report = run_doctor(default_deps(workspace_root), repair=False)
+    failed_checks = [check.id for check in doctor_report.checks if not check.ok]
+
+    def log(message: str) -> None:
+        sys.stderr.write(message)
+        sys.stderr.write("\n")
+
+    gateway_report = check_gateway_health(url, timeout_ms=timeout_ms, log=log if (verbose or deep) else None)
+
+    memory_root = workspace_root / "memory"
+    memory_payload: dict[str, object]
+    try:
+        memory_payload = MemoryStore(memory_root).cli_status(deep=bool(deep or include_all))
+    except Exception as exc:
+        memory_payload = {"ok": False, "root": str(memory_root), "error": _format_cli_exception(exc)}
+
+    sessions_root = workspace_root / "runs" / "self-improve"
+    sessions = _list_sessions(sessions_root, active_minutes=None)
+    session_items = sessions if include_all else sessions[:5]
+    sessions_payload: dict[str, object] = {
+        "ok": True,
+        "root": str(sessions_root),
+        "count": len(sessions),
+        "truncated": (not include_all) and len(sessions) > len(session_items),
+        "sessions": session_items,
+    }
+
+    doctor_payload: dict[str, object] = {
+        "ok": doctor_report.ok,
+        "checks_total": len(doctor_report.checks),
+        "failed_checks": failed_checks,
+    }
+    if include_all:
+        doctor_payload["report"] = report_to_json_dict(doctor_report)
+
+    overall_ok = bool(doctor_report.ok and gateway_report.get("ok") is True and memory_payload.get("ok") is True and sessions_payload.get("ok") is True)
+
+    payload: dict[str, object] = {
+        "ok": overall_ok,
+        "doctor": doctor_payload,
+        "gateway": gateway_report,
+        "memory": memory_payload,
+        "sessions": sessions_payload,
+    }
+    if include_usage:
+        payload["usage"] = _best_effort_usage_snapshot()
+
+    if json_output:
+        _write_line(sys.stdout, json.dumps(payload, indent=2, sort_keys=True))
+        return 0
+
+    _write_line(sys.stdout, "tokimon status")
+    _write_line(sys.stdout, f"doctor: {'ok' if doctor_report.ok else 'fail'}")
+    _write_line(sys.stdout, f"gateway: {'ok' if gateway_report.get('ok') else 'fail'} ({gateway_report.get('elapsed_ms')} ms)")
+    _write_line(sys.stdout, f"memory: {'ok' if memory_payload.get('ok') else 'fail'} (dirty={memory_payload.get('dirty')})")
+    _write_line(sys.stdout, f"sessions: {sessions_payload.get('count')} (root={sessions_payload.get('root')})")
+    if include_usage:
+        usage = payload.get("usage")
+        if isinstance(usage, dict):
+            rss_kb = usage.get("rss_kb")
+            _write_line(sys.stdout, f"usage: pid={usage.get('pid')} rss_kb={rss_kb}")
+    if include_all and failed_checks:
+        _write_line(sys.stdout, "doctor failed checks:")
+        for check_id in failed_checks:
+            _write_line(sys.stdout, f"- {check_id}")
+    return 0
 
 
 def _cmd_health(args: argparse.Namespace) -> int:
@@ -766,6 +852,24 @@ def _format_cli_exception(exc: BaseException) -> str:
     if not text:
         return exc.__class__.__name__
     return f"{exc.__class__.__name__}: {text}"
+
+
+def _best_effort_usage_snapshot() -> dict[str, object]:
+    rss_kb: int | None = None
+    try:
+        import resource  # noqa: PLC0415
+
+        value = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        rss_kb = int(value) if value is not None else None
+    except Exception:
+        rss_kb = None
+    return {
+        "pid": os.getpid(),
+        "python": sys.version.split()[0],
+        "platform": sys.platform,
+        "cwd": str(Path.cwd().resolve()),
+        "rss_kb": rss_kb,
+    }
 
 
 def _find_task_dir(repo_root: Path, task_id: str) -> Path | None:

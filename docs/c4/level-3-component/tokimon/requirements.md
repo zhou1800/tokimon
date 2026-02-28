@@ -182,7 +182,7 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
   - Metrics include at least: pass/fail counts, wall time, model calls, tool calls, and Lessons produced.
 
 ### CLI
-- Commands: auto, run-task, run-suite, resume-run, inspect-run, list-skills, build-skill, self-improve, chat-ui, gateway, memory, sessions, doctor, health, logs.
+- Commands: auto, run-task, run-suite, resume-run, inspect-run, list-skills, build-skill, self-improve, chat-ui, gateway, memory, sessions, status, doctor, health, logs.
 - Prompt-driven entrypoint: `tokimon auto "<prompt>"` routes to the appropriate mode by asking an AI router (Codex/Claude) to return a concrete Tokimon argv list.
   - Output contract: the router returns JSON containing `argv: string[]` (argv excludes the leading `tokimon`).
   - Validation: Tokimon MUST validate the router argv against the CLI parser (unknown commands/options are rejected) and MUST prevent `auto` recursion.
@@ -214,6 +214,15 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
     - Codex CLI availability: `codex` on PATH and `codex --version` succeeds.
     - Port availability: report availability/conflicts for Chat UI default port 8765 and Gateway default port 8765.
     - Required docs present: `AGENTS.md`, `docs/helix.md`, `docs/repository-guidelines.md`.
+
+- Status (OpenClaw-inspired, Phase 1): `tokimon status` prints a concise diagnostic overview of Tokimon.
+  - Includes at least: doctor readiness, gateway WebSocket health, memory status, and sessions summary.
+  - Flags:
+    - `--json` emits stable machine-readable JSON with sections `{ok, doctor, gateway, memory, sessions, usage?}`.
+    - `--all` includes more detail (full doctor report, deep memory reconciliation, full sessions list).
+    - `--deep` may run live probes (doctor, gateway health, memory index reconciliation) but must not require external services.
+    - `--usage` emits process/runtime resource snapshots when feasible.
+    - `--url` and `--timeout-ms` configure the gateway WebSocket probe (mirrors `tokimon health`).
 
 - Health (OpenClaw-inspired, Phase 1): `tokimon health` checks a running Tokimon Gateway's WebSocket `health` RPC and exits non-zero on failure.
   - Flags:
