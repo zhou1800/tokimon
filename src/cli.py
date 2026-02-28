@@ -99,6 +99,10 @@ def build_parser(*, exit_on_error: bool = True) -> argparse.ArgumentParser:
     )
     gateway.add_argument("--workspace", default=None, help=argparse.SUPPRESS)
 
+    doctor = subparsers.add_parser("doctor")
+    doctor.add_argument("--json", action="store_true", help="Emit machine-readable JSON.")
+    doctor.add_argument("--repair", "--fix", dest="repair", action="store_true", help="Attempt safe, non-destructive repairs.")
+
     return parser
 
 
@@ -135,6 +139,8 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_chat_ui(args)
         case "gateway":
             return _cmd_gateway(args)
+        case "doctor":
+            return _cmd_doctor(args, workspace_root)
         case _:
             return 1
 
@@ -288,6 +294,18 @@ def _cmd_gateway(args: argparse.Namespace) -> int:
     )
     run_gateway(config)
     return 0
+
+
+def _cmd_doctor(args: argparse.Namespace, workspace_root: Path) -> int:
+    from doctor.runner import default_deps, render_human, report_to_json_dict, run_doctor
+
+    deps = default_deps(workspace_root)
+    report = run_doctor(deps, repair=bool(getattr(args, "repair", False)))
+    if getattr(args, "json", False):
+        _write_line(sys.stdout, json.dumps(report_to_json_dict(report), indent=2, sort_keys=True))
+        return 0 if report.ok else 1
+    sys.stdout.write(render_human(report))
+    return 0 if report.ok else 1
 
 
 def _write_line(stream: TextIO, text: str) -> None:
