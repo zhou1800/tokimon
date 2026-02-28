@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import TextIO
 
 from chat_ui.server import ChatUIConfig, run_chat_ui
-from gateway.health_client import check_gateway_health
+from gateway.health_client import call_gateway_rpc, check_gateway_health
 from gateway.server import GatewayConfig, run_gateway
 from benchmarks.harness import EvaluationHarness
 from llm.client import (
@@ -95,26 +95,44 @@ def build_parser(*, exit_on_error: bool = True) -> argparse.ArgumentParser:
     )
     chat_ui.add_argument("--workspace", default=None, help=argparse.SUPPRESS)
 
-    gateway = subparsers.add_parser("gateway")
-    gateway.add_argument("--host", default="127.0.0.1", help=argparse.SUPPRESS)
-    gateway.add_argument("--port", type=int, default=8765)
-    gateway.add_argument(
+    health_common = argparse.ArgumentParser(add_help=False)
+    health_common.add_argument("--url", default="ws://127.0.0.1:8765/gateway", help="Gateway WebSocket URL.")
+    health_common.add_argument("--json", action="store_true", help="Emit machine-readable JSON.")
+    health_common.add_argument("--verbose", action="store_true", help="Print additional diagnostics.")
+    health_common.add_argument("--timeout-ms", type=int, default=2_000, help="Overall timeout in milliseconds.")
+
+    gateway_query_common = argparse.ArgumentParser(add_help=False)
+    gateway_query_common.add_argument("--url", default="ws://127.0.0.1:8765/gateway", help="Gateway WebSocket URL.")
+    gateway_query_common.add_argument("--json", action="store_true", help="Emit machine-readable JSON.")
+    gateway_query_common.add_argument("--timeout-ms", type=int, default=2_000, help="Overall timeout in milliseconds.")
+
+    gateway_run_common = argparse.ArgumentParser(add_help=False)
+    gateway_run_common.add_argument("--host", default="127.0.0.1", help=argparse.SUPPRESS)
+    gateway_run_common.add_argument("--port", type=int, default=8765)
+    gateway_run_common.add_argument(
         "--llm",
         choices=["mock", "codex", "claude"],
         default=os.environ.get("TOKIMON_LLM", "mock"),
         help=argparse.SUPPRESS,
     )
-    gateway.add_argument("--workspace", default=None, help=argparse.SUPPRESS)
+    gateway_run_common.add_argument("--workspace", default=None, help=argparse.SUPPRESS)
+
+    gateway = subparsers.add_parser("gateway", parents=[gateway_run_common])
+    gateway_sub = gateway.add_subparsers(dest="gateway_command")
+    gateway_sub.add_parser("run", parents=[gateway_run_common])
+    gateway_sub.add_parser("health", parents=[health_common])
+
+    gateway_call = gateway_sub.add_parser("call", parents=[gateway_query_common])
+    gateway_call.add_argument("method", help="Gateway WebSocket RPC method.")
+    gateway_call.add_argument("--params", default=None, help="RPC params as a JSON object (default: {}).")
+
+    gateway_sub.add_parser("probe", parents=[gateway_query_common])
 
     doctor = subparsers.add_parser("doctor")
     doctor.add_argument("--json", action="store_true", help="Emit machine-readable JSON.")
     doctor.add_argument("--repair", "--fix", dest="repair", action="store_true", help="Attempt safe, non-destructive repairs.")
 
-    health = subparsers.add_parser("health")
-    health.add_argument("--url", default="ws://127.0.0.1:8765/gateway", help="Gateway WebSocket URL.")
-    health.add_argument("--json", action="store_true", help="Emit machine-readable JSON.")
-    health.add_argument("--verbose", action="store_true", help="Print additional diagnostics.")
-    health.add_argument("--timeout-ms", type=int, default=2_000, help="Overall timeout in milliseconds.")
+    subparsers.add_parser("health", parents=[health_common])
 
     memory = subparsers.add_parser("memory")
     memory_sub = memory.add_subparsers(dest="memory_command")
@@ -323,15 +341,63 @@ def _cmd_chat_ui(args: argparse.Namespace) -> int:
 
 
 def _cmd_gateway(args: argparse.Namespace) -> int:
-    workspace_dir = Path(args.workspace).resolve() if args.workspace else Path.cwd().resolve()
-    config = GatewayConfig(
-        host=str(args.host),
-        port=int(args.port),
-        llm_provider=str(args.llm),
-        workspace_dir=workspace_dir,
-    )
-    run_gateway(config)
-    return 0
+    gateway_command = str(getattr(args, "gateway_command", "") or "").strip().lower()
+    if not gateway_command or gateway_command == "run":
+        workspace_dir = Path(args.workspace).resolve() if args.workspace else Path.cwd().resolve()
+        config = GatewayConfig(
+            host=str(args.host),
+            port=int(args.port),
+            llm_provider=str(args.llm),
+            workspace_dir=workspace_dir,
+        )
+        run_gateway(config)
+        return 0
+
+    if gateway_command == "health":
+        return _cmd_health(args)
+
+    if gateway_command == "call":
+        return _cmd_gateway_call(args)
+
+    if gateway_command == "probe":
+        return _cmd_health(args)
+
+    _write_line(sys.stdout, f"error: unknown gateway subcommand: {gateway_command}")
+    return 2
+
+
+def _cmd_gateway_call(args: argparse.Namespace) -> int:
+    url = str(getattr(args, "url", "") or "").strip()
+    timeout_ms = int(getattr(args, "timeout_ms", 2_000) or 2_000)
+    method = str(getattr(args, "method", "") or "").strip()
+    params_text = getattr(args, "params", None)
+
+    params: dict[str, object] = {}
+    if params_text:
+        try:
+            parsed = json.loads(str(params_text))
+        except Exception as exc:
+            return _cmd_gateway_call_error(args, ValueError(f"--params must be valid JSON ({exc.__class__.__name__})"))
+        if not isinstance(parsed, dict):
+            return _cmd_gateway_call_error(args, ValueError("--params must be a JSON object"))
+        params = parsed
+
+    try:
+        response = call_gateway_rpc(url, method, params=params, timeout_ms=timeout_ms)
+    except Exception as exc:
+        return _cmd_gateway_call_error(args, exc)
+
+    _write_line(sys.stdout, json.dumps(response, indent=2, sort_keys=True) if getattr(args, "json", False) else json.dumps(response))
+    return 0 if response.get("ok") is True else 1
+
+
+def _cmd_gateway_call_error(args: argparse.Namespace, exc: BaseException) -> int:
+    error = _format_cli_exception(exc)
+    if getattr(args, "json", False):
+        _write_line(sys.stdout, json.dumps({"ok": False, "error": error}, indent=2, sort_keys=True))
+        return 1
+    _write_line(sys.stdout, f"error: {error}")
+    return 1
 
 
 def _cmd_doctor(args: argparse.Namespace, workspace_root: Path) -> int:
@@ -552,6 +618,13 @@ def _cmd_memory(args: argparse.Namespace, workspace_root: Path) -> int:
 def _write_line(stream: TextIO, text: str) -> None:
     stream.write(text)
     stream.write("\n")
+
+
+def _format_cli_exception(exc: BaseException) -> str:
+    text = str(exc).strip()
+    if not text:
+        return exc.__class__.__name__
+    return f"{exc.__class__.__name__}: {text}"
 
 
 def _find_task_dir(repo_root: Path, task_id: str) -> Path | None:

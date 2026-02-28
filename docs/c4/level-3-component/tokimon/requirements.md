@@ -241,6 +241,12 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
 - `tokimon gateway` starts a local server that supports:
   - Existing Chat UI HTTP endpoints: `GET /healthz`, `POST /api/send`
   - A WebSocket control-plane endpoint at `GET /gateway` (WS upgrade)
+- `tokimon gateway run` is an explicit alias for starting the Gateway server.
+- `tokimon gateway health` is an alias of `tokimon health` (same flags).
+- `tokimon gateway call <method>` performs a single WebSocket RPC call and prints the response.
+  - Flags: `--url`, `--timeout-ms`, `--json`, `--params <json>`
+- `tokimon gateway probe` connects, performs handshake, runs a health call, and exits non-zero on failure.
+  - Flags: `--url`, `--timeout-ms`, `--json`
 - The WebSocket endpoint uses a minimal OpenClaw-inspired framing:
   - Request: `{type:"req", id, method, params}`
   - Response: `{type:"res", id, ok, payload|error}`

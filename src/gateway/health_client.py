@@ -20,6 +20,33 @@ class GatewayHealthError(RuntimeError):
     pass
 
 
+def call_gateway_rpc(
+    url: str,
+    method: str,
+    *,
+    params: dict[str, Any] | None = None,
+    timeout_ms: int,
+    log: Callable[[str], None] | None = None,
+) -> dict[str, Any]:
+    start = time.monotonic()
+    deadline = start + max(1, int(timeout_ms)) / 1000.0
+    host, port, path = _parse_gateway_ws_url(url)
+    ws = _ws_connect(host, port, path, deadline=deadline)
+    try:
+        _gateway_ws_handshake(ws, deadline=deadline, log=log)
+        req_id = "2"
+        ws.send_json(
+            {"type": "req", "id": req_id, "method": method, "params": params or {}},
+            deadline=deadline,
+        )
+        response = ws.recv_json(deadline=deadline)
+        if response.get("type") != "res" or response.get("id") != req_id:
+            raise GatewayHealthError("rpc call failed")
+        return response
+    finally:
+        ws.close()
+
+
 def check_gateway_health(
     url: str,
     *,
@@ -56,54 +83,12 @@ def _run_gateway_health_check(
     log: Callable[[str], None] | None,
 ) -> None:
     details["step"] = "parse_url"
-    parsed = urlparse(url)
-    if parsed.scheme != "ws":
-        raise ValueError("url must use ws:// scheme")
-    if not parsed.hostname:
-        raise ValueError("url must include a hostname")
-    if parsed.port is None:
-        raise ValueError("url must include a port")
-    path = parsed.path
-    if not path or path == "/":
-        path = "/gateway"
-    if parsed.query:
-        path = f"{path}?{parsed.query}"
+    host, port, path = _parse_gateway_ws_url(url)
 
     details["step"] = "connect"
-    ws = _ws_connect(parsed.hostname, int(parsed.port), path, deadline=deadline)
+    ws = _ws_connect(host, port, path, deadline=deadline)
     try:
-        details["step"] = "recv_challenge"
-        challenge = ws.recv_json(deadline=deadline)
-        if challenge.get("type") != "event" or challenge.get("event") != "connect.challenge":
-            raise GatewayHealthError("expected connect.challenge event")
-        _safe_log(log, "received connect.challenge")
-
-        details["step"] = "send_connect"
-        ws.send_json(
-            {
-                "type": "req",
-                "id": "1",
-                "method": "connect",
-                "params": {
-                    "minProtocol": 1,
-                    "maxProtocol": 1,
-                    "client": {
-                        "id": "tokimon",
-                        "version": "0",
-                        "platform": sys.platform,
-                        "mode": "operator",
-                    },
-                    "role": "operator",
-                    "scopes": ["operator.read"],
-                },
-            },
-            deadline=deadline,
-        )
-        details["step"] = "recv_connect"
-        hello = ws.recv_json(deadline=deadline)
-        if hello.get("type") != "res" or hello.get("id") != "1" or hello.get("ok") is not True:
-            raise GatewayHealthError("connect failed")
-        _safe_log(log, "connect ok")
+        _gateway_ws_handshake(ws, deadline=deadline, log=log, details=details)
 
         details["step"] = "send_health"
         ws.send_json({"type": "req", "id": "2", "method": "health", "params": {}}, deadline=deadline)
@@ -247,6 +232,66 @@ def _ws_connect(host: str, port: int, path: str, *, deadline: float) -> _WSClien
         except Exception:
             pass
         raise
+
+
+def _parse_gateway_ws_url(url: str) -> tuple[str, int, str]:
+    parsed = urlparse(url)
+    if parsed.scheme != "ws":
+        raise ValueError("url must use ws:// scheme")
+    if not parsed.hostname:
+        raise ValueError("url must include a hostname")
+    if parsed.port is None:
+        raise ValueError("url must include a port")
+    path = parsed.path
+    if not path or path == "/":
+        path = "/gateway"
+    if parsed.query:
+        path = f"{path}?{parsed.query}"
+    return parsed.hostname, int(parsed.port), path
+
+
+def _gateway_ws_handshake(
+    ws: _WSClient,
+    *,
+    deadline: float,
+    log: Callable[[str], None] | None,
+    details: dict[str, Any] | None = None,
+) -> None:
+    if details is not None:
+        details["step"] = "recv_challenge"
+    challenge = ws.recv_json(deadline=deadline)
+    if challenge.get("type") != "event" or challenge.get("event") != "connect.challenge":
+        raise GatewayHealthError("expected connect.challenge event")
+    _safe_log(log, "received connect.challenge")
+
+    if details is not None:
+        details["step"] = "send_connect"
+    ws.send_json(
+        {
+            "type": "req",
+            "id": "1",
+            "method": "connect",
+            "params": {
+                "minProtocol": 1,
+                "maxProtocol": 1,
+                "client": {
+                    "id": "tokimon",
+                    "version": "0",
+                    "platform": sys.platform,
+                    "mode": "operator",
+                },
+                "role": "operator",
+                "scopes": ["operator.read"],
+            },
+        },
+        deadline=deadline,
+    )
+    if details is not None:
+        details["step"] = "recv_connect"
+    hello = ws.recv_json(deadline=deadline)
+    if hello.get("type") != "res" or hello.get("id") != "1" or hello.get("ok") is not True:
+        raise GatewayHealthError("connect failed")
+    _safe_log(log, "connect ok")
 
 
 def _encode_ws_frame(*, opcode: int, payload: bytes, mask: bool) -> bytes:
