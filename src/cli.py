@@ -10,11 +10,13 @@ import shlex
 import shutil
 import sys
 import time
+from datetime import datetime, timezone
 from dataclasses import replace
 from pathlib import Path
 from typing import TextIO
 
 from chat_ui.server import ChatUIConfig, run_chat_ui
+from gateway import health_client as gateway_health_client
 from gateway.health_client import call_gateway_rpc, check_gateway_health
 from gateway.server import GatewayConfig, run_gateway
 from benchmarks.harness import EvaluationHarness
@@ -134,6 +136,13 @@ def build_parser(*, exit_on_error: bool = True) -> argparse.ArgumentParser:
 
     subparsers.add_parser("health", parents=[health_common])
 
+    logs = subparsers.add_parser("logs")
+    logs.add_argument("--url", default="ws://127.0.0.1:8765/gateway", help="Gateway WebSocket URL.")
+    logs.add_argument("--follow", action="store_true", help="Keep tailing logs until interrupted.")
+    logs.add_argument("--json", action="store_true", help="Emit machine-readable JSON.")
+    logs.add_argument("--limit", type=int, default=200, help="Maximum number of log entries to return.")
+    logs.add_argument("--local-time", action="store_true", help="Render timestamps in your local timezone.")
+
     memory = subparsers.add_parser("memory")
     memory_sub = memory.add_subparsers(dest="memory_command")
 
@@ -193,6 +202,8 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_doctor(args, workspace_root)
         case "health":
             return _cmd_health(args)
+        case "logs":
+            return _cmd_logs(args)
         case "sessions":
             return _cmd_sessions(args, workspace_root)
         case "memory":
@@ -438,6 +449,136 @@ def _cmd_health(args: argparse.Namespace) -> int:
         if isinstance(details, dict) and details:
             _write_line(sys.stdout, json.dumps(details, indent=2, sort_keys=True))
     return 1
+
+
+def _cmd_logs(args: argparse.Namespace) -> int:
+    url = str(getattr(args, "url", "") or "").strip()
+    follow = bool(getattr(args, "follow", False))
+    json_output = bool(getattr(args, "json", False))
+    limit = int(getattr(args, "limit", 200) or 200)
+    local_time = bool(getattr(args, "local_time", False))
+
+    if limit <= 0:
+        error = _format_cli_exception(ValueError("--limit must be a positive integer"))
+        if json_output:
+            _write_line(sys.stdout, json.dumps({"ok": False, "error": error}, indent=2, sort_keys=True))
+        else:
+            _write_line(sys.stdout, f"error: {error}")
+        return 2
+
+    def emit_entry(entry: object) -> None:
+        if json_output:
+            _write_line(sys.stdout, json.dumps(entry, separators=(",", ":"), ensure_ascii=False))
+            return
+        _write_line(sys.stdout, _format_log_entry(entry, local_time=local_time))
+
+    if not follow:
+        try:
+            response = call_gateway_rpc(url, "logs.tail", params={"limit": limit}, timeout_ms=2_000)
+            if response.get("ok") is not True:
+                raise RuntimeError(str(response.get("error") or "logs.tail failed"))
+            payload = response.get("payload")
+            if not isinstance(payload, dict):
+                raise RuntimeError("invalid logs.tail payload")
+            entries = payload.get("entries")
+            if not isinstance(entries, list):
+                raise RuntimeError("invalid logs.tail entries")
+
+            if json_output:
+                _write_line(sys.stdout, json.dumps({"ok": True, "entries": entries}, indent=2, sort_keys=True))
+            else:
+                for entry in entries:
+                    emit_entry(entry)
+            return 0
+        except Exception as exc:
+            error = _format_cli_exception(exc)
+            if json_output:
+                _write_line(sys.stdout, json.dumps({"ok": False, "error": error}, indent=2, sort_keys=True))
+            else:
+                _write_line(sys.stdout, f"error: {error}")
+            return 1
+
+    after: int | None = None
+    try:
+        host, port, path = gateway_health_client._parse_gateway_ws_url(url)
+        deadline = time.monotonic() + 2.0
+        ws = gateway_health_client._ws_connect(host, port, path, deadline=deadline)
+    except Exception as exc:
+        error = _format_cli_exception(exc)
+        if json_output:
+            _write_line(sys.stdout, json.dumps({"ok": False, "error": error}, indent=2, sort_keys=True))
+        else:
+            _write_line(sys.stdout, f"error: {error}")
+        return 1
+
+    try:
+        gateway_health_client._gateway_ws_handshake(ws, deadline=deadline, log=None)
+        req_counter = 2
+        while True:
+            params: dict[str, object] = {"limit": limit}
+            if after is not None:
+                params["after"] = after
+
+            call_deadline = time.monotonic() + 2.0
+            ws.send_json({"type": "req", "id": str(req_counter), "method": "logs.tail", "params": params}, deadline=call_deadline)
+            response = ws.recv_json(deadline=call_deadline)
+            if response.get("type") != "res" or response.get("id") != str(req_counter):
+                raise RuntimeError("logs.tail rpc call failed")
+            if response.get("ok") is not True:
+                raise RuntimeError(str(response.get("error") or "logs.tail failed"))
+
+            payload = response.get("payload")
+            if not isinstance(payload, dict):
+                raise RuntimeError("invalid logs.tail payload")
+            entries = payload.get("entries")
+            if not isinstance(entries, list):
+                raise RuntimeError("invalid logs.tail entries")
+            cursor = payload.get("cursor")
+            if isinstance(cursor, int):
+                after = cursor
+            elif entries:
+                last = entries[-1]
+                if isinstance(last, dict) and isinstance(last.get("id"), int):
+                    after = int(last["id"])
+
+            for entry in entries:
+                emit_entry(entry)
+
+            req_counter += 1
+            time.sleep(0.5)
+    except KeyboardInterrupt:
+        return 0
+    except Exception as exc:
+        error = _format_cli_exception(exc)
+        if json_output:
+            _write_line(sys.stdout, json.dumps({"ok": False, "error": error}, indent=2, sort_keys=True))
+        else:
+            _write_line(sys.stdout, f"error: {error}")
+        return 1
+    finally:
+        try:
+            ws.close()
+        except Exception:
+            pass
+
+
+def _format_log_entry(entry: object, *, local_time: bool) -> str:
+    if not isinstance(entry, dict):
+        return str(entry)
+    ts_ms = entry.get("ts_ms")
+    event = entry.get("event")
+    payload = entry.get("payload")
+    stamp = "?"
+    if isinstance(ts_ms, int):
+        dt = datetime.fromtimestamp(ts_ms / 1000.0, tz=timezone.utc)
+        if local_time:
+            dt = dt.astimezone()
+        stamp = dt.isoformat()
+    event_text = str(event or "").strip() or "event"
+    payload_text = ""
+    if isinstance(payload, dict) and payload:
+        payload_text = f" {json.dumps(payload, sort_keys=True, ensure_ascii=False)}"
+    return f"{stamp} {event_text}{payload_text}"
 
 
 def _cmd_sessions(args: argparse.Namespace, workspace_root: Path) -> int:

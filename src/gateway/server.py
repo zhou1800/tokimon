@@ -9,6 +9,7 @@ import secrets
 import struct
 import threading
 import time
+from collections import deque
 from dataclasses import dataclass, field
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler
@@ -30,6 +31,7 @@ _TICK_INTERVAL_MS = 15_000
 _WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 _MAX_WS_FRAME_BYTES = 2_000_000
 _MAX_IDEMPOTENCY_ENTRIES = 128
+_MAX_LOG_ENTRIES = 512
 
 
 @dataclass(frozen=True)
@@ -55,9 +57,37 @@ class _GatewayHTTPServer(ThreadingHTTPServer):
             "pytest": PytestTool(self.workspace_dir),
             "web": WebTool(),
         }
+        self._log_lock = threading.Lock()
+        self._log_entries: deque[dict[str, Any]] = deque(maxlen=_MAX_LOG_ENTRIES)
+        self._log_next_id = 1
+
+    def record_log(self, event: str, payload: dict[str, Any] | None = None) -> None:
+        event = str(event or "").strip() or "event"
+        entry: dict[str, Any] = {
+            "id": None,
+            "ts_ms": int(time.time() * 1000),
+            "event": event,
+            "payload": payload or {},
+        }
+        with self._log_lock:
+            entry["id"] = self._log_next_id
+            self._log_next_id += 1
+            self._log_entries.append(entry)
+
+    def tail_logs(self, *, limit: int, after: int | None = None) -> dict[str, Any]:
+        limit = max(1, int(limit))
+        with self._log_lock:
+            cursor = self._log_next_id - 1
+            entries = list(self._log_entries)
+        if after is None:
+            sliced = entries[-limit:]
+        else:
+            sliced = [entry for entry in entries if isinstance(entry.get("id"), int) and int(entry["id"]) > after][:limit]
+        return {"entries": sliced, "cursor": cursor}
 
     def handle_send(self, message: str, history: list[dict[str, Any]] | None) -> dict[str, Any]:
         history = history or []
+        self.record_log("send", {"message_chars": len(message), "history_len": len(history)})
         memory = _history_to_memory(history)
         worker = Worker("Gateway", self.llm_client, self.tools)
         output = worker.run(goal=message, step_id="gateway.send", inputs={"message": message, "history": history}, memory=memory)
@@ -202,6 +232,13 @@ class _GatewayHandler(BaseHTTPRequestHandler):
                     "payload": {"type": "hello-ok", "protocol": PROTOCOL_VERSION, "policy": {"tickIntervalMs": _TICK_INTERVAL_MS}},
                 }
             )
+            try:
+                self.server.record_log(
+                    "connect.ok",
+                    {"client": params.get("client"), "role": params.get("role"), "scopes": params.get("scopes")},
+                )
+            except Exception:
+                pass
             connected = True
 
             while True:
@@ -214,6 +251,16 @@ class _GatewayHandler(BaseHTTPRequestHandler):
                     continue
                 if method == "health":
                     self._ws_send_json({"type": "res", "id": req_id, "ok": True, "payload": {"ok": True}})
+                    continue
+                if method == "logs.tail":
+                    tail_errors = _validate_logs_tail_params(params)
+                    if tail_errors:
+                        self._ws_send_res_error(req_id, "invalid logs.tail params", details={"code": "LOGS_TAIL_INVALID", "errors": tail_errors})
+                        continue
+                    limit = int(params.get("limit") or 200)
+                    after = params.get("after")
+                    payload = self.server.tail_logs(limit=limit, after=int(after) if isinstance(after, int) else None)
+                    self._ws_send_json({"type": "res", "id": req_id, "ok": True, "payload": payload})
                     continue
                 if method == "send":
                     send_errors = _validate_send_params(params)
@@ -237,7 +284,11 @@ class _GatewayHandler(BaseHTTPRequestHandler):
                     continue
 
                 self._ws_send_res_error(req_id, f"unknown method: {method}", details={"code": "METHOD_NOT_FOUND"})
-        except (ValueError, ConnectionError):
+        except (ValueError, ConnectionError) as exc:
+            try:
+                self.server.record_log("error", {"message": "ws connection error", "details": {"exception": exc.__class__.__name__}})
+            except Exception:
+                pass
             return
         finally:
             self.close_connection = True
@@ -276,6 +327,10 @@ class _GatewayHandler(BaseHTTPRequestHandler):
         error: dict[str, Any] = {"message": message}
         if details:
             error["details"] = details
+        try:
+            self.server.record_log("error", {"message": message, "details": details or {}})
+        except Exception:
+            pass
         self._ws_send_json({"type": "res", "id": req_id, "ok": False, "error": error})
 
     def _ws_send_frame(self, opcode: int, payload: bytes) -> None:
@@ -419,6 +474,21 @@ def _validate_send_params(params: dict[str, Any]) -> list[str]:
     return errors
 
 
+def _validate_logs_tail_params(params: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    limit = params.get("limit")
+    if limit is not None and not isinstance(limit, int):
+        errors.append("limit must be an int")
+    if isinstance(limit, int) and limit <= 0:
+        errors.append("limit must be a positive int")
+    after = params.get("after")
+    if after is not None and not isinstance(after, int):
+        errors.append("after must be an int")
+    if isinstance(after, int) and after < 0:
+        errors.append("after must be a non-negative int")
+    return errors
+
+
 def _history_to_memory(history: list[dict[str, Any]], *, limit: int = 16, max_chars: int = 10_000) -> list[str]:
     trimmed = history[-limit:] if limit > 0 else []
     lines: list[str] = []
@@ -435,4 +505,3 @@ def _history_to_memory(history: list[dict[str, Any]], *, limit: int = 16, max_ch
             break
         lines.append(line)
     return lines
-

@@ -182,7 +182,7 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
   - Metrics include at least: pass/fail counts, wall time, model calls, tool calls, and Lessons produced.
 
 ### CLI
-- Commands: auto, run-task, run-suite, resume-run, inspect-run, list-skills, build-skill, self-improve, chat-ui, gateway, memory, sessions, doctor, health.
+- Commands: auto, run-task, run-suite, resume-run, inspect-run, list-skills, build-skill, self-improve, chat-ui, gateway, memory, sessions, doctor, health, logs.
 - Prompt-driven entrypoint: `tokimon auto "<prompt>"` routes to the appropriate mode by asking an AI router (Codex/Claude) to return a concrete Tokimon argv list.
   - Output contract: the router returns JSON containing `argv: string[]` (argv excludes the leading `tokimon`).
   - Validation: Tokimon MUST validate the router argv against the CLI parser (unknown commands/options are rejected) and MUST prevent `auto` recursion.
@@ -230,6 +230,15 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
     - `0` when the Gateway health is ok.
     - `1` otherwise.
 
+- Logs (OpenClaw-inspired, Phase 1): `tokimon logs` tails Gateway logs over the WebSocket RPC (no SSH).
+  - Flags:
+    - `--url` (default: `ws://127.0.0.1:8765/gateway`)
+    - `--follow` keeps tailing until interrupted
+    - `--json` emits machine-readable JSON
+    - `--limit N` limits the number of entries returned
+    - `--local-time` renders timestamps in your local timezone
+  - Default behavior is a one-shot tail; with `--follow`, it polls until interrupted.
+
 ### Chat UI
 - `tokimon chat-ui` starts a local web server (binds loopback by default) that serves a single-page chat UI.
 - Health endpoint: `GET /healthz` returns JSON indicating the server is running.
@@ -257,6 +266,7 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
 - Phase 1 methods:
   - `health`: returns `{ok:true}`
   - `send`: invokes the same logic as `/api/send` and requires an idempotency key.
+  - `logs.tail`: returns recent log entries from an in-memory ring buffer.
 - The Gateway protocol surface and Phase 2 TODOs are documented in `docs/gateway.md`.
 
 ### Self-Improvement Mode (Multi-Session / Batch)
