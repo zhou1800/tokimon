@@ -28,7 +28,7 @@ This document maps requirements to automated tests.
 - CLI sessions: `tokimon sessions` supports deterministic JSON output and `--active` filtering (see `src/tests/test_sessions_cli.py`).
 - CLI status: `tokimon status --json` emits stable section keys and probes gateway WS health against an ephemeral `GatewayServer` (see `src/tests/test_status_cli.py`).
 - CLI doctor: `tokimon doctor` checks and `--json` output are deterministic under dependency injection / monkeypatch (see `src/tests/test_doctor.py`).
-- Tool schemas: FileTool path traversal protection, PatchTool validation, PytestTool parsing, GrepTool bounded output + default excludes, WebTool URL validation and network policy (allowlists + domain secrets).
+- Tool schemas: FileTool path traversal protection, PatchTool validation + hunk header normalization, PytestTool parsing, GrepTool bounded output + default excludes, WebTool URL validation and network policy (allowlists + domain secrets).
 - Worker tool loop: tool calls execute and are reflected in worker metrics (model/tool call counts).
 - Tool call correlation: tool calls with `call_id` are echoed into tool results and recorded in `tool_call_records`.
 - Trace loop unrolling: worker model/tool calls are recorded to `trace.jsonl` with bounded payload sizes.

@@ -115,7 +115,7 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
 
 ### Tools
 - FileTool: safe read/write within workspace and prevents path traversal.
-- PatchTool: apply unified diffs with validation.
+- PatchTool: apply unified diffs with validation (and deterministically repairs mismatched hunk header line-counts when possible).
 - PytestTool: run pytest, capture output, pass/fail counts, failing tests list.
 - GrepTool: search within repo with bounded output.
   - Uses `rg` (ripgrep) when available, otherwise falls back to a Python regex scan.

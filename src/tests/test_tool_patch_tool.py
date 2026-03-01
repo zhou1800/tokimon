@@ -59,3 +59,23 @@ def test_patch_tool_applies_valid_patch(tmp_path: Path) -> None:
     result = PatchTool(tmp_path).apply(patch_text)
     assert result.ok is True
     assert (tmp_path / "hello.txt").read_text() == "hi\n"
+
+
+def test_patch_tool_repairs_mismatched_hunk_header_counts(tmp_path: Path) -> None:
+    if shutil.which("git") is None:
+        pytest.skip("git is required for PatchTool")
+
+    _init_git_repo(tmp_path)
+    (tmp_path / "hello.txt").write_text("hello\n")
+    patch_text = (
+        "diff --git a/hello.txt b/hello.txt\n"
+        "--- a/hello.txt\n"
+        "+++ b/hello.txt\n"
+        "@@ -1,2 +1,3 @@\n"
+        "-hello\n"
+        "+hi\n"
+    )
+    result = PatchTool(tmp_path).apply(patch_text)
+    assert result.ok is True
+    assert result.data.get("normalized_hunk_headers") is True
+    assert (tmp_path / "hello.txt").read_text() == "hi\n"
