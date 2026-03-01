@@ -49,6 +49,10 @@ def test_entrypoint_loop_retries_from_prompt_generation_after_failed_verificatio
                 {
                     "status": "SUCCESS",
                     "summary": "planned",
+                    "artifacts": [],
+                    "metrics": {},
+                    "next_actions": [],
+                    "failure_signature": "",
                     "workflow": {"steps": [{"id": "work", "worker": "Implementer"}]},
                 },
                 {
@@ -71,6 +75,10 @@ def test_entrypoint_loop_retries_from_prompt_generation_after_failed_verificatio
                 {
                     "status": "SUCCESS",
                     "summary": "planned retry",
+                    "artifacts": [],
+                    "metrics": {},
+                    "next_actions": [],
+                    "failure_signature": "",
                     "workflow": {"steps": [{"id": "work", "worker": "Implementer"}]},
                 },
                 {

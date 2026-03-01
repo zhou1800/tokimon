@@ -37,6 +37,10 @@ def test_self_improve_runs_sessions_and_merges_winner(tmp_path: Path) -> None:
         plan = {
             "status": "SUCCESS",
             "summary": "planned",
+            "artifacts": [],
+            "metrics": {},
+            "next_actions": [],
+            "failure_signature": "",
             "workflow": {"steps": [{"id": "fix", "worker": "Implementer"}]},
         }
         if session_id.endswith("-1"):
@@ -45,14 +49,14 @@ def test_self_improve_runs_sessions_and_merges_winner(tmp_path: Path) -> None:
                     plan,
                     {"tool_calls": [{"tool": "file", "action": "write", "args": {"path": "proj/app.py", "content": "def add(a, b):\n    return a + b\n"}}]},
                     {"tool_calls": [_experiment_summary_tool_call(session_id, 1, "Fixing add() logic should increase passing tests by repairing arithmetic behavior.")]},
-                    {"status": "SUCCESS", "summary": "fixed"},
+                    {"status": "SUCCESS", "summary": "fixed", "artifacts": [], "metrics": {}, "next_actions": [], "failure_signature": ""},
                 ]
             )
         return MockLLMClient(
             script=[
                 plan,
                 {"tool_calls": [_experiment_summary_tool_call(session_id, 1, "No code change expected for this control session; pass counts should remain unchanged.")]},
-                {"status": "SUCCESS", "summary": "no-op"},
+                {"status": "SUCCESS", "summary": "no-op", "artifacts": [], "metrics": {}, "next_actions": [], "failure_signature": ""},
             ]
         )
 
@@ -102,13 +106,17 @@ def test_self_improve_materializes_file_input_in_session_workspace(tmp_path: Pat
         plan = {
             "status": "SUCCESS",
             "summary": "planned",
+            "artifacts": [],
+            "metrics": {},
+            "next_actions": [],
+            "failure_signature": "",
             "workflow": {"steps": [{"id": "noop", "worker": "Implementer"}]},
         }
         return MockLLMClient(
             script=[
                 plan,
                 {"tool_calls": [_experiment_summary_tool_call("1-1", 1, "No-op run should preserve baseline evaluation and verify reporting fields.")]},
-                {"status": "SUCCESS", "summary": "done"},
+                {"status": "SUCCESS", "summary": "done", "artifacts": [], "metrics": {}, "next_actions": [], "failure_signature": ""},
             ]
         )
 
@@ -160,13 +168,17 @@ def test_self_improve_materializes_absolute_file_input_without_leaking_host_path
         plan = {
             "status": "SUCCESS",
             "summary": "planned",
+            "artifacts": [],
+            "metrics": {},
+            "next_actions": [],
+            "failure_signature": "",
             "workflow": {"steps": [{"id": "noop", "worker": "Implementer"}]},
         }
         return MockLLMClient(
             script=[
                 plan,
                 {"tool_calls": [_experiment_summary_tool_call("1-1", 1, "No-op run should preserve baseline evaluation and verify reporting fields.")]},
-                {"status": "SUCCESS", "summary": "done"},
+                {"status": "SUCCESS", "summary": "done", "artifacts": [], "metrics": {}, "next_actions": [], "failure_signature": ""},
             ]
         )
 
@@ -306,6 +318,10 @@ def test_self_improve_runs_all_batches_when_merge_disabled(tmp_path: Path) -> No
         plan = {
             "status": "SUCCESS",
             "summary": "planned",
+            "artifacts": [],
+            "metrics": {},
+            "next_actions": [],
+            "failure_signature": "",
             "workflow": {"steps": [{"id": "noop", "worker": "Implementer"}]},
         }
         return MockLLMClient(
@@ -355,6 +371,10 @@ def test_self_improve_continues_after_failed_batch_then_merges(tmp_path: Path) -
         plan = {
             "status": "SUCCESS",
             "summary": "planned",
+            "artifacts": [],
+            "metrics": {},
+            "next_actions": [],
+            "failure_signature": "",
             "workflow": {"steps": [{"id": "fix", "worker": "Implementer"}]},
         }
         if session_id == "2-1":
@@ -416,6 +436,10 @@ def test_self_improve_records_per_step_pytest_metrics(tmp_path: Path) -> None:
         plan = {
             "status": "SUCCESS",
             "summary": "planned",
+            "artifacts": [],
+            "metrics": {},
+            "next_actions": [],
+            "failure_signature": "",
             "workflow": {"steps": [{"id": "noop", "worker": "Implementer"}]},
         }
         return MockLLMClient(
@@ -471,6 +495,10 @@ def test_self_improve_counts_skipped_steps_as_succeeded(tmp_path: Path) -> None:
                 {
                     "status": "SUCCESS",
                     "summary": "planned",
+                    "artifacts": [],
+                    "metrics": {},
+                    "next_actions": [],
+                    "failure_signature": "",
                     "workflow": {
                         "steps": [
                             {"id": "check", "worker": "Implementer"},

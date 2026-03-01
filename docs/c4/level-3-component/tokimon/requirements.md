@@ -28,6 +28,8 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
 - Manager agent produces executable workflows with step contracts and dependencies.
 - Workers are specialized (Planner, Implementer, Debugger, Reviewer, TestTriager, SkillBuilder).
 - Worker outputs are structured and include status, summary, artifacts, metrics, next_actions, failure_signature.
+- Worker final outputs MUST validate against a per-step success schema (type checks + required keys, not just JSON parsing).
+- On schema validation failure, the worker MUST attempt bounded repair by asking the model to re-emit a schema-valid final object (max 2 repair attempts). If repair fails, the step MUST return a deterministic schema-related `failure_signature` (prefix `worker-output-schema-invalid`).
 - Manager tracks delegation graph, avoids cycles, and enforces progress-based continuation.
 - Retries require a Lesson artifact and a changed strategy/context.
 

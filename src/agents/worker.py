@@ -13,6 +13,12 @@ from flow_types import ToolCallRecord, WorkerStatus
 from llm.client import LLMClient
 from tools.base import ToolResult
 from tracing import TraceLogger
+from workflow.schema import (
+    SchemaValidationError,
+    SchemaViolation,
+    WORKER_FINAL_OUTPUT_SCHEMA,
+    validate_schema,
+)
 
 
 class Worker:
@@ -28,6 +34,7 @@ class Worker:
         model_calls = 0
         tool_call_records: list[ToolCallRecord] = []
         touched_files: set[str] = set()
+        schema_repairs = 0
         trace_base = _trace_base(
             {
                 "worker_role": self.role,
@@ -114,6 +121,54 @@ class Worker:
                     )
                 continue
 
+            try:
+                _validate_worker_final_response(response)
+            except SchemaValidationError as exc:
+                if schema_repairs >= 2:
+                    elapsed_ms = (time.perf_counter() - start) * 1000
+                    failure_signature = _schema_failure_signature(exc)
+                    _trace_log(
+                        trace,
+                        "worker_output_schema_invalid",
+                        {
+                            **trace_base,
+                            "iteration": iteration,
+                            "repairs": schema_repairs,
+                            "failure_signature": failure_signature,
+                            "error": str(exc),
+                        },
+                    )
+                    return WorkerOutput(
+                        status=WorkerStatus.FAILURE,
+                        summary="worker produced invalid structured output (schema validation failed)",
+                        artifacts=[],
+                        metrics={
+                            "elapsed_ms": elapsed_ms,
+                            "model_calls": model_calls,
+                            "tool_calls": len(tool_call_records),
+                            "iteration_count": iteration,
+                            "tool_call_records": [record.__dict__ for record in tool_call_records],
+                            "schema_repairs": schema_repairs,
+                        },
+                        next_actions=[
+                            "Return a schema-valid final JSON object (status/summary/artifacts/metrics/next_actions/failure_signature).",
+                        ],
+                        failure_signature=failure_signature,
+                    )
+                schema_repairs += 1
+                _trace_log(
+                    trace,
+                    "worker_output_schema_repair",
+                    {
+                        **trace_base,
+                        "iteration": iteration,
+                        "repairs": schema_repairs,
+                        "error": str(exc),
+                    },
+                )
+                messages.extend(_schema_repair_messages(response, exc, remaining=2 - schema_repairs))
+                continue
+
             output = _coerce_output(response)
             elapsed_ms = (time.perf_counter() - start) * 1000
             output.metrics = dict(output.metrics)
@@ -123,6 +178,7 @@ class Worker:
             output.metrics.setdefault("iteration_count", iteration)
             output.metrics.setdefault("tool_call_records", [record.__dict__ for record in tool_call_records])
             output.metrics.setdefault("touched_files", sorted(touched_files))
+            output.metrics.setdefault("schema_repairs", schema_repairs)
             _trace_log(
                 trace,
                 "worker_final",
@@ -135,6 +191,7 @@ class Worker:
                     "model_calls": model_calls,
                     "tool_calls": len(tool_call_records),
                     "elapsed_ms": elapsed_ms,
+                    "schema_repairs": schema_repairs,
                 },
             )
             return output
@@ -150,6 +207,7 @@ class Worker:
                 "model_calls": model_calls,
                 "tool_calls": len(tool_call_records),
                 "elapsed_ms": elapsed_ms,
+                "schema_repairs": schema_repairs,
             },
         )
         return WorkerOutput(
@@ -162,6 +220,7 @@ class Worker:
                 "tool_calls": len(tool_call_records),
                 "iteration_count": max_iterations,
                 "tool_call_records": [record.__dict__ for record in tool_call_records],
+                "schema_repairs": schema_repairs,
             },
             next_actions=["Reduce tool calls, change strategy, or adjust planning."],
             failure_signature="worker-max-iterations",
@@ -468,3 +527,50 @@ def _make_json_safe(value: Any) -> Any:
     if isinstance(value, dict):
         return {str(k): _make_json_safe(v) for k, v in value.items()}
     return str(value)
+
+
+def _validate_worker_final_response(response: dict[str, Any]) -> None:
+    if not isinstance(response, dict):
+        raise SchemaValidationError(
+            [SchemaViolation(code="type_mismatch", path="$", message="response must be object")]
+        )
+    if "tool_calls" in response and "status" in response:
+        raise SchemaValidationError(
+            [SchemaViolation(code="mutually_exclusive", path="$", message="cannot include both status and tool_calls")]
+        )
+    validate_schema(response, WORKER_FINAL_OUTPUT_SCHEMA)
+
+
+def _schema_failure_signature(exc: SchemaValidationError) -> str:
+    violation = exc.violations[0] if getattr(exc, "violations", None) else None
+    if violation is None:
+        return "worker-output-schema-invalid"
+    path = (violation.path or "$").replace(" ", "")
+    code = (violation.code or "invalid").replace(" ", "")
+    return f"worker-output-schema-invalid:{code}:{path}"
+
+
+def _schema_repair_messages(
+    response: dict[str, Any],
+    exc: SchemaValidationError,
+    *,
+    remaining: int,
+) -> list[dict[str, str]]:
+    truncated_response = _truncate_jsonish(response, max_str=6_000, max_list=100, max_depth=4)
+    schema_text = json.dumps(WORKER_FINAL_OUTPUT_SCHEMA, sort_keys=True)
+    error_text = str(exc)[:2_000]
+    instructions = "\n".join(
+        [
+            "Your last response failed schema validation.",
+            f"Schema: {schema_text}",
+            f"Validation error: {error_text}",
+            f"Repairs remaining (including this one): {max(remaining, 0)}",
+            "",
+            "Return ONLY a single JSON object that validates against the schema.",
+            "Do not include tool_calls in the response unless you are requesting a tool call (in which case omit status).",
+        ]
+    )
+    return [
+        {"role": "assistant", "content": json.dumps(truncated_response, sort_keys=True)},
+        {"role": "user", "content": instructions},
+    ]

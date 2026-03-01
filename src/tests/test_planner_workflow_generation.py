@@ -17,6 +17,10 @@ def test_manager_plan_steps_parses_workflow_steps(tmp_path: Path) -> None:
             {
                 "status": "SUCCESS",
                 "summary": "planned",
+                "artifacts": [],
+                "metrics": {},
+                "next_actions": [],
+                "failure_signature": "",
                 "workflow": {
                     "steps": [
                         {"id": "s1", "worker": "Implementer"},
@@ -39,6 +43,10 @@ def test_hierarchical_runner_uses_planned_steps_and_step_workers(tmp_path: Path)
             {
                 "status": "SUCCESS",
                 "summary": "planned",
+                "artifacts": [],
+                "metrics": {},
+                "next_actions": [],
+                "failure_signature": "",
                 "workflow": {
                     "steps": [
                         {"id": "s1", "worker": "Implementer"},
@@ -46,8 +54,8 @@ def test_hierarchical_runner_uses_planned_steps_and_step_workers(tmp_path: Path)
                     ]
                 },
             },
-            {"status": "SUCCESS", "summary": "s1 done"},
-            {"status": "SUCCESS", "summary": "s2 done"},
+            {"status": "SUCCESS", "summary": "s1 done", "artifacts": [], "metrics": {}, "next_actions": [], "failure_signature": ""},
+            {"status": "SUCCESS", "summary": "s2 done", "artifacts": [], "metrics": {}, "next_actions": [], "failure_signature": ""},
         ]
     )
     runner = HierarchicalRunner(workspace, llm, base_dir=tmp_path / "runs")

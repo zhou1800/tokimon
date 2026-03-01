@@ -30,6 +30,7 @@ This document maps requirements to automated tests.
 - CLI doctor: `tokimon doctor` checks and `--json` output are deterministic under dependency injection / monkeypatch (see `src/tests/test_doctor.py`).
 - Tool schemas: FileTool path traversal protection, PatchTool validation + hunk header normalization, PytestTool parsing, GrepTool bounded output + default excludes, WebTool URL validation and network policy (allowlists + domain secrets).
 - Worker tool loop: tool calls execute and are reflected in worker metrics (model/tool call counts).
+- Worker output schema enforcement: final structured outputs validate against the per-step success schema; invalid outputs trigger bounded repair (max 2) and produce a deterministic schema-related `failure_signature` on exhaustion.
 - Tool call correlation: tool calls with `call_id` are echoed into tool results and recorded in `tool_call_records`.
 - Trace loop unrolling: worker model/tool calls are recorded to `trace.jsonl` with bounded payload sizes.
 - Codex CLI prompt rendering: deterministic prompt envelope with stable tool ordering and explicit context sections.
