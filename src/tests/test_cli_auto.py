@@ -72,3 +72,12 @@ def test_hidden_flags_still_parse_for_power_users() -> None:
     args = parser.parse_args(["self-improve", "--sessions", "10", "--llm", "mock"])
     assert args.sessions == 10
     assert args.llm == "mock"
+
+
+def test_root_help_includes_subcommand_summaries() -> None:
+    parser = build_parser()
+    help_text = parser.format_help()
+    assert "run-suite" in help_text
+    assert "Run the benchmark suite" in help_text
+    assert "memory" in help_text
+    assert "Manage Tokimon's local memory" in help_text

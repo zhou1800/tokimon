@@ -108,3 +108,13 @@ def test_memory_search_returns_expected_ids(tmp_path: Path, capsys: pytest.Captu
     assert exit_code == 0
     payload = json.loads(capsys.readouterr().out)
     assert payload["hits"] == ["alpha"]
+
+
+def test_memory_without_subcommand_prints_help(capsys: pytest.CaptureFixture[str]) -> None:
+    exit_code = cli.main(["memory"])
+    assert exit_code == 0
+    out = capsys.readouterr().out
+    assert "tokimon memory" in out
+    assert "Subcommands:" in out
+    assert "status" in out
+    assert "search" in out
