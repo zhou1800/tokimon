@@ -19,6 +19,7 @@ from memory.store import MemoryStore
 from observability.reports import build_run_metrics_payload
 from observability.reports import normalize_step_metrics
 from observability.reports import write_metrics_and_dashboard
+from replay import ReplayRecorder
 from skills.gap_detector import SkillGapDetector
 from runs import RunContext, create_run_context, load_run_context
 from tools.file_tool import FileTool
@@ -258,6 +259,13 @@ class HierarchicalRunner:
         log_to_file(worker_log, f"Retrieved Lessons: {[lesson.metadata.get('id') for lesson in retrieved_lessons]}")
         memory = [lesson.body for lesson in retrieved_lessons]
         worker = Worker(worker_type, self.llm_client, tools)
+        replay = ReplayRecorder(
+            step_id=step_id,
+            worker_role=worker_type,
+            goal=engine.spec.goal,
+            inputs=step_state.inputs,
+            memory=memory,
+        )
         output = worker.run(
             engine.spec.goal,
             step_id,
@@ -272,6 +280,7 @@ class HierarchicalRunner:
                 "strategy_id": strategy.strategy_id,
                 "retrieval_stage": strategy.retrieval_stage,
             },
+            replay_recorder=replay,
         )
         log_to_file(worker_log, f"Output status {output.status} summary {output.summary}")
         if output.failure_signature:
@@ -308,6 +317,7 @@ class HierarchicalRunner:
             output.artifacts,
             outputs=step_state.outputs,
             step_result=step_result,
+            replay_record=replay.build(),
         )
         touched_hash = None
         touched_files = output.metrics.get("touched_files") if isinstance(output.metrics, dict) else None

@@ -20,6 +20,7 @@ from llm.client import build_llm_client
 from observability.reports import build_run_metrics_payload
 from observability.reports import normalize_step_metrics
 from observability.reports import write_metrics_and_dashboard
+from replay import ReplayRecorder
 from runs import create_run_context
 from tools.file_tool import FileTool
 from tools.grep_tool import GrepTool
@@ -98,7 +99,20 @@ class _ChatHTTPServer(ThreadingHTTPServer):
         with self._step_lock:
             self._step_index += 1
             step_id = f"chat-{self._step_index:04d}"
-        output = worker.run(goal=message, step_id=step_id, inputs={"message": message, "history": history}, memory=memory)
+        replay = ReplayRecorder(
+            step_id=step_id,
+            worker_role="Chat",
+            goal=message,
+            inputs={"message": message, "history": history},
+            memory=memory,
+        )
+        output = worker.run(
+            goal=message,
+            step_id=step_id,
+            inputs={"message": message, "history": history},
+            memory=memory,
+            replay_recorder=replay,
+        )
         raw_ui_blocks = output.data.get("ui_blocks") if isinstance(output.data, dict) else None
         ui_blocks: list[dict[str, Any]] = []
         if isinstance(raw_ui_blocks, list):
@@ -118,6 +132,7 @@ class _ChatHTTPServer(ThreadingHTTPServer):
             artifacts=output.artifacts,
             outputs={"summary": output.summary},
             step_result=step_result,
+            replay_record=replay.build(),
         )
         step_metrics = normalize_step_metrics(
             step_id=step_id,

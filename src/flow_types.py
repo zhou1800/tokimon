@@ -48,8 +48,10 @@ class ProgressMetrics:
 class ToolCallRecord:
     tool_name: str
     call_id: str | None
+    policy_decision: dict[str, Any]
     ok: bool
     summary: str
     data: dict[str, Any]
     elapsed_ms: float
+    cached: bool = False
     error: str | None = None

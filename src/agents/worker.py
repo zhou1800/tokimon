@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import inspect
 import json
 import time
@@ -11,6 +12,7 @@ from agents.outputs import WorkerOutput
 from agents.prompts import build_system_prompt
 from flow_types import ToolCallRecord, WorkerStatus
 from llm.client import LLMClient
+from replay import ReplayRecorder
 from tools.base import ToolResult
 from tracing import TraceLogger
 from workflow.schema import (
@@ -27,12 +29,40 @@ class Worker:
         self.llm_client = llm_client
         self.tools = tools
 
-    def run(self, goal: str, step_id: str, inputs: dict[str, Any], memory: list[str],
-            max_iterations: int = 20, *, trace: TraceLogger | None = None,
-            trace_context: dict[str, Any] | None = None) -> WorkerOutput:
+    def run(
+        self,
+        goal: str,
+        step_id: str,
+        inputs: dict[str, Any],
+        memory: list[str],
+        max_iterations: int = 20,
+        *,
+        trace: TraceLogger | None = None,
+        trace_context: dict[str, Any] | None = None,
+        replay_recorder: ReplayRecorder | None = None,
+    ) -> WorkerOutput:
+        def finalize(output: WorkerOutput) -> WorkerOutput:
+            if replay_recorder is None:
+                return output
+            metrics_subset: dict[str, Any] = {}
+            if isinstance(output.metrics, dict):
+                for key in ("elapsed_ms", "model_calls", "tool_calls", "iteration_count", "schema_repairs"):
+                    if key in output.metrics:
+                        metrics_subset[key] = output.metrics.get(key)
+            replay_recorder.record_final(
+                {
+                    "status": output.status.value,
+                    "summary": output.summary,
+                    "failure_signature": str(output.failure_signature or ""),
+                    "metrics": metrics_subset,
+                }
+            )
+            return output
+
         start = time.perf_counter()
         model_calls = 0
         tool_call_records: list[ToolCallRecord] = []
+        tool_call_cache: dict[str, ToolCallRecord] = {}
         touched_files: set[str] = set()
         schema_repairs = 0
         trace_base = _trace_base(
@@ -60,6 +90,8 @@ class Worker:
             response = self.llm_client.send(messages, tools=_tool_descriptors(self.tools))
             model_calls += 1
             _trace_log(trace, "worker_model_response", {**trace_base, "iteration": iteration, **_response_meta(response)})
+            if replay_recorder is not None:
+                replay_recorder.record_model_response(response)
 
             try:
                 tool_calls = _parse_tool_calls(response)
@@ -70,7 +102,8 @@ class Worker:
                     "worker_invalid_tool_calls",
                     {**trace_base, "iteration": iteration, "error": str(exc)},
                 )
-                return WorkerOutput(
+                return finalize(
+                    WorkerOutput(
                     status=WorkerStatus.FAILURE,
                     summary=f"invalid tool_calls: {exc}",
                     artifacts=[],
@@ -83,9 +116,17 @@ class Worker:
                     },
                     next_actions=["Fix tool_calls schema or return a final response."],
                     failure_signature="worker-invalid-tool-calls",
+                    )
                 )
             if tool_calls:
                 for call in tool_calls:
+                    tool_name = str(call.get("tool", ""))
+                    action = str(call.get("action", ""))
+                    raw_args = call.get("args", {}) or {}
+                    args = raw_args if isinstance(raw_args, dict) else {}
+                    call_id = _coerce_tool_call_id(call)
+                    policy_decision = _tool_policy_decision(tool_name, action, args)
+                    cache_key = _tool_call_cache_key(tool_name, action, args) if _is_side_effectful_tool_call(tool_name, action) else None
                     _trace_log(
                         trace,
                         "worker_tool_call",
@@ -96,8 +137,26 @@ class Worker:
                         },
                     )
                     touched_files.update(_touched_files_from_call(call))
-                    record = _invoke_tool_call(self.tools, call)
+                    if cache_key is not None and cache_key in tool_call_cache:
+                        cached = tool_call_cache[cache_key]
+                        record = ToolCallRecord(
+                            tool_name=cached.tool_name,
+                            call_id=call_id,
+                            policy_decision=policy_decision,
+                            cached=True,
+                            ok=cached.ok,
+                            summary=cached.summary,
+                            data=cached.data,
+                            elapsed_ms=cached.elapsed_ms,
+                            error=cached.error,
+                        )
+                    else:
+                        record = _invoke_tool_call(self.tools, call, policy_decision=policy_decision)
+                        if cache_key is not None:
+                            tool_call_cache[cache_key] = record
                     tool_call_records.append(record)
+                    if replay_recorder is not None:
+                        replay_recorder.record_tool_invocation(call, record)
                     _trace_log(
                         trace,
                         "worker_tool_result",
@@ -110,6 +169,7 @@ class Worker:
                             "summary": record.summary,
                             "elapsed_ms": record.elapsed_ms,
                             "error": record.error,
+                            "cached": record.cached,
                         },
                     )
                     messages.append(
@@ -138,7 +198,8 @@ class Worker:
                             "error": str(exc),
                         },
                     )
-                    return WorkerOutput(
+                    return finalize(
+                        WorkerOutput(
                         status=WorkerStatus.FAILURE,
                         summary="worker produced invalid structured output (schema validation failed)",
                         artifacts=[],
@@ -154,6 +215,7 @@ class Worker:
                             "Return a schema-valid final JSON object (status/summary/artifacts/metrics/next_actions/failure_signature).",
                         ],
                         failure_signature=failure_signature,
+                        )
                     )
                 schema_repairs += 1
                 _trace_log(
@@ -194,7 +256,7 @@ class Worker:
                     "schema_repairs": schema_repairs,
                 },
             )
-            return output
+            return finalize(output)
 
         elapsed_ms = (time.perf_counter() - start) * 1000
         _trace_log(
@@ -210,7 +272,8 @@ class Worker:
                 "schema_repairs": schema_repairs,
             },
         )
-        return WorkerOutput(
+        return finalize(
+            WorkerOutput(
             status=WorkerStatus.FAILURE,
             summary=f"worker exceeded max_iterations={max_iterations}",
             artifacts=[],
@@ -224,6 +287,7 @@ class Worker:
             },
             next_actions=["Reduce tool calls, change strategy, or adjust planning."],
             failure_signature="worker-max-iterations",
+            )
         )
 
 
@@ -290,7 +354,39 @@ def _coerce_tool_call_id(call: dict[str, Any]) -> str | None:
     return cleaned or None
 
 
-def _invoke_tool_call(tools: dict[str, Any], call: dict[str, Any]) -> ToolCallRecord:
+def _tool_call_cache_key(tool_name: str, action: str, args: dict[str, Any]) -> str:
+    payload = {"tool": str(tool_name or ""), "action": str(action or ""), "args": _make_json_safe(args)}
+    blob = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    return hashlib.sha256(blob).hexdigest()
+
+
+def _is_side_effectful_tool_call(tool_name: str, action: str) -> bool:
+    normalized = (str(tool_name or "").strip(), str(action or "").strip())
+    return normalized in {("file", "write"), ("patch", "apply")}
+
+
+def _tool_policy_decision(tool_name: str, action: str, args: dict[str, Any]) -> dict[str, Any]:
+    normalized_tool = str(tool_name or "").strip().lower()
+    normalized_action = str(action or "").strip().lower()
+    risk_tier = "low"
+    if _is_side_effectful_tool_call(normalized_tool, normalized_action):
+        risk_tier = "high"
+    elif normalized_tool in {"web", "pytest"}:
+        risk_tier = "medium"
+    reason = "default allow"
+    if risk_tier == "high":
+        reason = "default allow (side-effectful)"
+    elif risk_tier == "medium":
+        reason = "default allow (external interaction)"
+    return {
+        "decision": "allow",
+        "risk_tier": risk_tier,
+        "reason": reason,
+        "policy_id": "default-v1",
+    }
+
+
+def _invoke_tool_call(tools: dict[str, Any], call: dict[str, Any], *, policy_decision: dict[str, Any]) -> ToolCallRecord:
     start = time.perf_counter()
     tool_name = str(call.get("tool", ""))
     call_id = _coerce_tool_call_id(call)
@@ -304,6 +400,7 @@ def _invoke_tool_call(tools: dict[str, Any], call: dict[str, Any]) -> ToolCallRe
         return ToolCallRecord(
             tool_name=tool_name or "<missing>",
             call_id=call_id,
+            policy_decision=policy_decision,
             ok=False,
             summary="unknown tool",
             data={"action": action, "args": args},
@@ -316,6 +413,7 @@ def _invoke_tool_call(tools: dict[str, Any], call: dict[str, Any]) -> ToolCallRe
         return ToolCallRecord(
             tool_name=tool_name,
             call_id=call_id,
+            policy_decision=policy_decision,
             ok=False,
             summary="unknown action",
             data={"action": action, "args": args},
@@ -329,6 +427,7 @@ def _invoke_tool_call(tools: dict[str, Any], call: dict[str, Any]) -> ToolCallRe
             return ToolCallRecord(
                 tool_name=tool_name,
                 call_id=call_id,
+                policy_decision=policy_decision,
                 ok=True,
                 summary="tool returned non-ToolResult",
                 data={"result": result},
@@ -338,6 +437,7 @@ def _invoke_tool_call(tools: dict[str, Any], call: dict[str, Any]) -> ToolCallRe
         return ToolCallRecord(
             tool_name=tool_name,
             call_id=call_id,
+            policy_decision=policy_decision,
             ok=result.ok,
             summary=result.summary,
             data=result.data,
@@ -348,6 +448,7 @@ def _invoke_tool_call(tools: dict[str, Any], call: dict[str, Any]) -> ToolCallRe
         return ToolCallRecord(
             tool_name=tool_name,
             call_id=call_id,
+            policy_decision=policy_decision,
             ok=False,
             summary="tool exception",
             data={"action": action, "args": args},

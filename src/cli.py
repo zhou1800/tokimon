@@ -37,6 +37,7 @@ from self_improve.provider_mix import mixed_provider_for_session, validate_mixed
 from skills.builder import SkillBuilder
 from skills.registry import SkillRegistry
 from skills.spec import SkillSpec
+from replay import ReplayAbort, replay_run
 
 
 def build_parser(*, exit_on_error: bool = True) -> argparse.ArgumentParser:
@@ -85,6 +86,9 @@ def build_parser(*, exit_on_error: bool = True) -> argparse.ArgumentParser:
 
     inspect_run = subparsers.add_parser("inspect-run", help="Print run.json and workflow_state.json from a run folder.")
     inspect_run.add_argument("--run-path", required=True)
+
+    replay = subparsers.add_parser("replay", help="Replay a run offline from replay.json artifacts.")
+    replay.add_argument("--run-path", required=True, help="Path to a run root (contains artifacts/steps/*/replay.json).")
 
     sessions = subparsers.add_parser("sessions", help="List self-improve runs (default: runs/self-improve).")
     sessions.add_argument("--root", default=None, help="Self-improve runs root directory (default: <workspace>/runs/self-improve).")
@@ -221,6 +225,8 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_resume_run(args, repo_root, runs_root, llm_client)
         case "inspect-run":
             return _cmd_inspect_run(args)
+        case "replay":
+            return _cmd_replay(args)
         case "list-skills":
             return _cmd_list_skills(repo_root)
         case "build-skill":
@@ -303,6 +309,20 @@ def _cmd_inspect_run(args: argparse.Namespace) -> int:
         _write_line(sys.stdout, run_manifest.read_text())
     if workflow_state.exists():
         _write_line(sys.stdout, workflow_state.read_text())
+    return 0
+
+
+def _cmd_replay(args: argparse.Namespace) -> int:
+    run_path = Path(args.run_path)
+    try:
+        result = replay_run(run_path)
+    except ReplayAbort as exc:
+        _write_line(sys.stdout, f"replay failed: {exc}")
+        if exc.details:
+            _write_line(sys.stdout, json.dumps(exc.details, indent=2, sort_keys=True))
+        return 1
+    _write_line(sys.stdout, "replay ok")
+    _write_line(sys.stdout, json.dumps(result, indent=2, sort_keys=True))
     return 0
 
 

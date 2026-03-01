@@ -17,6 +17,7 @@ from memory.store import MemoryStore
 from observability.reports import build_run_metrics_payload
 from observability.reports import normalize_step_metrics
 from observability.reports import write_metrics_and_dashboard
+from replay import ReplayRecorder
 from runs import RunContext, create_run_context
 from tools.file_tool import FileTool
 from tools.grep_tool import GrepTool
@@ -57,6 +58,13 @@ class BaselineRunner:
             "pytest": PytestTool(self.repo_root),
         }
         worker = Worker("Implementer", self.llm_client, tools)
+        replay = ReplayRecorder(
+            step_id="single-step",
+            worker_role="Implementer",
+            goal=goal,
+            inputs={},
+            memory=[],
+        )
         output = worker.run(
             goal,
             "single-step",
@@ -64,6 +72,7 @@ class BaselineRunner:
             [],
             trace=trace,
             trace_context={"task_id": task_id or "baseline", "worker_type": "Implementer"},
+            replay_recorder=replay,
         )
         log_to_file(run_context.logs_dir / "baseline.log", f"Output status {output.status} summary {output.summary}")
         pytest_metrics = None
@@ -88,6 +97,7 @@ class BaselineRunner:
             output.artifacts,
             outputs={"summary": output.summary},
             step_result=step_result,
+            replay_record=replay.build(),
         )
         progress = ProgressMetrics(
             failing_tests=pytest_metrics.get("failed") if pytest_metrics else None,
