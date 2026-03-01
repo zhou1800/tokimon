@@ -30,7 +30,7 @@ export function App() {
   async function sendMessage(message: string) {
     setSending(true);
     setLog((l) => [...l, { role: "user", content: message }]);
-    const nextHistory = [...history, { role: "user", content: message }];
+    const nextHistory = [...history, { role: "user", content: message } satisfies ChatMessage];
     setHistory(nextHistory);
 
     try {

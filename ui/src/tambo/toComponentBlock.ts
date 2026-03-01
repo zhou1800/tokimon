@@ -31,21 +31,22 @@ export function toComponentContent(block: UIBlock, id: string): TamboComponentCo
     return { type: "component", id, name: "Json", props: { data: block }, streamingState: "done" };
   }
 
-  const type = typeof block.type === "string" ? block.type : "";
-  const title = typeof block.title === "string" ? block.title : undefined;
+  const record = block as Record<string, unknown>;
+  const type = typeof record.type === "string" ? record.type : "";
+  const title = typeof record.title === "string" ? record.title : undefined;
 
-  if (type === "component" && typeof block.component === "string") {
-    const name: UIComponentName = isUIComponentName(block.component) ? block.component : "Json";
-    const props = withTitleProp(name, title, isRecord(block.props) ? block.props : {});
+  if (type === "component" && typeof record.component === "string") {
+    const name: UIComponentName = isUIComponentName(record.component) ? record.component : "Json";
+    const props = withTitleProp(name, title, isRecord(record.props) ? record.props : {});
     return { type: "component", id, name, props, streamingState: "done" };
   }
 
-  if (type === "text" && typeof block.text === "string") {
-    return { type: "component", id, name: "Text", props: { text: block.text }, streamingState: "done" };
+  if (type === "text" && typeof record.text === "string") {
+    return { type: "component", id, name: "Text", props: { text: record.text }, streamingState: "done" };
   }
 
   if (type === "json") {
-    return { type: "component", id, name: "Json", props: { data: block.data }, streamingState: "done" };
+    return { type: "component", id, name: "Json", props: { data: record.data }, streamingState: "done" };
   }
 
   return { type: "component", id, name: "Json", props: { data: block }, streamingState: "done" };
