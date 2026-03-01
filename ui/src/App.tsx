@@ -3,9 +3,10 @@ import { useMemo, useState } from "react";
 
 import { postSend } from "./api";
 import type { ChatMessage, SendResponse, UIBlock } from "./types";
-import { tamboRegistry } from "./tambo/registry";
+import { components } from "./tambo/registry";
+import { TamboRenderContext } from "./tambo/renderContext";
 import { ChatSendContext } from "./tambo/sendContext";
-import { toComponentBlock } from "./tambo/toComponentBlock";
+import { toComponentContent } from "./tambo/toComponentBlock";
 
 type LogEntry = {
   role: "user" | "assistant";
@@ -73,16 +74,27 @@ export function App() {
               </details>
 
               {uiBlocks.length ? (
-                <TamboRegistryProvider registry={tamboRegistry as any}>
+                <TamboRegistryProvider components={components as any}>
                   <ChatSendContext.Provider value={onFormSend}>
                     {uiBlocks.map((block: UIBlock, idx: number) => {
-                      const componentBlock = toComponentBlock(block);
-                      const title = (componentBlock as any).title as string | undefined;
-                      const label = title || `${componentBlock.component}`;
+                      const threadId = "local";
+                      const messageId = `${lastResponse.run_id ?? "local"}:${lastResponse.step_id ?? "ui"}`;
+                      const id = `block-${idx}`;
+                      const content = toComponentContent(block, id);
+                      const label =
+                        typeof (block as any)?.title === "string"
+                          ? String((block as any).title)
+                          : typeof (block as any)?.component === "string"
+                            ? String((block as any).component)
+                            : typeof (block as any)?.type === "string"
+                              ? String((block as any).type)
+                              : "block";
                       return (
-                        <div key={idx} className="tm-block">
+                        <div key={id} className="tm-block">
                           <div className="tm-block-title">{label}</div>
-                          <ComponentRenderer block={componentBlock as any} />
+                          <TamboRenderContext.Provider value={{ threadId, messageId, idPrefix: id }}>
+                            <ComponentRenderer content={content as any} threadId={threadId} messageId={messageId} />
+                          </TamboRenderContext.Provider>
                         </div>
                       );
                     })}

@@ -1,5 +1,5 @@
-import { z } from "zod";
 import type { ComponentType } from "react";
+import { z } from "zod";
 
 import { ChartBlock, ChartPropsSchema } from "./components/ChartBlock";
 import { FormBlock, FormPropsSchema } from "./components/FormBlock";
@@ -7,15 +7,17 @@ import { JsonBlock, JsonPropsSchema } from "./components/JsonBlock";
 import { PanelBlock, PanelPropsSchema } from "./components/PanelBlock";
 import { TextBlock, TextPropsSchema } from "./components/TextBlock";
 
-type RegistryEntry = {
+export type TamboComponent = {
+  name: string;
+  description: string;
   component: ComponentType<any>;
   propsSchema: z.ZodTypeAny;
 };
 
-export const tamboRegistry: Record<string, RegistryEntry> = {
-  Text: { component: TextBlock, propsSchema: TextPropsSchema },
-  Json: { component: JsonBlock, propsSchema: JsonPropsSchema },
-  Panel: { component: PanelBlock, propsSchema: PanelPropsSchema },
-  Chart: { component: ChartBlock, propsSchema: ChartPropsSchema },
-  Form: { component: FormBlock, propsSchema: FormPropsSchema },
-};
+export const components: TamboComponent[] = [
+  { name: "Text", description: "Plain text", component: TextBlock, propsSchema: TextPropsSchema },
+  { name: "Json", description: "JSON viewer", component: JsonBlock, propsSchema: JsonPropsSchema },
+  { name: "Panel", description: "Panel with nested blocks", component: PanelBlock, propsSchema: PanelPropsSchema },
+  { name: "Chart", description: "Simple chart", component: ChartBlock, propsSchema: ChartPropsSchema },
+  { name: "Form", description: "Form that can submit chat messages", component: FormBlock, propsSchema: FormPropsSchema },
+];
