@@ -19,6 +19,7 @@ tokimon gateway --host 127.0.0.1 --port 8765 --llm mock
 Notes:
 - `tokimon chat-ui` remains available and unchanged.
 - Gateway is a superset server: it supports `/healthz` + `/api/send` and adds `/gateway`.
+- If `tokimon health` / `tokimon logs` fail with a WS handshake error (expected HTTP 101), the URL is pointing at a non-Gateway HTTP server (commonly `tokimon chat-ui` or another service on that port). Start `tokimon gateway run` on a free port and pass `--url ws://127.0.0.1:<port>/gateway`.
 
 ## Transport
 
@@ -141,4 +142,3 @@ Run:
 ```bash
 pytest --maxfail=1 -c src/pyproject.toml src/tests
 ```
-

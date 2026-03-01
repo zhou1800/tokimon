@@ -40,39 +40,67 @@ from skills.spec import SkillSpec
 
 
 def build_parser(*, exit_on_error: bool = True) -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="tokimon", exit_on_error=exit_on_error)
+    parser = argparse.ArgumentParser(
+        prog="tokimon",
+        exit_on_error=exit_on_error,
+        formatter_class=argparse.RawTextHelpFormatter,
+        description="\n".join(
+            [
+                "Tokimon: doc-led manager/worker agent system with workflows, retries, memory, benchmarks, and a local UI.",
+                "",
+                "Tip: start with `tokimon status` or `tokimon doctor` when something fails.",
+            ]
+        ),
+        epilog="\n".join(
+            [
+                "Examples:",
+                "  tokimon status",
+                "  tokimon doctor",
+                "  tokimon run-suite",
+                "  tokimon run-task --task-id stats-summary",
+                "  tokimon list-skills",
+                "  tokimon memory status --json",
+                "  tokimon gateway run",
+                "  tokimon health --url ws://127.0.0.1:8765/gateway",
+            ]
+        ),
+    )
     subparsers = parser.add_subparsers(dest="command")
 
-    auto = subparsers.add_parser("auto")
+    auto = subparsers.add_parser(
+        "auto",
+        help="Route a prompt to a concrete tokimon subcommand.",
+        description="Route a free-form prompt to a concrete tokimon argv list (AI router with deterministic fallback).",
+    )
     auto.add_argument("prompt")
 
-    run_task = subparsers.add_parser("run-task")
+    run_task = subparsers.add_parser("run-task", help="Run a single benchmark task.")
     run_task.add_argument("--task-id", required=True)
     run_task.add_argument("--runner", choices=["baseline", "hierarchical"], default="hierarchical", help=argparse.SUPPRESS)
 
-    subparsers.add_parser("run-suite")
+    subparsers.add_parser("run-suite", help="Run the benchmark suite and write reports under runs/.")
 
-    resume = subparsers.add_parser("resume-run")
+    resume = subparsers.add_parser("resume-run", help="Resume a hierarchical run from a run folder.")
     resume.add_argument("--run-path", required=True)
 
-    inspect_run = subparsers.add_parser("inspect-run")
+    inspect_run = subparsers.add_parser("inspect-run", help="Print run.json and workflow_state.json from a run folder.")
     inspect_run.add_argument("--run-path", required=True)
 
-    sessions = subparsers.add_parser("sessions")
+    sessions = subparsers.add_parser("sessions", help="List self-improve runs (default: runs/self-improve).")
     sessions.add_argument("--root", default=None, help="Self-improve runs root directory (default: <workspace>/runs/self-improve).")
     sessions.add_argument("--active", type=int, default=None, help="Only include runs modified within the last N minutes.")
     sessions.add_argument("--json", action="store_true", help="Emit machine-readable JSON.")
 
-    subparsers.add_parser("list-skills")
+    subparsers.add_parser("list-skills", help="List built-in and generated skills.")
 
-    build_skill = subparsers.add_parser("build-skill")
+    build_skill = subparsers.add_parser("build-skill", help="Generate a new skill under src/skills_generated/.")
     build_skill.add_argument("--name", required=True)
     build_skill.add_argument("--purpose", required=True)
     build_skill.add_argument("--contract", required=True)
     build_skill.add_argument("--tools", default="")
     build_skill.add_argument("--justification", required=True)
 
-    self_improve = subparsers.add_parser("self-improve")
+    self_improve = subparsers.add_parser("self-improve", help="Run Tokimon self-improvement (multi-session, experimental).")
     self_improve.add_argument("--goal", default="Improve tokimon based on docs and failing tests.")
     self_improve.add_argument("--input", default=None)
     self_improve.add_argument("--sessions", type=int, default=5, help=argparse.SUPPRESS)
@@ -86,7 +114,7 @@ def build_parser(*, exit_on_error: bool = True) -> argparse.ArgumentParser:
         help=argparse.SUPPRESS,
     )
 
-    chat_ui = subparsers.add_parser("chat-ui")
+    chat_ui = subparsers.add_parser("chat-ui", help="Start the local Chat UI server (HTTP).")
     chat_ui.add_argument("--host", default="127.0.0.1", help=argparse.SUPPRESS)
     chat_ui.add_argument("--port", type=int, default=8765)
     chat_ui.add_argument(
@@ -119,36 +147,36 @@ def build_parser(*, exit_on_error: bool = True) -> argparse.ArgumentParser:
     )
     gateway_run_common.add_argument("--workspace", default=None, help=argparse.SUPPRESS)
 
-    gateway = subparsers.add_parser("gateway", parents=[gateway_run_common])
+    gateway = subparsers.add_parser("gateway", parents=[gateway_run_common], help="Run the Gateway server or Gateway RPC helpers.")
     gateway_sub = gateway.add_subparsers(dest="gateway_command")
-    gateway_sub.add_parser("run", parents=[gateway_run_common])
-    gateway_sub.add_parser("health", parents=[health_common])
+    gateway_sub.add_parser("run", parents=[gateway_run_common], help="Start the Gateway server (default).")
+    gateway_sub.add_parser("health", parents=[health_common], help="Alias for `tokimon health`.")
 
-    gateway_call = gateway_sub.add_parser("call", parents=[gateway_query_common])
+    gateway_call = gateway_sub.add_parser("call", parents=[gateway_query_common], help="Call a single Gateway WebSocket RPC method.")
     gateway_call.add_argument("method", help="Gateway WebSocket RPC method.")
     gateway_call.add_argument("--params", default=None, help="RPC params as a JSON object (default: {}).")
 
-    gateway_sub.add_parser("probe", parents=[gateway_query_common])
+    gateway_sub.add_parser("probe", parents=[gateway_query_common], help="Connect, handshake, call health, and exit non-zero on failure.")
 
-    doctor = subparsers.add_parser("doctor")
+    doctor = subparsers.add_parser("doctor", help="Run local readiness checks.")
     doctor.add_argument("--json", action="store_true", help="Emit machine-readable JSON.")
     doctor.add_argument("--repair", "--fix", dest="repair", action="store_true", help="Attempt safe, non-destructive repairs.")
 
-    status = subparsers.add_parser("status", parents=[health_common])
+    status = subparsers.add_parser("status", parents=[health_common], help="Print a concise Tokimon health overview.")
     status.add_argument("--all", action="store_true", help="Include more detailed diagnostics.")
     status.add_argument("--deep", action="store_true", help="Run live probes (doctor, gateway health, memory index reconciliation).")
     status.add_argument("--usage", action="store_true", help="Include process/runtime resource snapshots when feasible.")
 
-    subparsers.add_parser("health", parents=[health_common])
+    subparsers.add_parser("health", parents=[health_common], help="Check a running Gateway WebSocket health RPC.")
 
-    logs = subparsers.add_parser("logs")
+    logs = subparsers.add_parser("logs", help="Tail Gateway logs over the WebSocket RPC.")
     logs.add_argument("--url", default="ws://127.0.0.1:8765/gateway", help="Gateway WebSocket URL.")
     logs.add_argument("--follow", action="store_true", help="Keep tailing logs until interrupted.")
     logs.add_argument("--json", action="store_true", help="Emit machine-readable JSON.")
     logs.add_argument("--limit", type=int, default=200, help="Maximum number of log entries to return.")
     logs.add_argument("--local-time", action="store_true", help="Render timestamps in your local timezone.")
 
-    memory = subparsers.add_parser("memory")
+    memory = subparsers.add_parser("memory", help="Manage Tokimon's local memory (Lessons) store.")
     memory_sub = memory.add_subparsers(dest="memory_command")
 
     memory_common = argparse.ArgumentParser(add_help=False)
@@ -156,13 +184,13 @@ def build_parser(*, exit_on_error: bool = True) -> argparse.ArgumentParser:
     memory_common.add_argument("--json", action="store_true", help="Emit machine-readable JSON.")
     memory_common.add_argument("--verbose", action="store_true", help="Print additional diagnostics.")
 
-    memory_status = memory_sub.add_parser("status", parents=[memory_common])
+    memory_status = memory_sub.add_parser("status", parents=[memory_common], help="Show memory store status.")
     memory_status.add_argument("--deep", action="store_true", help="Include additional index/file reconciliation details.")
     memory_status.add_argument("--index", action="store_true", help="Reindex when the store is dirty.")
 
-    memory_sub.add_parser("index", parents=[memory_common])
+    memory_sub.add_parser("index", parents=[memory_common], help="Rebuild the memory store index.")
 
-    memory_search = memory_sub.add_parser("search", parents=[memory_common])
+    memory_search = memory_sub.add_parser("search", parents=[memory_common], help="Search Lessons by text query.")
     memory_search.add_argument("query", nargs="?", help="Search query text.")
     memory_search.add_argument("--query", dest="query_flag", default=None, help="Search query text (wins over positional).")
     memory_search.add_argument("--limit", type=int, default=5, help="Maximum number of hits to return.")
@@ -354,8 +382,15 @@ def _cmd_chat_ui(args: argparse.Namespace) -> int:
         llm_provider=str(args.llm),
         workspace_dir=workspace_dir,
     )
-    run_chat_ui(config)
-    return 0
+    try:
+        run_chat_ui(config)
+        return 0
+    except OSError as exc:
+        if getattr(exc, "errno", None) in {48, 98}:  # macOS=48, Linux=98
+            _write_line(sys.stdout, f"error: port {config.port} is already in use")
+            _write_line(sys.stdout, f"remediation: Stop the process using port {config.port} or run `tokimon chat-ui --port <free-port>`.")
+            return 1
+        raise
 
 
 def _cmd_gateway(args: argparse.Namespace) -> int:
@@ -368,8 +403,15 @@ def _cmd_gateway(args: argparse.Namespace) -> int:
             llm_provider=str(args.llm),
             workspace_dir=workspace_dir,
         )
-        run_gateway(config)
-        return 0
+        try:
+            run_gateway(config)
+            return 0
+        except OSError as exc:
+            if getattr(exc, "errno", None) in {48, 98}:  # macOS=48, Linux=98
+                _write_line(sys.stdout, f"error: port {config.port} is already in use")
+                _write_line(sys.stdout, f"remediation: Stop the process using port {config.port} or run `tokimon gateway run --port <free-port>`.")
+                return 1
+            raise
 
     if gateway_command == "health":
         return _cmd_health(args)
@@ -799,7 +841,37 @@ def _cmd_memory(args: argparse.Namespace, workspace_root: Path) -> int:
             return
         _write_line(sys.stdout, json.dumps(payload, sort_keys=True))
 
-    memory_command = getattr(args, "memory_command", None)
+    memory_command = str(getattr(args, "memory_command", "") or "").strip().lower()
+    if not memory_command:
+        if json_output:
+            emit(
+                {
+                    "ok": True,
+                    "usage": "tokimon memory {status,index,search} [--root PATH] [--json] [--verbose]",
+                    "subcommands": ["status", "index", "search"],
+                    "examples": [
+                        "tokimon memory status",
+                        "tokimon memory index",
+                        'tokimon memory search "retry gate"',
+                        'tokimon memory search --query "retry gate" --json',
+                    ],
+                }
+            )
+            return 0
+        _write_line(sys.stdout, "tokimon memory")
+        _write_line(sys.stdout, "")
+        _write_line(sys.stdout, "Subcommands:")
+        _write_line(sys.stdout, "  status   Show memory store status")
+        _write_line(sys.stdout, "  index    Rebuild the memory store index")
+        _write_line(sys.stdout, "  search   Search Lessons by text query")
+        _write_line(sys.stdout, "")
+        _write_line(sys.stdout, "Examples:")
+        _write_line(sys.stdout, "  tokimon memory status")
+        _write_line(sys.stdout, "  tokimon memory index")
+        _write_line(sys.stdout, "  tokimon memory search \"retry gate\"")
+        _write_line(sys.stdout, "  tokimon memory search --query \"retry gate\" --json")
+        return 0
+
     match memory_command:
         case "status":
             deep = bool(getattr(args, "deep", False))

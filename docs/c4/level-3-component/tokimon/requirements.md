@@ -256,6 +256,12 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
   - Validation: Tokimon MUST validate the router argv against the CLI parser (unknown commands/options are rejected) and MUST prevent `auto` recursion.
   - Fallback: if the router fails (missing CLI, timeout, invalid JSON, invalid argv), Tokimon falls back to deterministic heuristic routing; prompts that ask to learn/improve route to `tokimon self-improve`.
 - Default `--help` output minimizes option surface by hiding advanced flags while still accepting them for power users.
+- Help ergonomics (operator-facing):
+  - `tokimon --help` MUST include one-line summaries for each subcommand (so the command list is self-describing).
+  - When a group command is invoked without a required subcommand (e.g., `tokimon memory`), Tokimon MUST print a short usage + examples section and exit `0`.
+  - Common operator errors MUST be handled without stack traces and with actionable remediation:
+    - Port already in use when starting `tokimon gateway` or `tokimon chat-ui`.
+    - Gateway connectivity failures for `tokimon health` / `tokimon logs` (unreachable port, wrong service speaking HTTP instead of WS).
 - CLI outputs are structured and point to run artifacts.
 - Memory (OpenClaw-inspired, Phase 1): `tokimon memory` manages local lesson indexing and search.
   - Subcommands: `status`, `index`, `search`.
