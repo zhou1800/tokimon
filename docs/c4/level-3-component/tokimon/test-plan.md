@@ -45,6 +45,7 @@ This document maps requirements to automated tests.
 - Tool policy decisions: every `tool_call_records[]` entry includes a `policy_decision` object with (`decision`, `risk_tier`, `reason`, `policy_id`).
 - Tool idempotency: repeated side-effect tool calls (`file.write`, `patch.apply`) within a single worker step attempt are deduped and do not execute twice (records include `cached=true`).
 - Codex CLI prompt rendering: deterministic prompt envelope with stable tool ordering and explicit context sections.
+- Codex CLI model selection: default Codex model is `gpt-5.2` when `TOKIMON_CODEX_MODEL` is unset, and env overrides win (see `src/tests/test_codex_cli_settings_env.py`).
 - Codex CLI ripgrep guard: guard on/off, guard config contents, `RIPGREP_CONFIG_PATH` override/preservation, max-columns default and disable=0.
 - Codex CLI delegation markers: subprocess env includes `TOKIMON_DELEGATED=1`, increments `TOKIMON_DELEGATION_DEPTH`, and prompt context reflects delegation depth.
 - Claude CLI adapter: subprocess args include non-interactive flags (`--print`, `--input-format text`, `--output-format json`) and delegation markers are set in the subprocess environment (see `src/tests/test_claude_cli_client.py`).
@@ -72,6 +73,7 @@ This document maps requirements to automated tests.
   - Assert `GET /` returns HTML (serves the built React UI when present, otherwise a deterministic build-missing page; tests MUST NOT require `npm run build`).
   - Assert `GET /healthz` returns `{"ok": true}` (or equivalent).
   - Assert `POST /api/send` with a simple message returns a structured JSON reply (including any `ui_blocks`).
+  - Assert `POST /api/send` accepts an optional `model` field (ignored by the mock provider).
   - Assert a `step_result.json` run artifact exists under the configured `workspace_dir`.
   - Assert run-level observability artifacts exist under the same run root: `reports/metrics.json` and `reports/dashboard.html`.
   - Shut the server down cleanly.

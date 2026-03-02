@@ -10,7 +10,7 @@ import struct
 import threading
 import time
 from collections import deque
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler
 from http.server import ThreadingHTTPServer
@@ -19,6 +19,10 @@ from typing import Any
 from urllib.parse import urlparse
 
 from agents.worker import Worker
+from llm.client import ClaudeCLIClient
+from llm.client import ClaudeCLISettings
+from llm.client import CodexCLIClient
+from llm.client import CodexCLISettings
 from llm.client import build_llm_client
 from tools.file_tool import FileTool
 from tools.grep_tool import GrepTool
@@ -49,7 +53,8 @@ class _GatewayHTTPServer(ThreadingHTTPServer):
         super().__init__(server_address, _GatewayHandler)
         self.config = config
         self.workspace_dir = config.workspace_dir.resolve()
-        self.llm_client = build_llm_client(config.llm_provider, workspace_dir=self.workspace_dir)
+        self.llm_provider = (config.llm_provider or "").strip().lower()
+        self.llm_client = build_llm_client(self.llm_provider, workspace_dir=self.workspace_dir)
         self.tools = {
             "file": FileTool(self.workspace_dir),
             "grep": GrepTool(self.workspace_dir),
@@ -85,12 +90,37 @@ class _GatewayHTTPServer(ThreadingHTTPServer):
             sliced = [entry for entry in entries if isinstance(entry.get("id"), int) and int(entry["id"]) > after][:limit]
         return {"entries": sliced, "cursor": cursor}
 
-    def handle_send(self, message: str, history: list[dict[str, Any]] | None) -> dict[str, Any]:
+    def _llm_client_for_request(self, model: str | None) -> Any:
+        model = (model or "").strip() or None
+        if model and self.llm_provider in {"codex", "codex-cli"}:
+            settings = replace(CodexCLISettings.from_env(), model=model)
+            return CodexCLIClient(self.workspace_dir, settings=settings)
+        if model and self.llm_provider in {"claude", "claude-cli"}:
+            settings = replace(ClaudeCLISettings.from_env(), model=model)
+            return ClaudeCLIClient(self.workspace_dir, settings=settings)
+        return self.llm_client
+
+    def handle_send(
+        self,
+        message: str,
+        history: list[dict[str, Any]] | None,
+        *,
+        model: str | None = None,
+    ) -> dict[str, Any]:
         history = history or []
-        self.record_log("send", {"message_chars": len(message), "history_len": len(history)})
+        self.record_log(
+            "send",
+            {"message_chars": len(message), "history_len": len(history), "model": (model or "").strip() or None},
+        )
         memory = _history_to_memory(history)
-        worker = Worker("Gateway", self.llm_client, self.tools)
-        output = worker.run(goal=message, step_id="gateway.send", inputs={"message": message, "history": history}, memory=memory)
+        llm_client = self._llm_client_for_request(model)
+        worker = Worker("Gateway", llm_client, self.tools)
+        output = worker.run(
+            goal=message,
+            step_id="gateway.send",
+            inputs={"message": message, "history": history, "model": model},
+            memory=memory,
+        )
         return {
             "status": output.status.value,
             "reply": output.summary,
@@ -173,7 +203,11 @@ class _GatewayHandler(BaseHTTPRequestHandler):
         if history is not None and not isinstance(history, list):
             self._send_json({"ok": False, "error": "history must be a list"}, status=HTTPStatus.BAD_REQUEST)
             return
-        response = self.server.handle_send(message.strip(), history)
+        model = payload.get("model")
+        if model is not None and not isinstance(model, str):
+            self._send_json({"ok": False, "error": "model must be a string"}, status=HTTPStatus.BAD_REQUEST)
+            return
+        response = self.server.handle_send(message.strip(), history, model=(model or "").strip() or None)
         self._send_json({"ok": True, **response})
 
     def _handle_gateway_ws(self) -> None:
@@ -276,7 +310,11 @@ class _GatewayHandler(BaseHTTPRequestHandler):
                     if history is not None and not isinstance(history, list):
                         self._ws_send_res_error(req_id, "history must be a list", details={"code": "SEND_INVALID_HISTORY"})
                         continue
-                    payload = self.server.handle_send(message, history)
+                    model = params.get("model")
+                    if model is not None and not isinstance(model, str):
+                        self._ws_send_res_error(req_id, "model must be a string", details={"code": "SEND_INVALID_MODEL"})
+                        continue
+                    payload = self.server.handle_send(message, history, model=(model or "").strip() or None)
                     idempotency_cache[idem_key] = payload
                     if len(idempotency_cache) > _MAX_IDEMPOTENCY_ENTRIES:
                         idempotency_cache.pop(next(iter(idempotency_cache)))
@@ -471,6 +509,9 @@ def _validate_send_params(params: dict[str, Any]) -> list[str]:
     history = params.get("history")
     if history is not None and not isinstance(history, list):
         errors.append("history must be a list")
+    model = params.get("model")
+    if model is not None and not isinstance(model, str):
+        errors.append("model must be a string")
     return errors
 
 

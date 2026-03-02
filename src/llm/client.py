@@ -11,6 +11,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol
 
+_DEFAULT_CODEX_MODEL = "gpt-5.2"
+
 
 class LLMClient(Protocol):
     def send(
@@ -69,7 +71,7 @@ class PlaceholderLLMClient:
 @dataclass(frozen=True)
 class CodexCLISettings:
     cli_command: str = "codex"
-    model: str | None = None
+    model: str = _DEFAULT_CODEX_MODEL
     profile: str | None = None
     sandbox: str = "read-only"
     ask_for_approval: str = "never"
@@ -80,8 +82,10 @@ class CodexCLISettings:
     @staticmethod
     def from_env() -> "CodexCLISettings":
         cli_command = os.environ.get("CODEX_CLI", "codex")
-        model = os.environ.get("TOKIMON_CODEX_MODEL")
-        profile = os.environ.get("TOKIMON_CODEX_PROFILE")
+        model_raw = os.environ.get("TOKIMON_CODEX_MODEL", "")
+        model = (model_raw or "").strip() or _DEFAULT_CODEX_MODEL
+        profile_raw = os.environ.get("TOKIMON_CODEX_PROFILE", "")
+        profile = (profile_raw or "").strip() or None
         sandbox = os.environ.get("TOKIMON_CODEX_SANDBOX", "read-only")
         ask_for_approval = os.environ.get("TOKIMON_CODEX_APPROVAL", "never")
         search_raw = os.environ.get("TOKIMON_CODEX_SEARCH", "")

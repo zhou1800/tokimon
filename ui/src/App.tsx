@@ -1,5 +1,5 @@
 import { ComponentRenderer, TamboRegistryProvider } from "@tambo-ai/react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { postSend } from "./api";
 import type { ChatMessage, SendResponse, UIBlock } from "./types";
@@ -20,7 +20,22 @@ export function App() {
   const [history, setHistory] = useState<ChatMessage[]>([]);
   const [log, setLog] = useState<LogEntry[]>([]);
   const [sending, setSending] = useState(false);
+  const [model, setModel] = useState(() => {
+    try {
+      return localStorage.getItem("tokimon.model") ?? "gpt-5.2";
+    } catch {
+      return "gpt-5.2";
+    }
+  });
   const [lastResponse, setLastResponse] = useState<SendResponse | null>(null);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("tokimon.model", model);
+    } catch {
+      return;
+    }
+  }, [model]);
 
   const uiBlocks = useMemo(() => {
     const stepBlocks = lastResponse?.step_result?.ui_blocks;
@@ -34,7 +49,7 @@ export function App() {
     setHistory(nextHistory);
 
     try {
-      const res = await postSend(message, nextHistory);
+      const res = await postSend(message, nextHistory, model);
       setLastResponse(res);
       const reply = typeof res.reply === "string" ? res.reply : typeof res.summary === "string" ? res.summary : "";
       const meta = typeof res.status === "string" ? `status=${res.status}` : undefined;
@@ -115,6 +130,26 @@ export function App() {
             void sendMessage(msg);
           }}
         >
+          <div className="tm-controls">
+            <label className="tm-control">
+              Model
+              <input
+                className="tm-model"
+                list="tokimon-models"
+                value={model}
+                onChange={(e) => setModel(e.target.value)}
+                disabled={sending}
+              />
+            </label>
+            <datalist id="tokimon-models">
+              <option value="gpt-5.2" />
+              <option value="gpt-5.3-codex" />
+              <option value="gpt-5.3-codex-spark" />
+              <option value="gpt-5.2-codex" />
+              <option value="gpt-5.1-codex-max" />
+              <option value="gpt-5.1-codex-mini" />
+            </datalist>
+          </div>
           <textarea
             className="tm-input"
             placeholder="Type a message…"

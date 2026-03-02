@@ -66,7 +66,7 @@ def test_chat_ui_healthz_and_send(tmp_path: Path) -> None:
         assert "<!doctype html" in body.lower()
         payload = _post_json(
             f"{server.url}/api/send",
-            {"message": "hello", "history": []},
+            {"message": "hello", "history": [], "model": "gpt-5.2"},
         )
         assert payload["ok"] is True
         assert payload["reply"] == "mock response"

@@ -51,6 +51,27 @@ body {
   border-top: 1px solid #4443;
 }
 
+.tm-controls {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 12px;
+  align-items: end;
+}
+
+.tm-control {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.tm-model {
+  padding: 8px 10px;
+  font: inherit;
+  min-width: 240px;
+}
+
 .tm-input {
   width: 100%;
   resize: vertical;

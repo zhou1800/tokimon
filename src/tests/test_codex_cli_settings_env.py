@@ -23,7 +23,7 @@ def test_codex_settings_uses_defaults_when_env_missing(monkeypatch) -> None:
     monkeypatch.delenv("TOKIMON_CODEX_CONFIG_JSON", raising=False)
 
     settings = CodexCLISettings.from_env()
-    assert settings.model is None
+    assert settings.model == "gpt-5.2"
     assert settings.search is False
     assert settings.timeout_s == 900
     assert settings.config == {}

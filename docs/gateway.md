@@ -121,6 +121,7 @@ Request params:
 
 - `message` (string, required)
 - `history` (list, optional)
+- `model` (string, optional)
 - `idempotencyKey` (string, required)
 
 Response payload includes `status`, `reply`, and other worker output fields.

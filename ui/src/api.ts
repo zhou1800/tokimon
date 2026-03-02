@@ -1,10 +1,11 @@
 import type { ChatMessage, SendResponse } from "./types";
 
-export async function postSend(message: string, history: ChatMessage[]): Promise<SendResponse> {
+export async function postSend(message: string, history: ChatMessage[], model?: string): Promise<SendResponse> {
+  const normalizedModel = typeof model === "string" ? model.trim() : "";
   const res = await fetch("/api/send", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ message, history }),
+    body: JSON.stringify({ message, history, ...(normalizedModel ? { model: normalizedModel } : {}) }),
   });
 
   const data = (await res.json()) as SendResponse;

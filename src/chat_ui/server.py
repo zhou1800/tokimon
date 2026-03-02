@@ -6,7 +6,7 @@ import json
 import mimetypes
 import threading
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler
 from http.server import ThreadingHTTPServer
@@ -16,6 +16,10 @@ from urllib.parse import urlparse
 
 from artifacts import ArtifactStore
 from agents.worker import Worker
+from llm.client import ClaudeCLIClient
+from llm.client import ClaudeCLISettings
+from llm.client import CodexCLIClient
+from llm.client import CodexCLISettings
 from llm.client import build_llm_client
 from observability.reports import build_run_metrics_payload
 from observability.reports import normalize_step_metrics
@@ -75,7 +79,8 @@ class _ChatHTTPServer(ThreadingHTTPServer):
         super().__init__(server_address, _ChatUIHandler)
         self.config = config
         self.workspace_dir = config.workspace_dir.resolve()
-        self.llm_client = build_llm_client(config.llm_provider, workspace_dir=self.workspace_dir)
+        self.llm_provider = (config.llm_provider or "").strip().lower()
+        self.llm_client = build_llm_client(self.llm_provider, workspace_dir=self.workspace_dir)
         self.tools = {
             "file": FileTool(self.workspace_dir),
             "grep": GrepTool(self.workspace_dir),
@@ -92,10 +97,27 @@ class _ChatHTTPServer(ThreadingHTTPServer):
         self._run_start = time.perf_counter()
         self._step_metrics: dict[str, dict[str, Any]] = {}
 
-    def handle_send(self, message: str, history: list[dict[str, Any]] | None) -> dict[str, Any]:
+    def _llm_client_for_request(self, model: str | None) -> Any:
+        model = (model or "").strip() or None
+        if model and self.llm_provider in {"codex", "codex-cli"}:
+            settings = replace(CodexCLISettings.from_env(), model=model)
+            return CodexCLIClient(self.workspace_dir, settings=settings)
+        if model and self.llm_provider in {"claude", "claude-cli"}:
+            settings = replace(ClaudeCLISettings.from_env(), model=model)
+            return ClaudeCLIClient(self.workspace_dir, settings=settings)
+        return self.llm_client
+
+    def handle_send(
+        self,
+        message: str,
+        history: list[dict[str, Any]] | None,
+        *,
+        model: str | None = None,
+    ) -> dict[str, Any]:
         history = history or []
         memory = _history_to_memory(history)
-        worker = Worker("Chat", self.llm_client, self.tools)
+        llm_client = self._llm_client_for_request(model)
+        worker = Worker("Chat", llm_client, self.tools)
         with self._step_lock:
             self._step_index += 1
             step_id = f"chat-{self._step_index:04d}"
@@ -103,13 +125,13 @@ class _ChatHTTPServer(ThreadingHTTPServer):
             step_id=step_id,
             worker_role="Chat",
             goal=message,
-            inputs={"message": message, "history": history},
+            inputs={"message": message, "history": history, "model": model},
             memory=memory,
         )
         output = worker.run(
             goal=message,
             step_id=step_id,
-            inputs={"message": message, "history": history},
+            inputs={"message": message, "history": history, "model": model},
             memory=memory,
             replay_recorder=replay,
         )
@@ -286,7 +308,11 @@ class _ChatUIHandler(BaseHTTPRequestHandler):
         if history is not None and not isinstance(history, list):
             self._send_json({"ok": False, "error": "history must be a list"}, status=HTTPStatus.BAD_REQUEST)
             return
-        response = self.server.handle_send(message.strip(), history)
+        model = payload.get("model")
+        if model is not None and not isinstance(model, str):
+            self._send_json({"ok": False, "error": "model must be a string"}, status=HTTPStatus.BAD_REQUEST)
+            return
+        response = self.server.handle_send(message.strip(), history, model=(model or "").strip() or None)
         self._send_json({"ok": True, **response})
 
     def _read_json(self) -> dict[str, Any]:
