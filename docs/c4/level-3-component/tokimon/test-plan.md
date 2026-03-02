@@ -43,7 +43,11 @@ This document maps requirements to automated tests.
   - Replay CLI: `tokimon replay --run-path <run_root>` replays all steps offline with mocked tools and exits 0 on match.
   - Redaction: replay artifacts redact bearer tokens (`Authorization: Bearer <token>`) in all recorded strings.
 - Tool policy decisions: every `tool_call_records[]` entry includes a `policy_decision` object with (`decision`, `risk_tier`, `reason`, `policy_id`).
+- Dangerous tools registry: policy `risk_tier` for known `(tool, action)` pairs (e.g., `file.write`, `patch.apply`) is derived from the central registry (single source of truth).
 - Tool idempotency: repeated side-effect tool calls (`file.write`, `patch.apply`) within a single worker step attempt are deduped and do not execute twice (records include `cached=true`).
+- Skill/module supply-chain guard: `SkillRegistry` refuses to import generated skills whose module is outside the allowed prefixes (unless allowlisted) and records module provenance for loaded code skills.
+- Config mutation audit: promoting a skill appends JSONL audit entries when writing skill assets (manifest, modules, prompts).
+- Doctor state integrity: `tokimon doctor` reports missing/non-writable state dirs and invalid generated-skill manifest shape deterministically.
 - Codex CLI prompt rendering: deterministic prompt envelope with stable tool ordering and explicit context sections.
 - Codex CLI model selection: default Codex model is `gpt-5.2` when `TOKIMON_CODEX_MODEL` is unset, and env overrides win (see `src/tests/test_codex_cli_settings_env.py`).
 - Codex CLI ripgrep guard: guard on/off, guard config contents, `RIPGREP_CONFIG_PATH` override/preservation, max-columns default and disable=0.

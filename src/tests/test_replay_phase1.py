@@ -45,6 +45,8 @@ def test_tool_call_records_include_policy_decision() -> None:
     assert policy["decision"] == "allow"
     assert policy["policy_id"] == "default-v1"
     assert policy["risk_tier"] in {"low", "medium", "high"}
+    assert policy["risk_tier"] == "low"
+    assert policy.get("requires_approval") is False
     assert isinstance(policy["reason"], str) and policy["reason"]
 
 
@@ -85,6 +87,8 @@ def test_side_effect_tool_calls_are_deduped_with_cached_flag() -> None:
     assert len(records) == 2
     assert records[0]["cached"] is False
     assert records[1]["cached"] is True
+    assert records[0]["policy_decision"]["risk_tier"] == "high"
+    assert records[0]["policy_decision"].get("requires_approval") is True
 
 
 def test_replay_artifact_written_and_cli_replays(tmp_path: Path) -> None:

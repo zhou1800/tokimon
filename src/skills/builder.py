@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from audit.config_audit import write_text_with_audit
 from memory.store import MemoryStore
 from skills.spec import SkillSpec
 from tools.pytest_tool import PytestTool
@@ -23,6 +24,7 @@ _SEMVER_PATTERN = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9
 class SkillBuilder:
     def __init__(self, repo_root: Path, memory_store: MemoryStore) -> None:
         self.repo_root = repo_root
+        self.workspace_root = repo_root.parent if (repo_root.parent / "docs").is_dir() else repo_root
         self.generated_dir = repo_root / "skills_generated"
         self.prompts_dir = self.generated_dir / "prompts"
         self.candidates_dir = self.generated_dir / "candidates"
@@ -128,14 +130,29 @@ class SkillBuilder:
             spec.validation_method = {**spec.validation_method, "artifact": str(validation_relpath)}
         promoted_prompt = self.generated_dir / prompt_relpath
         promoted_prompt.parent.mkdir(parents=True, exist_ok=True)
-        promoted_prompt.write_text(candidate_prompt.read_text())
+        write_text_with_audit(
+            self.workspace_root,
+            promoted_prompt,
+            candidate_prompt.read_text(),
+            reason=f"promote prompt skill {spec.name}",
+        )
         promoted_validation = self.generated_dir / validation_relpath
-        promoted_validation.write_text(candidate_validation.read_text())
+        write_text_with_audit(
+            self.workspace_root,
+            promoted_validation,
+            candidate_validation.read_text(),
+            reason=f"promote prompt skill validation {spec.name}",
+        )
 
         manifest = _load_manifest(self.manifest_path)
         manifest["skills"] = [entry for entry in manifest.get("skills", []) if _manifest_entry_name(entry) != spec.name]
         manifest["skills"].append({"kind": "prompt", "prompt_path": spec.prompt_path, "spec": spec.to_dict()})
-        self.manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True))
+        write_text_with_audit(
+            self.workspace_root,
+            self.manifest_path,
+            json.dumps(manifest, indent=2, sort_keys=True),
+            reason=f"update skills manifest for prompt skill {spec.name}",
+        )
         return True, ""
 
     def _prompt_source(self, spec: SkillSpec) -> str:
@@ -168,7 +185,12 @@ class SkillBuilder:
             return False, f"Code skill pytest validation failed:{extra}"
 
         promoted_module = self.generated_dir / f"{module_basename}.py"
-        promoted_module.write_text(candidate_module.read_text())
+        write_text_with_audit(
+            self.workspace_root,
+            promoted_module,
+            candidate_module.read_text(),
+            reason=f"promote code skill {spec.name}",
+        )
 
         shipped_test_relpath = Path("tests") / "skills_generated" / f"test_{module_basename}.py"
         shipped_test_path = self.repo_root / shipped_test_relpath
@@ -180,7 +202,12 @@ class SkillBuilder:
         manifest = _load_manifest(self.manifest_path)
         manifest["skills"] = [entry for entry in manifest.get("skills", []) if _manifest_entry_name(entry) != spec.name]
         manifest["skills"].append({"kind": "code", "module": module_name, "spec": spec.to_dict()})
-        self.manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True))
+        write_text_with_audit(
+            self.workspace_root,
+            self.manifest_path,
+            json.dumps(manifest, indent=2, sort_keys=True),
+            reason=f"update skills manifest for code skill {spec.name}",
+        )
         return True, ""
 
     def _write_lesson(

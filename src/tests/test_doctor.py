@@ -15,6 +15,14 @@ def _completed(*, args: list[str], returncode: int = 0, stdout: str = "", stderr
 
 
 def _deps_ok(repo_root: Path) -> DoctorDeps:
+    (repo_root / "AGENTS.md").write_text("ok\n")
+    docs_dir = repo_root / "docs"
+    docs_dir.mkdir(parents=True, exist_ok=True)
+    (docs_dir / "helix.md").write_text("ok\n")
+    (docs_dir / "repository-guidelines.md").write_text("ok\n")
+    for rel in (".tokimon-tmp", "runs", "memory", "src/skills_generated"):
+        (repo_root / rel).mkdir(parents=True, exist_ok=True)
+
     def run(argv: list[str]) -> subprocess.CompletedProcess[str]:
         if argv[:3] == ["git", "-C", str(repo_root)]:
             if argv[3:6] == ["rev-parse", "--show-toplevel"]:
@@ -29,7 +37,7 @@ def _deps_ok(repo_root: Path) -> DoctorDeps:
         repo_root=repo_root,
         run=run,
         which=lambda name: f"/usr/bin/{name}",
-        path_exists=lambda _path: True,
+        path_exists=lambda path: path.exists(),
         dir_writable=lambda _path: True,
         port_free=lambda _host, _port: True,
     )
@@ -43,6 +51,8 @@ def test_doctor_report_ok_when_all_checks_ok(tmp_path: Path) -> None:
         "docs.required",
         "git.clean",
         "worktree.writable",
+        "state.dirs",
+        "skills.manifest",
         "codex.available",
         "port.8765",
     ]
@@ -87,6 +97,34 @@ def test_doctor_fails_when_git_dirty(tmp_path: Path) -> None:
     git_clean = next(check for check in report.checks if check.id == "git.clean")
     assert git_clean.ok is False
     assert report.ok is False
+
+
+def test_doctor_reports_missing_state_dirs(tmp_path: Path) -> None:
+    deps = _deps_ok(tmp_path)
+    orig_path_exists = deps.path_exists
+    missing_runs = tmp_path / "runs"
+    deps = DoctorDeps(
+        repo_root=deps.repo_root,
+        run=deps.run,
+        which=deps.which,
+        path_exists=lambda path: False if path == missing_runs else orig_path_exists(path),
+        dir_writable=deps.dir_writable,
+        port_free=deps.port_free,
+    )
+    report = run_doctor(deps, repair=False)
+    state_dirs = next(check for check in report.checks if check.id == "state.dirs")
+    assert state_dirs.ok is False
+    assert "runs" in state_dirs.details["missing"]
+
+
+def test_doctor_reports_invalid_skills_manifest_json(tmp_path: Path) -> None:
+    deps = _deps_ok(tmp_path)
+    manifest_path = tmp_path / "src" / "skills_generated" / "manifest.json"
+    manifest_path.write_text("{ not json")
+    report = run_doctor(deps, repair=False)
+    manifest = next(check for check in report.checks if check.id == "skills.manifest")
+    assert manifest.ok is False
+    assert manifest.details["path"] == "src/skills_generated/manifest.json"
 
 
 def test_doctor_json_dict_is_stable(tmp_path: Path) -> None:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import shutil
 import sys
@@ -39,8 +40,33 @@ def _read_lesson_metadata(path: Path) -> dict[str, object]:
     return json.loads(header) if header else {}
 
 
+def _is_sha256(value: object) -> bool:
+    if not isinstance(value, str):
+        return False
+    if len(value) != 64:
+        return False
+    return all(ch in "0123456789abcdef" for ch in value.lower())
+
+
+def _audit_append_entries(audit_path: Path, before_text: str) -> list[dict[str, object]]:
+    if not audit_path.exists():
+        return []
+    after_text = audit_path.read_text(encoding="utf-8", errors="replace")
+    appended = after_text[len(before_text) :] if after_text.startswith(before_text) else after_text
+    entries: list[dict[str, object]] = []
+    for line in appended.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        parsed = json.loads(stripped)
+        if isinstance(parsed, dict):
+            entries.append(parsed)
+    return entries
+
+
 def test_build_and_registry_code_skill(tmp_path: Path) -> None:
     repo_root = Path(__file__).resolve().parents[1]
+    workspace_root = repo_root.parent
     memory_store = MemoryStore(tmp_path / "memory")
     builder = SkillBuilder(repo_root, memory_store)
 
@@ -57,6 +83,9 @@ def test_build_and_registry_code_skill(tmp_path: Path) -> None:
     shipped_test_pycache = shipped_test_dir / "__pycache__"
     shipped_test_dir_existed = shipped_test_dir.exists()
     original_manifest = manifest_path.read_text() if manifest_path.exists() else None
+    audit_path = workspace_root / ".tokimon-tmp" / "audit" / "config.jsonl"
+    audit_existed = audit_path.exists()
+    audit_before = audit_path.read_text(encoding="utf-8", errors="replace") if audit_existed else ""
 
     try:
         ok = builder.build_skill(spec, "test justification")
@@ -69,6 +98,29 @@ def test_build_and_registry_code_skill(tmp_path: Path) -> None:
         assert entry is not None
         assert entry.spec.kind == "code"
         assert entry.spec.module
+        assert entry.provenance.get("module") == module_name
+        assert isinstance(entry.provenance.get("module_file"), str)
+        assert _is_sha256(entry.provenance.get("sha256"))
+
+        audit_entries = _audit_append_entries(audit_path, audit_before)
+        audit_paths = {entry.get("path") for entry in audit_entries}
+        assert "src/skills_generated/manifest.json" in audit_paths
+        assert f"src/skills_generated/{module_basename}.py" in audit_paths
+        for audit_entry in audit_entries:
+            if audit_entry.get("path") not in {
+                "src/skills_generated/manifest.json",
+                f"src/skills_generated/{module_basename}.py",
+            }:
+                continue
+            assert audit_entry.get("action") == "write"
+            assert _is_sha256(audit_entry.get("sha256_after"))
+            assert isinstance(audit_entry.get("ts"), str) and audit_entry.get("ts")
+            assert isinstance(audit_entry.get("reason"), str) and audit_entry.get("reason")
+
+        expected_sha = hashlib.sha256(module_path.read_bytes()).hexdigest()
+        matching = [e for e in audit_entries if e.get("path") == f"src/skills_generated/{module_basename}.py"]
+        assert matching
+        assert matching[-1].get("sha256_after") == expected_sha
     finally:
         sys.modules.pop(module_name, None)
         if module_path.exists():
@@ -85,10 +137,16 @@ def test_build_and_registry_code_skill(tmp_path: Path) -> None:
             manifest_path.write_text(original_manifest)
         elif manifest_path.exists():
             manifest_path.unlink()
+        if audit_existed:
+            audit_path.parent.mkdir(parents=True, exist_ok=True)
+            audit_path.write_text(audit_before, encoding="utf-8")
+        elif audit_path.exists():
+            audit_path.unlink()
 
 
 def test_build_and_registry_prompt_skill(tmp_path: Path) -> None:
     repo_root = Path(__file__).resolve().parents[1]
+    workspace_root = repo_root.parent
     memory_store = MemoryStore(tmp_path / "memory")
     builder = SkillBuilder(repo_root, memory_store)
 
@@ -99,6 +157,9 @@ def test_build_and_registry_prompt_skill(tmp_path: Path) -> None:
     prompt_path = repo_root / "skills_generated" / "prompts" / f"{name}.md"
     validation_path = repo_root / "skills_generated" / "prompts" / f"{name}.validation.md"
     original_manifest = manifest_path.read_text() if manifest_path.exists() else None
+    audit_path = workspace_root / ".tokimon-tmp" / "audit" / "config.jsonl"
+    audit_existed = audit_path.exists()
+    audit_before = audit_path.read_text(encoding="utf-8", errors="replace") if audit_existed else ""
 
     try:
         ok = builder.build_skill(spec, "test justification")
@@ -116,6 +177,21 @@ def test_build_and_registry_prompt_skill(tmp_path: Path) -> None:
         assert isinstance(prompt_template, str)
         assert f"# {name}" in prompt_template
         assert spec.purpose in prompt_template
+
+        audit_entries = _audit_append_entries(audit_path, audit_before)
+        audit_paths = {entry.get("path") for entry in audit_entries}
+        assert "src/skills_generated/manifest.json" in audit_paths
+        assert f"src/skills_generated/prompts/{name}.md" in audit_paths
+        assert f"src/skills_generated/prompts/{name}.validation.md" in audit_paths
+        for audit_entry in audit_entries:
+            if audit_entry.get("path") not in {
+                "src/skills_generated/manifest.json",
+                f"src/skills_generated/prompts/{name}.md",
+                f"src/skills_generated/prompts/{name}.validation.md",
+            }:
+                continue
+            assert audit_entry.get("action") == "write"
+            assert _is_sha256(audit_entry.get("sha256_after"))
     finally:
         if prompt_path.exists():
             prompt_path.unlink()
@@ -125,6 +201,11 @@ def test_build_and_registry_prompt_skill(tmp_path: Path) -> None:
             manifest_path.write_text(original_manifest)
         elif manifest_path.exists():
             manifest_path.unlink()
+        if audit_existed:
+            audit_path.parent.mkdir(parents=True, exist_ok=True)
+            audit_path.write_text(audit_before, encoding="utf-8")
+        elif audit_path.exists():
+            audit_path.unlink()
 
 
 def test_validation_failure_keeps_candidate_and_does_not_update_manifest(tmp_path: Path) -> None:

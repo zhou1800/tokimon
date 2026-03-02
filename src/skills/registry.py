@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import hashlib
 import importlib
 import json
-from dataclasses import dataclass
+import os
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +17,7 @@ from skills.spec import SkillSpec
 class SkillEntry:
     spec: SkillSpec
     module: Any
+    provenance: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -42,13 +45,26 @@ class SkillRegistry:
             return
         specs = getattr(module, "SKILLS", [])
         for spec in specs:
-            self._skills[spec.name] = SkillEntry(spec=spec, module=module)
+            self._skills[spec.name] = SkillEntry(
+                spec=spec,
+                module=module,
+                provenance={"module": "skills_builtin", "module_file": getattr(module, "__file__", None), "sha256": None},
+            )
 
     def _load_generated(self) -> None:
         if not self.manifest_path.exists():
             return
-        data = json.loads(self.manifest_path.read_text())
-        for entry in data.get("skills", []):
+        try:
+            data = json.loads(self.manifest_path.read_text())
+        except Exception:
+            return
+        if not isinstance(data, dict):
+            return
+        raw_skills = data.get("skills", [])
+        if not isinstance(raw_skills, list):
+            return
+        allowlist = _module_allowlist()
+        for entry in raw_skills:
             if not isinstance(entry, dict):
                 continue
             spec_data = entry.get("spec")
@@ -83,10 +99,16 @@ class SkillRegistry:
             module_name = entry.get("module") or spec_data.get("module")
             if not module_name:
                 continue
+            module_name = str(module_name).strip()
+            if not module_name:
+                continue
+            if not _module_allowed(module_name, allowlist=allowlist):
+                continue
             module = importlib.import_module(str(module_name))
             if not spec.module:
                 spec.module = str(module_name)
-            self._skills[spec.name] = SkillEntry(spec=spec, module=module)
+            provenance = _module_provenance(self.root, module_name, module)
+            self._skills[spec.name] = SkillEntry(spec=spec, module=module, provenance=provenance)
 
     def reload(self) -> None:
         for entry in self._skills.values():
@@ -118,3 +140,35 @@ def _resolve_prompt_path(generated_dir: Path, prompt_path_value: str) -> Path | 
     except ValueError:
         return None
     return resolved
+
+
+def _module_allowlist() -> list[str]:
+    raw = (os.environ.get("TOKIMON_SKILL_MODULE_ALLOWLIST") or "").strip()
+    prefixes = [prefix.strip() for prefix in raw.split(",") if prefix.strip()]
+    return ["skills_builtin", "skills_generated", *prefixes]
+
+
+def _module_allowed(module_name: str, *, allowlist: list[str]) -> bool:
+    module_name = str(module_name or "").strip()
+    if not module_name:
+        return False
+    for prefix in allowlist:
+        prefix = str(prefix or "").strip()
+        if not prefix:
+            continue
+        if module_name == prefix or module_name.startswith(prefix + "."):
+            return True
+    return False
+
+
+def _module_provenance(root: Path, module_name: str, module: Any) -> dict[str, Any]:
+    module_file = getattr(module, "__file__", None)
+    sha256: str | None = None
+    if isinstance(module_file, str) and module_file.strip():
+        try:
+            path = Path(module_file).resolve()
+            if path.is_file() and os.access(path, os.R_OK):
+                sha256 = hashlib.sha256(path.read_bytes()).hexdigest()
+        except Exception:
+            sha256 = None
+    return {"module": module_name, "module_file": module_file, "sha256": sha256}

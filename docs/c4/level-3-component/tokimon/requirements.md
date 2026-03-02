@@ -223,6 +223,33 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
   - Replay MUST validate that invoked tool calls match recorded `tool_script` entries by comparing `args_hash`.
   - Replay MUST exit `0` when all steps replay and the computed final outputs match `final_result`; otherwise exit non-zero and report the first mismatch deterministically.
 
+### Operator & Safety (OpenClaw-inspired, Phase 2 - MVP)
+- Tokimon MUST centralize risk classification for tool calls in a single “dangerous tools” registry.
+  - The registry MUST map `(tool, action)` → metadata including:
+    - `risk_tier`: `"low" | "medium" | "high"`
+    - `requires_approval`: bool
+    - `notes`: string (bounded)
+  - Worker `policy_decision.risk_tier` MUST be derived from this registry when an entry exists (fallback rules are allowed for unknown tools/actions).
+- Tokimon MUST harden dynamic code loading for skills (treat as a supply-chain surface):
+  - `SkillRegistry` MUST refuse to import generated code skills whose `module` is outside the default safe prefixes:
+    - `skills_builtin`
+    - `skills_generated`
+  - Optional allowlist: operators may extend allowed module prefixes via `TOKIMON_SKILL_MODULE_ALLOWLIST` (comma-separated prefixes).
+  - Refused skills MUST be skipped (not imported) deterministically.
+  - Loaded code skills MUST record module provenance (best-effort):
+    - `module` (string), `module_file` (string), and `sha256` of the module file contents when readable.
+- Tokimon MUST append an audit log entry when writing config-like skill assets:
+  - Applies at minimum to writes of:
+    - `src/skills_generated/manifest.json`
+    - `src/skills_generated/*.py` (promoted code skills)
+    - `src/skills_generated/prompts/*.md` and `*.validation.md` (promoted prompt skills)
+  - Audit log format: append-only JSONL under `<workspace_root>/.tokimon-tmp/audit/config.jsonl` (workspace root is the repo root, sibling of `src/` and `docs/`)
+  - Each entry MUST include: `ts` (ISO-8601 UTC), `path`, `action`, `sha256_before`, `sha256_after`, and bounded `reason`.
+  - Audit MUST NOT log raw secrets; preserve `${ENV}` patterns (do not expand env vars into files as part of auditing).
+- Tokimon MUST extend `tokimon doctor` with state-integrity checks (safe, non-destructive):
+  - Detect missing or non-writable state directories (at minimum: `.tokimon-tmp/`, `runs/`, `memory/`, `src/skills_generated/`).
+  - Detect invalid `src/skills_generated/manifest.json` shapes (non-dict, missing skills list) and surface actionable remediation.
+
 ### Observability: Metrics & Dashboards
 - Tokimon MUST persist canonical run/step metrics and a self-contained dashboard artifact for every BaselineRunner, HierarchicalRunner, and Chat UI run.
 - Persistence locations (relative to `<run_root>`):

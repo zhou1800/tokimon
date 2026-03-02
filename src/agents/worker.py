@@ -12,6 +12,7 @@ from agents.outputs import WorkerOutput
 from agents.prompts import build_system_prompt
 from flow_types import ToolCallRecord, WorkerStatus
 from llm.client import LLMClient
+from policy.dangerous_tools import is_side_effectful, tool_risk
 from replay import ReplayRecorder
 from tools.base import ToolResult
 from tracing import TraceLogger
@@ -361,20 +362,19 @@ def _tool_call_cache_key(tool_name: str, action: str, args: dict[str, Any]) -> s
 
 
 def _is_side_effectful_tool_call(tool_name: str, action: str) -> bool:
-    normalized = (str(tool_name or "").strip(), str(action or "").strip())
-    return normalized in {("file", "write"), ("patch", "apply")}
+    return is_side_effectful(tool_name, action)
 
 
 def _tool_policy_decision(tool_name: str, action: str, args: dict[str, Any]) -> dict[str, Any]:
-    normalized_tool = str(tool_name or "").strip().lower()
-    normalized_action = str(action or "").strip().lower()
-    risk_tier = "low"
-    if _is_side_effectful_tool_call(normalized_tool, normalized_action):
-        risk_tier = "high"
-    elif normalized_tool in {"web", "pytest"}:
-        risk_tier = "medium"
+    _ = args
+    risk = tool_risk(tool_name, action)
+    risk_tier = risk.risk_tier if risk is not None else "low"
+    requires_approval = bool(risk.requires_approval) if risk is not None else False
     reason = "default allow"
-    if risk_tier == "high":
+    if risk is not None and str(risk.notes or "").strip():
+        notes = str(risk.notes).strip()
+        reason = f"default allow ({notes[:200]})"
+    elif risk_tier == "high":
         reason = "default allow (side-effectful)"
     elif risk_tier == "medium":
         reason = "default allow (external interaction)"
@@ -383,6 +383,7 @@ def _tool_policy_decision(tool_name: str, action: str, args: dict[str, Any]) -> 
         "risk_tier": risk_tier,
         "reason": reason,
         "policy_id": "default-v1",
+        "requires_approval": requires_approval,
     }
 
 

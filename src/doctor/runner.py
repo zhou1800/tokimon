@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import json
 import shutil
 import socket
 import subprocess
@@ -61,6 +62,8 @@ def run_doctor(deps: DoctorDeps, *, repair: bool = False) -> DoctorReport:
         _check_required_docs(deps),
         _check_git_clean(deps),
         _check_worktree_writable(deps),
+        _check_state_dirs(deps),
+        _check_skills_manifest(deps),
         _check_codex_available(deps),
         _check_port_8765(deps),
     ]
@@ -203,6 +206,97 @@ def _check_worktree_writable(deps: DoctorDeps) -> DoctorCheck:
         summary="worktree not writable",
         details={"path": str(deps.repo_root)},
         remediation="Ensure the repo directory is writable (permissions or read-only mount).",
+    )
+
+
+def _check_state_dirs(deps: DoctorDeps) -> DoctorCheck:
+    required = [
+        ".tokimon-tmp",
+        "runs",
+        "memory",
+        "src/skills_generated",
+    ]
+    missing: list[str] = []
+    not_writable: list[str] = []
+    for rel in required:
+        path = deps.repo_root / rel
+        if not deps.path_exists(path):
+            missing.append(rel)
+            continue
+        if not deps.dir_writable(path):
+            not_writable.append(rel)
+    if missing or not_writable:
+        details: dict[str, Any] = {"required": required}
+        if missing:
+            details["missing"] = missing
+        if not_writable:
+            details["not_writable"] = not_writable
+        return DoctorCheck(
+            id="state.dirs",
+            ok=False,
+            summary="state directories missing or not writable",
+            details=details,
+            remediation="Create the missing dirs under the repo root and ensure they are writable.",
+        )
+    return DoctorCheck(
+        id="state.dirs",
+        ok=True,
+        summary="state directories present",
+        details={"required": required},
+    )
+
+
+def _check_skills_manifest(deps: DoctorDeps) -> DoctorCheck:
+    manifest_rel = "src/skills_generated/manifest.json"
+    manifest_path = deps.repo_root / manifest_rel
+    if not deps.path_exists(manifest_path):
+        return DoctorCheck(
+            id="skills.manifest",
+            ok=True,
+            summary="generated skills manifest absent (ok)",
+            details={"path": manifest_rel},
+        )
+    try:
+        raw = manifest_path.read_text(encoding="utf-8", errors="replace")
+        parsed = json.loads(raw)
+    except Exception as exc:
+        return DoctorCheck(
+            id="skills.manifest",
+            ok=False,
+            summary="generated skills manifest invalid JSON",
+            details={"path": manifest_rel, "error": str(exc)},
+            remediation="Fix JSON in src/skills_generated/manifest.json or delete it to regenerate a clean manifest.",
+        )
+    if not isinstance(parsed, dict):
+        return DoctorCheck(
+            id="skills.manifest",
+            ok=False,
+            summary="generated skills manifest must be a JSON object",
+            details={"path": manifest_rel, "type": type(parsed).__name__},
+            remediation="Rewrite src/skills_generated/manifest.json to an object like {\"skills\": []}.",
+        )
+    skills = parsed.get("skills")
+    if skills is None:
+        return DoctorCheck(
+            id="skills.manifest",
+            ok=False,
+            summary="generated skills manifest missing 'skills' list",
+            details={"path": manifest_rel},
+            remediation="Add a top-level 'skills' list (e.g., {\"skills\": []}).",
+        )
+    if not isinstance(skills, list):
+        return DoctorCheck(
+            id="skills.manifest",
+            ok=False,
+            summary="generated skills manifest 'skills' must be a list",
+            details={"path": manifest_rel, "type": type(skills).__name__},
+            remediation="Rewrite src/skills_generated/manifest.json so 'skills' is a list.",
+        )
+    return DoctorCheck(
+        id="skills.manifest",
+        ok=True,
+        summary="generated skills manifest valid",
+        details={"path": manifest_rel, "skills_count": len(skills)},
     )
 
 
