@@ -242,10 +242,21 @@ class ClaudeCLIClient:
         except json.JSONDecodeError:
             candidate = stdout
 
-        json_text = _extract_json_text(_extract_json_payload(candidate))
+        raw_text = _extract_json_payload(candidate)
+        json_text = _extract_json_text(raw_text)
         try:
             payload = json.loads(json_text)
         except json.JSONDecodeError as exc:
+            embedded = _extract_embedded_json_text(raw_text)
+            if embedded is not None:
+                try:
+                    payload = json.loads(embedded)
+                except json.JSONDecodeError:
+                    payload = None
+            else:
+                payload = None
+            if isinstance(payload, dict):
+                return payload
             return _llm_error(
                 f"claude returned invalid JSON: {exc}",
                 failure_signature="llm-claude-invalid-json",
@@ -361,6 +372,16 @@ class CodexCLIClient:
             try:
                 payload = json.loads(json_text)
             except json.JSONDecodeError as exc:
+                embedded = _extract_embedded_json_text(candidate)
+                if embedded is not None:
+                    try:
+                        payload = json.loads(embedded)
+                    except json.JSONDecodeError:
+                        payload = None
+                else:
+                    payload = None
+                if isinstance(payload, dict):
+                    return payload
                 return _llm_error(
                     f"codex returned invalid JSON: {exc}",
                     failure_signature="llm-codex-invalid-json",
@@ -574,18 +595,38 @@ def _extract_json_text(text: str) -> str:
     candidate = (text or "").strip()
     if not candidate:
         return "{}"
+
     if candidate.startswith("```"):
         lines = candidate.splitlines()
-        if lines and lines[0].startswith("```"):
+        if lines and lines[0].lstrip().startswith("```"):
             lines = lines[1:]
-        if lines and lines[-1].strip().startswith("```"):
+        if lines and lines[-1].lstrip().startswith("```"):
             lines = lines[:-1]
         candidate = "\n".join(lines).strip()
-    if candidate.startswith("```json"):
-        candidate = candidate[len("```json") :].strip()
-    if candidate.endswith("```"):
-        candidate = candidate[: -len("```")].strip()
-    return candidate
+
+    candidate = candidate.strip()
+    return candidate or "{}"
+
+
+def _extract_embedded_json_text(text: str) -> str | None:
+    """Best-effort extraction of an embedded JSON value from a larger string."""
+
+    candidate = text or ""
+    if not isinstance(candidate, str) or not candidate.strip():
+        return None
+
+    decoder = json.JSONDecoder()
+    for index, char in enumerate(candidate):
+        if char not in {"{", "["}:
+            continue
+        try:
+            _value, end = decoder.raw_decode(candidate[index:])
+        except json.JSONDecodeError:
+            continue
+        snippet = candidate[index : index + end].strip()
+        if snippet:
+            return snippet
+    return None
 
 
 def _extract_json_payload(candidate: Any) -> str:
