@@ -78,6 +78,73 @@ def test_self_improve_runs_sessions_and_merges_winner(tmp_path: Path) -> None:
     assert "return a + b" in (master / "proj" / "app.py").read_text()
 
 
+def test_self_improve_repairs_missing_experiment_summary_artifact(tmp_path: Path) -> None:
+    if shutil.which("git") is None:
+        pytest.skip("git not available")
+
+    master = tmp_path / "master"
+    (master / "proj").mkdir(parents=True, exist_ok=True)
+    (master / "proj" / "__init__.py").write_text("")
+    (master / "proj" / "app.py").write_text("def add(a, b):\n    return a + b\n")
+    (master / "proj" / "tests").mkdir(parents=True, exist_ok=True)
+    (master / ".gitignore").write_text(".tokimon-tmp/\nruns/\n__pycache__/\n.pytest_cache/\n")
+    (master / "proj" / "tests" / "test_app.py").write_text(
+        "from proj.app import add\n\n\ndef test_add():\n    assert add(2, 3) == 5\n"
+    )
+    _git(master, ["init"])
+    _git(master, ["config", "user.email", "test@example.com"])
+    _git(master, ["config", "user.name", "Test User"])
+    _git(master, ["add", "."])
+    _git(master, ["commit", "-m", "init"])
+
+    def llm_factory(_session_id: str) -> MockLLMClient:
+        return MockLLMClient(
+            script=[
+                {
+                    "status": "SUCCESS",
+                    "summary": "planned",
+                    "artifacts": [],
+                    "metrics": {},
+                    "next_actions": [],
+                    "failure_signature": "",
+                    "workflow": {"steps": [{"id": "noop", "worker": "Implementer"}]},
+                },
+                {
+                    "status": "SUCCESS",
+                    "summary": "no changes required",
+                    "artifacts": [],
+                    "metrics": {},
+                    "next_actions": [],
+                    "failure_signature": "",
+                },
+            ]
+        )
+
+    settings = SelfImproveSettings(
+        sessions_per_batch=1,
+        batches=1,
+        max_workers=1,
+        include_paths=["proj"],
+        pytest_args=["proj/tests"],
+        merge_on_success=False,
+    )
+    orchestrator = SelfImproveOrchestrator(master, llm_factory=llm_factory, settings=settings)
+    report = orchestrator.run("Summarize OpenClaw gaps.", input_ref=None)
+
+    session = report.batches[0].sessions[0]
+    assert session.verification_ok is True
+
+    experiment_path = (
+        Path(session.workspace_root) / ".tokimon-tmp" / "self-improve" / "experiment" / session.session_id / "attempt-1.json"
+    )
+    payload = json.loads(experiment_path.read_text(encoding="utf-8"))
+    assert payload["baseline_evaluation"]["passed"] == 1
+    assert payload["post_change_evaluation"]["passed"] == 1
+    assert payload["delta"] == {"failed": 0, "passed": 0}
+    assert isinstance(payload["plan"], list) and payload["plan"]
+    assert isinstance(payload["lessons"], list) and payload["lessons"]
+
+
 def test_self_improve_materializes_file_input_in_session_workspace(tmp_path: Path, monkeypatch) -> None:
     if shutil.which("git") is None:
         pytest.skip("git not available")

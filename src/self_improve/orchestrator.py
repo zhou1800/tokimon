@@ -478,6 +478,15 @@ class SelfImproveOrchestrator:
             attempt_rss_kb: int | None = None
 
             try:
+                experiment_summary_path = workspace_dir / _experiment_summary_relpath(session_id, attempt_index)
+                _write_experiment_summary_skeleton(
+                    experiment_summary_path,
+                    session_id=session_id,
+                    goal=goal,
+                    baseline_master_eval=baseline_master_eval,
+                    pass_condition=_pick_pass_condition(baseline_master_eval),
+                    path_charter=path_charter,
+                )
                 attempt_start = time.perf_counter()
                 result = runner.run(
                     session_goal,
@@ -512,7 +521,15 @@ class SelfImproveOrchestrator:
             evaluation = self._evaluate_workspace(workspace_dir)
             changed_files = [change.relpath for change in changes]
             experiment_summary_path = workspace_dir / _experiment_summary_relpath(session_id, attempt_index)
-            experiment_summary, experiment_error = _load_experiment_summary(experiment_summary_path)
+            experiment_summary, experiment_error = _repair_experiment_summary(
+                experiment_summary_path,
+                session_id=session_id,
+                goal=goal,
+                baseline_master_eval=baseline_master_eval,
+                evaluation=evaluation,
+                pass_condition=_pick_pass_condition(baseline_master_eval),
+                path_charter=path_charter,
+            )
             if experiment_error is not None:
                 verification = VerificationResult(
                     ok=False,
@@ -1102,6 +1119,135 @@ def _path_charter(session_id: str) -> dict[str, str]:
 
 def _experiment_summary_relpath(session_id: str, attempt_index: int) -> Path:
     return Path(".tokimon-tmp") / "self-improve" / "experiment" / session_id / f"attempt-{attempt_index}.json"
+
+
+def _evaluation_snapshot(result: EvaluationResult, *, max_failing_tests: int = 50) -> dict[str, Any]:
+    failing_tests = result.failing_tests if isinstance(result.failing_tests, list) else []
+    return {
+        "ok": bool(result.ok),
+        "passed": int(result.passed or 0),
+        "failed": int(result.failed or 0),
+        "failing_tests": [str(item) for item in failing_tests[: max(0, int(max_failing_tests))]],
+    }
+
+
+def _default_experiment_plan() -> list[str]:
+    return [
+        "Baseline eval",
+        "Smallest change",
+        "Re-run eval",
+        "Report delta",
+    ]
+
+
+def _default_causal_hypothesis(goal: str) -> str:
+    bounded_goal = " ".join((goal or "").strip().split())
+    if len(bounded_goal) > 160:
+        bounded_goal = bounded_goal[:160].rstrip() + "...(truncated)"
+    if not bounded_goal:
+        bounded_goal = "(empty goal)"
+    return f"(auto-filled placeholder) Work aims to satisfy goal: {bounded_goal}"
+
+
+def _write_experiment_summary_skeleton(
+    path: Path,
+    *,
+    session_id: str,
+    goal: str,
+    baseline_master_eval: EvaluationResult,
+    pass_condition: str,
+    path_charter: dict[str, str],
+) -> None:
+    """Create a valid experiment summary artifact before the agent runs.
+
+    This ensures the required artifact exists even when an attempt fails early.
+    Agents are expected to update the placeholders with real content.
+    """
+    if path.exists():
+        return
+    baseline = _evaluation_snapshot(baseline_master_eval)
+    payload = {
+        "causal_mechanism_hypothesis": _default_causal_hypothesis(goal),
+        "pass_condition": str(pass_condition or "").strip() or _pick_pass_condition(baseline_master_eval),
+        "baseline_evaluation": baseline,
+        "post_change_evaluation": dict(baseline),
+        "delta": {"passed": 0, "failed": 0},
+        "plan": _default_experiment_plan(),
+        "path_charter": dict(path_charter),
+        "self_critique": "(auto-filled placeholder) Update with risks, confidence, and likely failure modes.",
+        "lessons": ["(auto-filled placeholder) Record at least one Lesson for auditability."],
+    }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, sort_keys=True, ensure_ascii=False), encoding="utf-8")
+
+
+def _repair_experiment_summary(
+    path: Path,
+    *,
+    session_id: str,
+    goal: str,
+    baseline_master_eval: EvaluationResult,
+    evaluation: EvaluationResult,
+    pass_condition: str,
+    path_charter: dict[str, str],
+) -> tuple[dict[str, Any] | None, str | None]:
+    """Best-effort repair so experiment summaries are valid and comparable."""
+    payload: dict[str, Any] = {}
+    try:
+        raw = path.read_text(encoding="utf-8") if path.exists() else ""
+        loaded = json.loads(raw) if raw.strip() else {}
+        if isinstance(loaded, dict):
+            payload = loaded
+    except Exception:
+        payload = {}
+
+    baseline = _evaluation_snapshot(baseline_master_eval)
+    post_change = _evaluation_snapshot(evaluation)
+
+    payload["baseline_evaluation"] = baseline
+    payload["post_change_evaluation"] = post_change
+    payload["delta"] = {
+        "passed": int(post_change.get("passed", 0)) - int(baseline.get("passed", 0)),
+        "failed": int(post_change.get("failed", 0)) - int(baseline.get("failed", 0)),
+    }
+
+    hypothesis = payload.get("causal_mechanism_hypothesis")
+    if not isinstance(hypothesis, str) or not hypothesis.strip():
+        payload["causal_mechanism_hypothesis"] = _default_causal_hypothesis(goal)
+
+    raw_pass_condition = payload.get("pass_condition")
+    if not isinstance(raw_pass_condition, str) or not raw_pass_condition.strip():
+        payload["pass_condition"] = str(pass_condition or "").strip() or _pick_pass_condition(baseline_master_eval)
+
+    plan = payload.get("plan")
+    if not isinstance(plan, list) or not plan or not all(isinstance(step, str) and step.strip() for step in plan):
+        payload["plan"] = _default_experiment_plan()
+
+    charter = payload.get("path_charter")
+    if not isinstance(charter, dict):
+        payload["path_charter"] = dict(path_charter)
+    else:
+        for key in PATH_CHARTER_KEYS:
+            value = charter.get(key)
+            if not isinstance(value, str) or not value.strip():
+                charter[key] = str(path_charter.get(key, "")).strip() or f"(missing {key})"
+        payload["path_charter"] = charter
+
+    self_critique = payload.get("self_critique")
+    if not isinstance(self_critique, str) or not self_critique.strip():
+        payload["self_critique"] = "(auto-filled placeholder) Self-critique missing; update with failure modes and confidence."
+
+    lessons = payload.get("lessons")
+    if not isinstance(lessons, list) or not lessons or not all(isinstance(item, str) and item.strip() for item in lessons):
+        payload["lessons"] = ["(auto-filled placeholder) Lessons missing; record what worked/failed and what to try next."]
+
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(payload, sort_keys=True, ensure_ascii=False), encoding="utf-8")
+    except Exception as exc:
+        return None, f"failed to write experiment summary artifact: {exc}"
+
+    return _load_experiment_summary(path)
 
 
 def _load_experiment_summary(path: Path) -> tuple[dict[str, Any] | None, str | None]:
