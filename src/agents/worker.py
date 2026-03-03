@@ -13,7 +13,7 @@ from agents.prompts import build_system_prompt
 from flow_types import ToolCallRecord, WorkerStatus
 from llm.client import LLMClient
 from policy.dangerous_tools import is_side_effectful, tool_risk
-from policy.tool_approval import build_approval_request, tool_approval_mode_from_env
+from policy.tool_approval import build_approval_request, check_allowlist, load_approval_allowlist, tool_approval_mode_from_env
 from policy.tool_loop_detection import ToolLoopDetector, ToolLoopSettings, normalize_signature, stable_args_hash
 from replay import ReplayRecorder
 from tools.base import ToolResult
@@ -71,6 +71,7 @@ class Worker:
         tool_loop_settings = ToolLoopSettings.from_env()
         tool_loop_detector = ToolLoopDetector(tool_loop_settings) if tool_loop_settings.enabled else None
         tool_approval_mode = tool_approval_mode_from_env()
+        approval_env_ids, approval_file_ids = load_approval_allowlist() if tool_approval_mode != "off" else (set(), set())
         trace_base = _trace_base(
             {
                 "worker_role": self.role,
@@ -151,7 +152,11 @@ class Worker:
                             args_preview=_truncate_jsonish(args, max_str=500, max_list=20, max_depth=3),
                             reason=str(policy_decision.get("reason") or "approval required"),
                         )
-                        if tool_approval_mode == "block":
+                        _aid = approval_request["approval_id"]
+                        _pre_approved, _allowlist_src = check_allowlist(_aid, approval_env_ids, approval_file_ids)
+                        if _pre_approved:
+                            policy_decision = {**policy_decision, "pre_approved": True, "allowlist_source": _allowlist_src}
+                        elif tool_approval_mode == "block":
                             elapsed_ms = (time.perf_counter() - start) * 1000
                             _trace_log(
                                 trace,
@@ -184,7 +189,7 @@ class Worker:
                                 failure_signature="worker-tool-approval-blocked",
                                 )
                             )
-                        if tool_approval_mode == "deny":
+                        elif tool_approval_mode == "deny":
                             record = ToolCallRecord(
                                 tool_name=tool_name or "<missing>",
                                 call_id=call_id,

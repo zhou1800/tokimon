@@ -276,6 +276,19 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
     - `reason` (bounded) describing why approval was required.
   - No-UI fallback: when approvals are not supported by the current runtime, `block` mode MUST fail closed by leaving the step `BLOCKED` with actionable remediation.
 
+### Operator & Safety (OpenClaw-inspired, Phase 4)
+- Tokimon SHOULD support approval allowlists so operators can pre-approve specific high-risk tool calls without requiring interactive approval.
+  - Allowlist sources (checked in order; first match wins):
+    - Environment variable: `TOKIMON_TOOL_APPROVAL_ALLOWLIST` (comma-separated list of `approval_id` hashes).
+    - File: `.tokimon-tmp/approvals/allowlist.json` (JSON object with `{"allowlist": ["<approval_id>", ...]}`) relative to workspace root.
+  - Matching is deterministic: a tool call is considered pre-approved when its computed `approval_id` (stable SHA-256 hash of `{tool, action, args_hash}`) appears in the merged allowlist.
+  - Behavior with `TOKIMON_TOOL_APPROVAL_MODE`:
+    - `off`: allowlist has no effect (all tool calls proceed without approval checks).
+    - `block`: if the tool call's `approval_id` is in the allowlist, the call proceeds as if approved; otherwise the step is `BLOCKED` as before.
+    - `deny`: if the tool call's `approval_id` is in the allowlist, the call proceeds as if approved; otherwise a deterministic tool error is recorded and the loop continues.
+  - When a pre-approved call proceeds, the `policy_decision` MUST include `"pre_approved": true` and `"allowlist_source"` (either `"env"` or `"file"`) so the decision is auditable.
+  - Allowlist loading MUST be deterministic and fail-safe: malformed JSON in the file or missing file is treated as an empty allowlist (no error raised).
+
 ### Observability: Metrics & Dashboards
 - Tokimon MUST persist canonical run/step metrics and a self-contained dashboard artifact for every BaselineRunner, HierarchicalRunner, and Chat UI run.
 - Persistence locations (relative to `<run_root>`):
