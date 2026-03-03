@@ -30,6 +30,8 @@ This document maps requirements to automated tests.
 - CLI doctor: `tokimon doctor` checks and `--json` output are deterministic under dependency injection / monkeypatch (see `src/tests/test_doctor.py`).
 - Tool schemas: FileTool path traversal protection, PatchTool validation + hunk header normalization, PytestTool parsing, GrepTool bounded output + default excludes, WebTool URL validation and network policy (allowlists + domain secrets).
 - Worker tool loop: tool calls execute and are reflected in worker metrics (model/tool call counts).
+- Worker tool-loop detection guardrails (opt-in): when `TOKIMON_TOOL_LOOP_DETECTION_ENABLED=true`, repeated tool call signatures or repeated failures trigger a deterministic `PARTIAL` result with `failure_signature` prefix `worker-tool-loop-detected` and bounded evidence in metrics.
+- Worker tool approval gate (opt-in): `TOKIMON_TOOL_APPROVAL_MODE=off|deny|block` is enforced when `policy_decision.requires_approval=true`; `deny` records a deterministic tool error and continues; `block` yields a deterministic `BLOCKED` result with a stable `metrics.approval_request` payload.
 - Worker output schema enforcement: final structured outputs validate against the per-step success schema; invalid outputs trigger bounded repair (max 2) and produce a deterministic schema-related `failure_signature` on exhaustion.
 - Artifact persistence: per-step `step_result.json` is persisted under run artifacts and includes the full structured step result (including any `ui_blocks`).
 - Observability metrics + dashboard artifacts:

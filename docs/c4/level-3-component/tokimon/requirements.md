@@ -250,6 +250,32 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
   - Detect missing or non-writable state directories (at minimum: `.tokimon-tmp/`, `runs/`, `memory/`, `src/skills_generated/`).
   - Detect invalid `src/skills_generated/manifest.json` shapes (non-dict, missing skills list) and surface actionable remediation.
 
+### Operator & Safety (OpenClaw-inspired, Phase 3)
+- Tokimon SHOULD provide opt-in tool-loop detection guardrails (disabled by default):
+  - Goal: prevent runaway repeated tool-call loops that do not make progress.
+  - Config surface (env):
+    - `TOKIMON_TOOL_LOOP_DETECTION_ENABLED` (default: false)
+    - `TOKIMON_TOOL_LOOP_HISTORY_SIZE` (default: 20)
+    - `TOKIMON_TOOL_LOOP_REPEAT_THRESHOLD` (default: 3)
+    - `TOKIMON_TOOL_LOOP_CRITICAL_THRESHOLD` (default: 6)
+  - Detection (minimum):
+    - Repeated identical tool call signature (same tool, action, args_hash) >= `repeat_threshold`
+    - Repeated failures for the same tool call signature >= `repeat_threshold`
+  - When detected, the worker MUST stop executing further tool calls for the step attempt and MUST return a deterministic final output:
+    - `status=PARTIAL`
+    - `failure_signature` prefix: `worker-tool-loop-detected`
+    - Include bounded evidence in `metrics` (e.g., last N tool call signatures, counts, trigger reason).
+- Tokimon SHOULD provide an opt-in approval gate for high-risk tool calls:
+  - High-risk tool calls are identified by `policy_decision.requires_approval=true` (derived from the dangerous tools registry).
+  - Config surface (env): `TOKIMON_TOOL_APPROVAL_MODE`:
+    - `off` (default): do not block tool calls based on approval requirements.
+    - `block`: when a tool call requires approval, do not execute it; return a deterministic `BLOCKED` final output for the step attempt.
+    - `deny`: when a tool call requires approval, do not execute it; record a deterministic tool error and continue the loop.
+  - When blocking, the worker MUST include a deterministic `approval_request` payload in `metrics`:
+    - `approval_id` (stable hash), `tool`, `action`, `args_hash`, and bounded `args_preview`.
+    - `reason` (bounded) describing why approval was required.
+  - No-UI fallback: when approvals are not supported by the current runtime, `block` mode MUST fail closed by leaving the step `BLOCKED` with actionable remediation.
+
 ### Observability: Metrics & Dashboards
 - Tokimon MUST persist canonical run/step metrics and a self-contained dashboard artifact for every BaselineRunner, HierarchicalRunner, and Chat UI run.
 - Persistence locations (relative to `<run_root>`):
