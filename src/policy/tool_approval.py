@@ -13,6 +13,24 @@ ToolApprovalMode = Literal["off", "block", "deny"]
 
 _ALLOWLIST_FILE_REL = ".tokimon-tmp/approvals/allowlist.json"
 
+def approval_allowlist_file_path(workspace_root: str | Path | None = None) -> Path:
+    """Return the Phase 4 approval allowlist file path under *workspace_root*."""
+    if workspace_root is None:
+        workspace_root = Path.cwd()
+    return Path(workspace_root) / _ALLOWLIST_FILE_REL
+
+
+def write_allowlist_file(file_ids: set[str], workspace_root: str | Path | None = None) -> Path:
+    """Write the file allowlist (canonical JSON, stable ordering).
+
+    Creates parent directories as needed.
+    """
+    path = approval_allowlist_file_path(workspace_root)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {"allowlist": sorted(file_ids)}
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return path
+
 
 def tool_approval_mode_from_env(env: dict[str, str] | None = None) -> ToolApprovalMode:
     if env is None:
@@ -75,9 +93,7 @@ def _load_allowlist_from_file(workspace_root: str | Path | None = None) -> set[s
 
     Fail-safe: missing or malformed file -> empty set.
     """
-    if workspace_root is None:
-        workspace_root = Path.cwd()
-    path = Path(workspace_root) / _ALLOWLIST_FILE_REL
+    path = approval_allowlist_file_path(workspace_root)
     try:
         text = path.read_text(encoding="utf-8")
         data = json.loads(text)
@@ -117,4 +133,3 @@ def check_allowlist(
     if approval_id in file_ids:
         return True, "file"
     return False, ""
-

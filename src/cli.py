@@ -38,6 +38,7 @@ from skills.builder import SkillBuilder
 from skills.registry import SkillRegistry
 from skills.spec import SkillSpec
 from replay import ReplayAbort, replay_run
+from policy.tool_approval import approval_allowlist_file_path, load_approval_allowlist, write_allowlist_file
 
 
 def build_parser(*, exit_on_error: bool = True) -> argparse.ArgumentParser:
@@ -199,6 +200,24 @@ def build_parser(*, exit_on_error: bool = True) -> argparse.ArgumentParser:
     memory_search.add_argument("--query", dest="query_flag", default=None, help="Search query text (wins over positional).")
     memory_search.add_argument("--limit", type=int, default=5, help="Maximum number of hits to return.")
 
+    approvals = subparsers.add_parser("approvals", help="Manage tool approval allowlists.")
+    approvals_sub = approvals.add_subparsers(dest="approvals_command")
+
+    approvals_common = argparse.ArgumentParser(add_help=False)
+    approvals_common.add_argument("--json", action="store_true", help="Emit machine-readable JSON.")
+
+    approvals_sub.add_parser("list", parents=[approvals_common], help="List effective approval allowlist (env + file).")
+
+    approvals_add = approvals_sub.add_parser("add", parents=[approvals_common], help="Add an approval id to the file allowlist.")
+    approvals_add.add_argument("approval_id")
+
+    approvals_remove = approvals_sub.add_parser(
+        "remove", parents=[approvals_common], help="Remove an approval id from the file allowlist."
+    )
+    approvals_remove.add_argument("approval_id")
+
+    approvals_sub.add_parser("clear", parents=[approvals_common], help="Clear the file allowlist.")
+
     return parser
 
 
@@ -249,6 +268,8 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_sessions(args, workspace_root)
         case "memory":
             return _cmd_memory(args, workspace_root)
+        case "approvals":
+            return _cmd_approvals(args)
         case _:
             return 1
 
@@ -931,6 +952,105 @@ def _cmd_memory(args: argparse.Namespace, workspace_root: Path) -> int:
             return 0
         case _:
             emit({"ok": False, "error": "unknown memory subcommand"})
+            return 2
+
+
+def _cmd_approvals(args: argparse.Namespace) -> int:
+    workspace_root = Path.cwd().resolve()
+    allowlist_path = approval_allowlist_file_path(workspace_root)
+    json_output = bool(getattr(args, "json", False))
+
+    def emit(payload: object) -> None:
+        if json_output:
+            _write_line(sys.stdout, json.dumps(payload, indent=2, sort_keys=True))
+            return
+        _write_line(sys.stdout, json.dumps(payload, sort_keys=True))
+
+    def effective_entries(env_ids: set[str], file_ids: set[str]) -> list[dict[str, str]]:
+        sources = {approval_id: "file" for approval_id in file_ids}
+        for approval_id in env_ids:
+            sources[approval_id] = "env"
+        return [{"approval_id": approval_id, "source": sources[approval_id]} for approval_id in sorted(sources)]
+
+    def emit_human(env_ids: set[str], file_ids: set[str]) -> None:
+        entries = effective_entries(env_ids, file_ids)
+        _write_line(sys.stdout, f"Effective allowlist ({len(entries)}):")
+        for entry in entries:
+            _write_line(sys.stdout, f"  {entry['approval_id']}  {entry['source']}")
+        _write_line(sys.stdout, "")
+        _write_line(sys.stdout, f"File: {allowlist_path}")
+
+    approvals_command = str(getattr(args, "approvals_command", "") or "").strip().lower()
+    if not approvals_command:
+        _write_line(sys.stdout, "tokimon approvals")
+        _write_line(sys.stdout, "")
+        _write_line(sys.stdout, "Subcommands:")
+        _write_line(sys.stdout, "  list    Show effective allowlist (env + file)")
+        _write_line(sys.stdout, "  add     Add an approval id to the file allowlist")
+        _write_line(sys.stdout, "  remove  Remove an approval id from the file allowlist")
+        _write_line(sys.stdout, "  clear   Clear the file allowlist")
+        _write_line(sys.stdout, "")
+        _write_line(sys.stdout, "Examples:")
+        _write_line(sys.stdout, "  tokimon approvals list")
+        _write_line(sys.stdout, "  tokimon approvals add <approval_id>")
+        _write_line(sys.stdout, "  tokimon approvals remove <approval_id>")
+        _write_line(sys.stdout, "  tokimon approvals clear")
+        _write_line(sys.stdout, "  tokimon approvals list --json")
+        return 0
+
+    env_ids, file_ids = load_approval_allowlist(env=os.environ, workspace_root=workspace_root)
+
+    match approvals_command:
+        case "list":
+            if json_output:
+                entries = effective_entries(env_ids, file_ids)
+                emit(
+                    {
+                        "ok": True,
+                        "workspace_root": str(workspace_root),
+                        "path": str(allowlist_path),
+                        "count": len(entries),
+                        "allowlist": entries,
+                    }
+                )
+            else:
+                emit_human(env_ids, file_ids)
+            return 0
+        case "add" | "remove" | "clear":
+            approval_id = str(getattr(args, "approval_id", "") or "").strip()
+            updated_file_ids = set(file_ids)
+            if approvals_command == "add":
+                if approval_id:
+                    updated_file_ids.add(approval_id)
+            elif approvals_command == "remove":
+                if approval_id:
+                    updated_file_ids.discard(approval_id)
+            else:
+                updated_file_ids = set()
+
+            should_write = updated_file_ids != file_ids
+            if approvals_command == "clear" and allowlist_path.exists():
+                should_write = True
+            if should_write:
+                write_allowlist_file(updated_file_ids, workspace_root=workspace_root)
+
+            env_ids, file_ids = load_approval_allowlist(env=os.environ, workspace_root=workspace_root)
+            if json_output:
+                entries = effective_entries(env_ids, file_ids)
+                emit(
+                    {
+                        "ok": True,
+                        "workspace_root": str(workspace_root),
+                        "path": str(allowlist_path),
+                        "count": len(entries),
+                        "allowlist": entries,
+                    }
+                )
+            else:
+                emit_human(env_ids, file_ids)
+            return 0
+        case _:
+            emit({"ok": False, "error": "unknown approvals subcommand"})
             return 2
 
 
