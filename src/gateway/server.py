@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import ipaddress
 import json
+import os
 import secrets
 import struct
 import threading
@@ -44,6 +46,8 @@ class GatewayConfig:
     port: int = 8765
     llm_provider: str = "mock"
     workspace_dir: Path = field(default_factory=Path.cwd)
+    dangerously_expose: bool = False
+    auth_token: str | None = None
 
 
 class _GatewayHTTPServer(ThreadingHTTPServer):
@@ -54,6 +58,9 @@ class _GatewayHTTPServer(ThreadingHTTPServer):
         self.config = config
         self.workspace_dir = config.workspace_dir.resolve()
         self.llm_provider = (config.llm_provider or "").strip().lower()
+        token = config.auth_token if config.auth_token is not None else os.environ.get("TOKIMON_GATEWAY_AUTH_TOKEN")
+        token = (token or "").strip() or None
+        self.auth_token = token
         self.llm_client = build_llm_client(self.llm_provider, workspace_dir=self.workspace_dir)
         self.tools = {
             "file": FileTool(self.workspace_dir),
@@ -134,7 +141,21 @@ class _GatewayHTTPServer(ThreadingHTTPServer):
 
 class GatewayServer:
     def __init__(self, config: GatewayConfig) -> None:
-        self._server = _GatewayHTTPServer((config.host, int(config.port)), config)
+        auth_token = config.auth_token if config.auth_token is not None else os.environ.get("TOKIMON_GATEWAY_AUTH_TOKEN")
+        auth_token = (auth_token or "").strip() or None
+        host = str(config.host or "").strip() or "127.0.0.1"
+        if not _is_loopback_host(host):
+            if not bool(config.dangerously_expose):
+                raise ValueError(
+                    f"refusing to bind Gateway to non-loopback host {host!r} without --dangerously-expose "
+                    "and TOKIMON_GATEWAY_AUTH_TOKEN configured"
+                )
+            if not auth_token:
+                raise ValueError(
+                    f"refusing to bind Gateway to non-loopback host {host!r} without TOKIMON_GATEWAY_AUTH_TOKEN configured"
+                )
+        normalized = replace(config, host=host, auth_token=auth_token)
+        self._server = _GatewayHTTPServer((normalized.host, int(normalized.port)), normalized)
         self._thread = threading.Thread(target=self._server.serve_forever, name="tokimon-gateway", daemon=True)
 
     @property
@@ -236,6 +257,7 @@ class _GatewayHandler(BaseHTTPRequestHandler):
 
         connected = False
         idempotency_cache: dict[str, dict[str, Any]] = {}
+        require_auth = bool(getattr(self.server, "auth_token", None))
 
         try:
             first = self._ws_recv_json()
@@ -245,10 +267,21 @@ class _GatewayHandler(BaseHTTPRequestHandler):
             if method != "connect":
                 self._ws_send_res_error(req_id, "first method must be connect", details={"code": "CONNECT_REQUIRED"})
                 return
-            connect_errors = _validate_connect_params(params)
+            connect_errors = _validate_connect_params(params, require_auth=require_auth)
             if connect_errors:
                 self._ws_send_res_error(req_id, "invalid connect params", details={"code": "CONNECT_INVALID", "errors": connect_errors})
                 return
+            echoed_nonce = str(params.get("challenge", {}).get("nonce") or "")
+            if not secrets.compare_digest(echoed_nonce, nonce):
+                self._ws_send_res_error(req_id, "connect.challenge nonce mismatch", details={"code": "CHALLENGE_MISMATCH"})
+                return
+            if require_auth:
+                auth = params.get("auth") or {}
+                credential = str(auth.get("credential") or "")
+                expected = str(getattr(self.server, "auth_token") or "")
+                if not expected or not secrets.compare_digest(credential, expected):
+                    self._ws_send_res_error(req_id, "unauthorized", details={"code": "AUTH_INVALID"})
+                    return
             min_protocol = int(params["minProtocol"])
             max_protocol = int(params["maxProtocol"])
             if not (min_protocol <= PROTOCOL_VERSION <= max_protocol):
@@ -473,7 +506,7 @@ def _parse_req_frame(frame: dict[str, Any]) -> tuple[str, str, dict[str, Any]]:
     return req_id.strip(), method.strip(), params
 
 
-def _validate_connect_params(params: dict[str, Any]) -> list[str]:
+def _validate_connect_params(params: dict[str, Any], *, require_auth: bool) -> list[str]:
     errors: list[str] = []
     min_protocol = params.get("minProtocol")
     max_protocol = params.get("maxProtocol")
@@ -481,6 +514,13 @@ def _validate_connect_params(params: dict[str, Any]) -> list[str]:
         errors.append("minProtocol must be an int")
     if not isinstance(max_protocol, int):
         errors.append("maxProtocol must be an int")
+    challenge = params.get("challenge")
+    if not isinstance(challenge, dict):
+        errors.append("challenge must be an object")
+    else:
+        nonce = challenge.get("nonce")
+        if not isinstance(nonce, str) or not nonce.strip():
+            errors.append("challenge.nonce must be a non-empty string")
     client = params.get("client")
     if not isinstance(client, dict):
         errors.append("client must be an object")
@@ -492,10 +532,33 @@ def _validate_connect_params(params: dict[str, Any]) -> list[str]:
     role = params.get("role")
     if not isinstance(role, str) or not role.strip():
         errors.append("role must be a non-empty string")
+    auth = params.get("auth")
+    if require_auth:
+        if not isinstance(auth, dict):
+            errors.append("auth must be an object")
+        else:
+            mode = auth.get("mode")
+            if mode != "token":
+                errors.append("auth.mode must be 'token'")
+            credential = auth.get("credential")
+            if not isinstance(credential, str) or not credential.strip():
+                errors.append("auth.credential must be a non-empty string")
     scopes = params.get("scopes")
     if scopes is not None and not isinstance(scopes, list):
         errors.append("scopes must be a list")
     return errors
+
+
+def _is_loopback_host(host: str) -> bool:
+    host = str(host or "").strip().lower()
+    if not host:
+        return True
+    if host == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
 
 
 def _validate_send_params(params: dict[str, Any]) -> list[str]:

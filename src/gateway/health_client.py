@@ -279,27 +279,38 @@ def _gateway_ws_handshake(
     challenge = ws.recv_json(deadline=deadline)
     if challenge.get("type") != "event" or challenge.get("event") != "connect.challenge":
         raise GatewayHealthError("expected connect.challenge event")
+    payload = challenge.get("payload")
+    if not isinstance(payload, dict):
+        raise GatewayHealthError("invalid connect.challenge payload")
+    nonce = payload.get("nonce")
+    if not isinstance(nonce, str) or not nonce.strip():
+        raise GatewayHealthError("invalid connect.challenge nonce")
     _safe_log(log, "received connect.challenge")
 
     if details is not None:
         details["step"] = "send_connect"
+    token = str(os.environ.get("TOKIMON_GATEWAY_AUTH_TOKEN") or "").strip() or None
+    params: dict[str, Any] = {
+        "minProtocol": 1,
+        "maxProtocol": 1,
+        "challenge": {"nonce": nonce},
+        "client": {
+            "id": "tokimon",
+            "version": "0",
+            "platform": sys.platform,
+            "mode": "operator",
+        },
+        "role": "operator",
+        "scopes": ["operator.read"],
+    }
+    if token:
+        params["auth"] = {"mode": "token", "credential": token}
     ws.send_json(
         {
             "type": "req",
             "id": "1",
             "method": "connect",
-            "params": {
-                "minProtocol": 1,
-                "maxProtocol": 1,
-                "client": {
-                    "id": "tokimon",
-                    "version": "0",
-                    "platform": sys.platform,
-                    "mode": "operator",
-                },
-                "role": "operator",
-                "scopes": ["operator.read"],
-            },
+            "params": params,
         },
         deadline=deadline,
     )

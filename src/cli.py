@@ -150,6 +150,11 @@ def build_parser(*, exit_on_error: bool = True) -> argparse.ArgumentParser:
         default=os.environ.get("TOKIMON_LLM", "mock"),
         help=argparse.SUPPRESS,
     )
+    gateway_run_common.add_argument(
+        "--dangerously-expose",
+        action="store_true",
+        help="Allow binding Gateway to non-loopback interfaces (requires TOKIMON_GATEWAY_AUTH_TOKEN).",
+    )
     gateway_run_common.add_argument("--workspace", default=None, help=argparse.SUPPRESS)
 
     gateway = subparsers.add_parser("gateway", parents=[gateway_run_common], help="Run the Gateway server or Gateway RPC helpers.")
@@ -438,15 +443,22 @@ def _cmd_gateway(args: argparse.Namespace) -> int:
     gateway_command = str(getattr(args, "gateway_command", "") or "").strip().lower()
     if not gateway_command or gateway_command == "run":
         workspace_dir = Path(args.workspace).resolve() if args.workspace else Path.cwd().resolve()
+        auth_token = str(os.environ.get("TOKIMON_GATEWAY_AUTH_TOKEN") or "").strip() or None
         config = GatewayConfig(
             host=str(args.host),
             port=int(args.port),
             llm_provider=str(args.llm),
             workspace_dir=workspace_dir,
+            dangerously_expose=bool(getattr(args, "dangerously_expose", False)),
+            auth_token=auth_token,
         )
         try:
             run_gateway(config)
             return 0
+        except ValueError as exc:
+            _write_line(sys.stdout, f"error: {exc}")
+            _write_line(sys.stdout, "remediation: Bind to 127.0.0.1 or set TOKIMON_GATEWAY_AUTH_TOKEN and pass --dangerously-expose.")
+            return 2
         except OSError as exc:
             if getattr(exc, "errno", None) in {48, 98}:  # macOS=48, Linux=98
                 _write_line(sys.stdout, f"error: port {config.port} is already in use")

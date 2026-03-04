@@ -19,6 +19,9 @@ tokimon gateway --host 127.0.0.1 --port 8765 --llm mock
 Notes:
 - `tokimon chat-ui` remains available and unchanged.
 - Gateway is a superset server: it supports `/healthz` + `/api/send` and adds `/gateway`.
+- Gateway binds loopback by default. To bind to a non-loopback interface (e.g. `0.0.0.0`), you must:
+  - Configure `TOKIMON_GATEWAY_AUTH_TOKEN`, and
+  - Pass `--dangerously-expose` (explicit opt-in).
 - If `tokimon health` / `tokimon logs` fail with a WS handshake error (expected HTTP 101), the URL is pointing at a non-Gateway HTTP server (commonly `tokimon chat-ui` or another service on that port). Start `tokimon gateway run` on a free port and pass `--url ws://127.0.0.1:<port>/gateway`.
 
 ## Transport
@@ -54,7 +57,9 @@ The client must then send a `connect` request as its first frame:
   "params": {
     "minProtocol": 1,
     "maxProtocol": 1,
+    "challenge": { "nonce": "…" },
     "client": { "id": "cli", "version": "0.1.0", "platform": "linux", "mode": "operator" },
+    "auth": { "mode": "token", "credential": "…" },
     "role": "operator",
     "scopes": ["operator.read", "operator.write"]
   }
@@ -77,6 +82,17 @@ Gateway responds:
 - `PROTOCOL_VERSION = 1` for Phase 1.
 - The server accepts the connection only if `minProtocol <= PROTOCOL_VERSION <= maxProtocol`.
 - On mismatch, the server responds with `ok=false` and closes the socket.
+
+### Challenge echo
+
+- The client MUST echo back the `connect.challenge.payload.nonce` in `connect.params.challenge.nonce`.
+- On mismatch or missing nonce, the server responds with `ok=false` and closes the socket.
+
+### Token auth (optional)
+
+- When `TOKIMON_GATEWAY_AUTH_TOKEN` is configured on the server, the client MUST include:
+  - `connect.params.auth = { "mode": "token", "credential": "<token>" }`
+- When `TOKIMON_GATEWAY_AUTH_TOKEN` is not configured, `connect.params.auth` is optional and ignored.
 
 ## JSON-schema validation (Phase 1)
 

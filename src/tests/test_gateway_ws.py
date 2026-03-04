@@ -175,7 +175,9 @@ def test_gateway_ws_handshake_health_and_send(tmp_path: Path) -> None:
             challenge = ws.recv_json()
             assert challenge["type"] == "event"
             assert challenge["event"] == "connect.challenge"
-            assert isinstance(challenge.get("payload", {}).get("nonce"), str)
+            nonce = challenge.get("payload", {}).get("nonce")
+            assert isinstance(nonce, str)
+            assert nonce
             assert isinstance(challenge.get("payload", {}).get("ts"), int)
 
             ws.send_json(
@@ -186,6 +188,7 @@ def test_gateway_ws_handshake_health_and_send(tmp_path: Path) -> None:
                     "params": {
                         "minProtocol": 1,
                         "maxProtocol": 1,
+                        "challenge": {"nonce": nonce},
                         "client": {"id": "pytest", "version": "0", "platform": "linux", "mode": "operator"},
                         "role": "operator",
                         "scopes": ["operator.read"],
@@ -224,3 +227,136 @@ def test_gateway_ws_handshake_health_and_send(tmp_path: Path) -> None:
     finally:
         server.stop()
 
+
+def test_gateway_ws_rejects_challenge_mismatch(tmp_path: Path) -> None:
+    config = GatewayConfig(host="127.0.0.1", port=0, llm_provider="mock", workspace_dir=tmp_path)
+    try:
+        server = GatewayServer(config)
+    except PermissionError as exc:
+        pytest.skip(f"socket operations not permitted in this environment: {exc}")
+    server.start()
+    try:
+        _wait_for_healthz(server.url)
+
+        ws = _ws_connect(server.host, server.port)
+        try:
+            challenge = ws.recv_json()
+            nonce = challenge.get("payload", {}).get("nonce")
+            assert isinstance(nonce, str)
+            assert nonce
+
+            ws.send_json(
+                {
+                    "type": "req",
+                    "id": "1",
+                    "method": "connect",
+                    "params": {
+                        "minProtocol": 1,
+                        "maxProtocol": 1,
+                        "challenge": {"nonce": f"{nonce}-bad"},
+                        "client": {"id": "pytest", "version": "0", "platform": "linux", "mode": "operator"},
+                        "role": "operator",
+                        "scopes": ["operator.read"],
+                    },
+                }
+            )
+            hello = ws.recv_json()
+            assert hello["type"] == "res"
+            assert hello["id"] == "1"
+            assert hello["ok"] is False
+        finally:
+            ws.close()
+    finally:
+        server.stop()
+
+
+def test_gateway_ws_rejects_missing_auth_when_enabled(tmp_path: Path) -> None:
+    config = GatewayConfig(host="127.0.0.1", port=0, llm_provider="mock", workspace_dir=tmp_path, auth_token="secret")
+    try:
+        server = GatewayServer(config)
+    except PermissionError as exc:
+        pytest.skip(f"socket operations not permitted in this environment: {exc}")
+    server.start()
+    try:
+        _wait_for_healthz(server.url)
+
+        ws = _ws_connect(server.host, server.port)
+        try:
+            challenge = ws.recv_json()
+            nonce = challenge.get("payload", {}).get("nonce")
+            assert isinstance(nonce, str)
+            assert nonce
+
+            ws.send_json(
+                {
+                    "type": "req",
+                    "id": "1",
+                    "method": "connect",
+                    "params": {
+                        "minProtocol": 1,
+                        "maxProtocol": 1,
+                        "challenge": {"nonce": nonce},
+                        "client": {"id": "pytest", "version": "0", "platform": "linux", "mode": "operator"},
+                        "role": "operator",
+                        "scopes": ["operator.read"],
+                    },
+                }
+            )
+            hello = ws.recv_json()
+            assert hello["type"] == "res"
+            assert hello["id"] == "1"
+            assert hello["ok"] is False
+        finally:
+            ws.close()
+    finally:
+        server.stop()
+
+
+def test_gateway_ws_allows_auth_when_enabled(tmp_path: Path) -> None:
+    config = GatewayConfig(host="127.0.0.1", port=0, llm_provider="mock", workspace_dir=tmp_path, auth_token="secret")
+    try:
+        server = GatewayServer(config)
+    except PermissionError as exc:
+        pytest.skip(f"socket operations not permitted in this environment: {exc}")
+    server.start()
+    try:
+        _wait_for_healthz(server.url)
+
+        ws = _ws_connect(server.host, server.port)
+        try:
+            challenge = ws.recv_json()
+            nonce = challenge.get("payload", {}).get("nonce")
+            assert isinstance(nonce, str)
+            assert nonce
+
+            ws.send_json(
+                {
+                    "type": "req",
+                    "id": "1",
+                    "method": "connect",
+                    "params": {
+                        "minProtocol": 1,
+                        "maxProtocol": 1,
+                        "challenge": {"nonce": nonce},
+                        "auth": {"mode": "token", "credential": "secret"},
+                        "client": {"id": "pytest", "version": "0", "platform": "linux", "mode": "operator"},
+                        "role": "operator",
+                        "scopes": ["operator.read"],
+                    },
+                }
+            )
+            hello = ws.recv_json()
+            assert hello["type"] == "res"
+            assert hello["id"] == "1"
+            assert hello["ok"] is True
+
+            ws.send_json({"type": "req", "id": "2", "method": "health", "params": {}})
+            health = ws.recv_json()
+            assert health["type"] == "res"
+            assert health["id"] == "2"
+            assert health["ok"] is True
+            assert health["payload"]["ok"] is True
+        finally:
+            ws.close()
+    finally:
+        server.stop()

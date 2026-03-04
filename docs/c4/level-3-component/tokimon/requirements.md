@@ -453,6 +453,8 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
 - `tokimon gateway` starts a local server that supports:
   - Existing Chat UI HTTP endpoints: `GET /healthz`, `POST /api/send`
   - A WebSocket control-plane endpoint at `GET /gateway` (WS upgrade)
+- Bind safety:
+  - Gateway MUST refuse non-loopback binds (e.g. `0.0.0.0`) unless `--dangerously-expose` is set AND `TOKIMON_GATEWAY_AUTH_TOKEN` is configured.
 - `tokimon gateway run` is an explicit alias for starting the Gateway server.
 - `tokimon gateway health` is an alias of `tokimon health` (same flags).
 - `tokimon gateway call <method>` performs a single WebSocket RPC call and prints the response.
@@ -466,6 +468,8 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
 - Handshake:
   - On socket open, the server emits `connect.challenge`.
   - The first client request MUST be `connect` and MUST pass protocol version validation.
+  - The client MUST echo the `connect.challenge` nonce in `connect.params.challenge.nonce`; mismatches MUST be rejected.
+  - When `TOKIMON_GATEWAY_AUTH_TOKEN` is configured, the server MUST require `connect.params.auth = {mode:"token", credential:"..."}` and verify via constant-time compare.
 - Phase 1 methods:
   - `health`: returns `{ok:true}`
   - `send`: invokes the same logic as `/api/send` and requires an idempotency key.

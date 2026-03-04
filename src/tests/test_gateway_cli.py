@@ -41,6 +41,38 @@ def test_gateway_run_parses() -> None:
     assert args.gateway_command == "run"
 
 
+def test_gateway_run_refuses_non_loopback_without_opt_in(capsys: pytest.CaptureFixture[str]) -> None:
+    exit_code = cli.main(["gateway", "run", "--host", "0.0.0.0", "--port", "0"])
+    assert exit_code == 2
+    assert "dangerously-expose" in capsys.readouterr().out
+
+
+def test_gateway_run_refuses_non_loopback_without_token(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    monkeypatch.delenv("TOKIMON_GATEWAY_AUTH_TOKEN", raising=False)
+    exit_code = cli.main(["gateway", "run", "--host", "0.0.0.0", "--dangerously-expose", "--port", "0"])
+    assert exit_code == 2
+    out = capsys.readouterr().out
+    assert "TOKIMON_GATEWAY_AUTH_TOKEN" in out
+
+
+def test_gateway_run_allows_non_loopback_with_token_and_opt_in(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("TOKIMON_GATEWAY_AUTH_TOKEN", "secret")
+    called: dict[str, object] = {}
+
+    def _fake_run_gateway(config: GatewayConfig) -> None:
+        called["config"] = config
+        return
+
+    monkeypatch.setattr(cli, "run_gateway", _fake_run_gateway)
+    exit_code = cli.main(["gateway", "run", "--host", "0.0.0.0", "--dangerously-expose", "--port", "0"])
+    assert exit_code == 0
+    config = called.get("config")
+    assert isinstance(config, GatewayConfig)
+    assert config.host == "0.0.0.0"
+    assert config.dangerously_expose is True
+    assert config.auth_token == "secret"
+
+
 def test_gateway_health_alias_json(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     config = GatewayConfig(host="127.0.0.1", port=0, llm_provider="mock", workspace_dir=tmp_path)
     try:
@@ -117,4 +149,3 @@ def test_gateway_probe_json(tmp_path: Path, capsys: pytest.CaptureFixture[str]) 
         assert payload["elapsed_ms"] >= 0
     finally:
         server.stop()
-
