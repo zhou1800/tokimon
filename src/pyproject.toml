@@ -9,6 +9,7 @@ description = "Hierarchical manager/worker agent system with workflow orchestrat
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+  "cryptography>=41.0.0",
   "pyyaml>=6.0",
 ]
 

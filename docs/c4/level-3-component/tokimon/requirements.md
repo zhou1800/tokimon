@@ -450,7 +450,7 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
 - The chat handler uses the same tool set as the hierarchical runner (file, grep, patch, pytest, web).
 - Default LLM provider for `chat-ui` and `gateway` is `codex`; `--llm claude` (or `TOKIMON_LLM=claude`) selects the Claude CLI-backed client instead.
 
-### Gateway Server (OpenClaw-Inspired, Phase 1/2)
+### Gateway Server (OpenClaw-Inspired, Phase 1/2/3)
 - `tokimon gateway` starts a local server that supports:
   - Existing Chat UI HTTP endpoints: `GET /healthz`, `POST /api/send`
   - A WebSocket control-plane endpoint at `GET /gateway` (WS upgrade)
@@ -475,7 +475,17 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
     - On mismatch, the server responds with `ok=false` and closes the socket.
   - The client MUST echo the `connect.challenge` nonce in `connect.params.challenge.nonce`; mismatches MUST be rejected.
   - When `TOKIMON_GATEWAY_AUTH_TOKEN` is configured, the server MUST require `connect.params.auth` to be either `{mode:"token", credential:"..."}` or `{token:"..."}` and verify via constant-time compare.
-  - The server MUST accept optional `connect.params` fields: `caps`, `commands`, `permissions`, `locale`, `userAgent`, `device` (type-check deterministically; signature verification is TODO).
+  - Device identity + challenge signing (protocol v3):
+    - For negotiated protocol versions `>= 3`, the server MUST require `connect.params.device` unless `TOKIMON_GATEWAY_DANGEROUSLY_DISABLE_DEVICE_AUTH=1` is set.
+    - Required device fields: `id`, `publicKey`, `signature`, `signedAt`, `nonce`.
+    - Validation MUST be deterministic and OpenClaw-compatible:
+      - `device.id == sha256(device.publicKey_raw_bytes).hexdigest()`.
+      - `device.signedAt` within ±2 minutes of server time.
+      - `device.nonce` non-blank and equals the `connect.challenge` nonce.
+      - `device.signature` verifies Ed25519 base64url over the OpenClaw payload string (try v3 then v2).
+        - Token field uses `connect.params.auth.token` if present, else `connect.params.auth.credential` when `auth.mode == "token"`, else `""`.
+    - On failure, the server MUST respond `ok=false` with OpenClaw-compatible `error.details.code`/`reason` (DEVICE_* codes) and close the socket.
+  - The server MUST accept optional `connect.params` fields: `caps`, `commands`, `permissions`, `locale`, `userAgent`, `device` (type-check deterministically; protocol v3 enforces device auth as above).
 - Methods:
   - `health`: returns `{ok:true}`
   - `methods.list`: returns the server-supported methods (excluding `connect`) in deterministic order, gated by negotiated protocol (protocol v1 keeps the Phase 1 list; protocol v3 adds `system-presence`).
@@ -483,10 +493,12 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
   - `tools.catalog`: returns a deterministic tool/action risk catalog derived from `src/policy/dangerous_tools.py`.
   - `send`: invokes the same logic as `/api/send` and requires an idempotency key.
   - `logs.tail`: returns recent log entries from an in-memory ring buffer.
-- The Gateway protocol surface and Phase 2 TODOs are documented in `docs/gateway.md`.
+- The Gateway protocol surface and Phase 3 requirements are documented in `docs/gateway.md`.
 - Acceptance tests:
   - `src/tests/test_gateway_ws.py::test_gateway_ws_handshake_health_and_send` asserts a v1 connect flow with `hello-ok.payload.protocol == 1` and `methods.list` returning the Phase 1 list.
   - `src/tests/test_gateway_ws.py::test_gateway_ws_protocol_v3_methods_and_presence` asserts protocol negotiation selects v3, `methods.list` includes `system-presence`, and `system-presence` includes the current connection.
+  - `src/tests/test_gateway_ws.py::test_gateway_ws_protocol_v3_device_auth_success` asserts a protocol v3 connect succeeds with a valid device identity + signature.
+  - `src/tests/test_gateway_ws.py::test_gateway_ws_protocol_v3_device_auth_failure_codes` asserts each required device-auth failure mode returns the expected OpenClaw-compatible `error.details.code`/`reason`.
 
 ### Self-Improvement Mode (Multi-Session / Batch)
 - When invoked with a self-improvement goal, the system can accept optional “inputs”:

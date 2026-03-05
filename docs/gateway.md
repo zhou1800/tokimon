@@ -6,7 +6,8 @@ Tokimon Gateway is a local server mode that exposes:
 - A new WebSocket control plane endpoint: `GET /gateway` (WS upgrade)
 
 This is inspired by OpenClaw's Gateway protocol, but is intentionally minimal.
-Phase 2 adds protocol negotiation up to v3 and a basic presence snapshot.
+Phase 3 adds protocol negotiation up to v3, a basic presence snapshot, and
+OpenClaw-inspired device identity + challenge signing for protocol v3.
 
 ## CLI
 
@@ -58,8 +59,15 @@ The client must then send a `connect` request as its first frame:
     "minProtocol": 1,
     "maxProtocol": 3,
     "challenge": { "nonce": "…" },
-    "client": { "id": "cli", "version": "0.1.0", "platform": "linux", "mode": "operator" },
+    "client": { "id": "cli", "version": "0.1.0", "platform": "linux", "deviceFamily": "laptop", "mode": "operator" },
     "auth": { "mode": "token", "credential": "…" },
+    "device": {
+      "id": "…",        // sha256(publicKey_raw_bytes).hexdigest()
+      "publicKey": "…", // base64url raw Ed25519 public key bytes
+      "signature": "…", // base64url Ed25519 signature over the payload string
+      "signedAt": 1737264000000,
+      "nonce": "…"      // must equal connect.challenge nonce
+    },
     "role": "operator",
     "scopes": ["operator.read", "operator.write"]
   }
@@ -97,6 +105,35 @@ Gateway responds:
   - `connect.params.auth = { "token": "<token>" }` (OpenClaw-style)
 - When `TOKIMON_GATEWAY_AUTH_TOKEN` is not configured, `connect.params.auth` is optional and ignored.
 
+### Device identity + challenge signing (protocol 3)
+
+- For negotiated protocol versions `1..2`, `connect.params.device` is accepted (type-checked) but ignored.
+- For negotiated protocol versions `>= 3`, Gateway requires device identity + challenge signing unless
+  `TOKIMON_GATEWAY_DANGEROUSLY_DISABLE_DEVICE_AUTH=1` is set.
+
+When required, the client MUST include `connect.params.device` with:
+
+- `id` (string): `sha256(publicKey_raw_bytes).hexdigest()`
+- `publicKey` (string): base64url raw Ed25519 public key bytes
+- `signature` (string): base64url Ed25519 signature
+- `signedAt` (int): epoch ms
+- `nonce` (string): non-blank and MUST equal the `connect.challenge` nonce
+
+Validation rules:
+
+- `device.id` MUST equal `sha256(device.publicKey_raw_bytes).hexdigest()`.
+- `device.signedAt` MUST be within ±2 minutes of server time.
+- `device.nonce` MUST be present (non-blank after trim) and MUST equal the `connect.challenge` nonce.
+- `device.signature` MUST verify (Ed25519) over a single UTF-8 payload string. Gateway tries:
+  - v3 payload first, then falls back to v2 payload (OpenClaw-compatible)
+  - Token field selection: use `connect.params.auth.token` if present, else `connect.params.auth.credential`
+    when `auth.mode == "token"`, else `""`.
+  - v3 payload includes `platform` and `deviceFamily`, normalized by trimming and lowercasing ASCII A–Z only
+    (non-ASCII unchanged).
+
+On failure, Gateway responds to `connect` with `ok=false`, includes OpenClaw-compatible `error.details.code`
+and `error.details.reason` (when applicable), and closes the socket.
+
 ### Optional connect params (accepted; semantics mostly ignored)
 
 The server accepts (and type-checks) these optional `connect.params` fields:
@@ -107,8 +144,8 @@ The server accepts (and type-checks) these optional `connect.params` fields:
 - `locale` (string)
 - `userAgent` (string)
 - `device` (object)
-  - Accepted keys (all optional): `id` (string), `publicKey` (string), `signature` (string), `signedAt` (int), `nonce` (string)
-  - TODO: signature verification / challenge signing is not implemented yet.
+  - Protocol `1..2`: accepted keys (all optional): `id` (string), `publicKey` (string), `signature` (string), `signedAt` (int), `nonce` (string)
+  - Protocol `>=3`: required unless `TOKIMON_GATEWAY_DANGEROUSLY_DISABLE_DEVICE_AUTH=1` is set; see above.
 
 ## JSON-schema validation (Phase 1)
 
@@ -209,7 +246,7 @@ Response payload:
 {
   "connections": [
     {
-      "device": { "id": "pytest-v3" },
+      "device": { "id": "…" },
       "role": "operator",
       "scopes": ["operator.read"],
       "client": { "id": "pytest-v3", "version": "0", "platform": "linux", "mode": "operator" }
@@ -249,7 +286,6 @@ Response payload:
 
 ## TODO (Future phases)
 
-- Device identity + signatures (challenge signing / verification).
 - Explicit `node` role and semantics for `caps`/`commands`/`permissions` and richer presence APIs.
 - Multi-channel connectors and server-push events beyond handshake.
 

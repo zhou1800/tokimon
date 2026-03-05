@@ -41,6 +41,7 @@ _WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 _MAX_WS_FRAME_BYTES = 2_000_000
 _MAX_IDEMPOTENCY_ENTRIES = 128
 _MAX_LOG_ENTRIES = 512
+_DEVICE_AUTH_SKEW_MS = 2 * 60 * 1000
 _PHASE1_WS_METHODS = ("health", "logs.tail", "methods.list", "send", "tools.catalog")
 
 
@@ -349,6 +350,16 @@ class _GatewayHandler(BaseHTTPRequestHandler):
                 )
                 return
             negotiated_protocol = selected_protocol
+            if negotiated_protocol >= 3 and not _device_auth_disabled():
+                device_auth_error = _validate_device_auth(
+                    params,
+                    challenge_nonce=nonce,
+                    now_ms=int(time.time() * 1000),
+                )
+                if device_auth_error is not None:
+                    message, details = device_auth_error
+                    self._ws_send_res_error(req_id, message, details=details)
+                    return
             self._ws_send_json(
                 {
                     "type": "res",
@@ -777,6 +788,197 @@ def _validate_send_params(params: dict[str, Any]) -> list[str]:
     if model is not None and not isinstance(model, str):
         errors.append("model must be a string")
     return errors
+
+
+def _device_auth_disabled() -> bool:
+    return str(os.environ.get("TOKIMON_GATEWAY_DANGEROUSLY_DISABLE_DEVICE_AUTH") or "").strip() == "1"
+
+
+def _b64url_decode(data: str) -> bytes:
+    data = str(data or "").strip()
+    if not data:
+        raise ValueError("empty base64url value")
+    pad_len = (-len(data)) % 4
+    padded = data + ("=" * pad_len)
+    try:
+        return base64.urlsafe_b64decode(padded.encode("ascii"))
+    except Exception as exc:
+        raise ValueError("invalid base64url value") from exc
+
+
+def _ascii_lower_trim(text: str) -> str:
+    text = str(text or "").strip()
+    return "".join(chr(ord(ch) + 32) if "A" <= ch <= "Z" else ch for ch in text)
+
+
+def _device_payload_v2(
+    *,
+    device_id: str,
+    client_id: str,
+    client_mode: str,
+    role: str,
+    scopes: list[str],
+    signed_at_ms: int,
+    token: str,
+    nonce: str,
+) -> str:
+    scopes_csv = ",".join(scopes)
+    return f"v2|{device_id}|{client_id}|{client_mode}|{role}|{scopes_csv}|{signed_at_ms}|{token}|{nonce}"
+
+
+def _device_payload_v3(
+    *,
+    device_id: str,
+    client_id: str,
+    client_mode: str,
+    role: str,
+    scopes: list[str],
+    signed_at_ms: int,
+    token: str,
+    nonce: str,
+    platform: str,
+    device_family: str,
+) -> str:
+    scopes_csv = ",".join(scopes)
+    platform_norm = _ascii_lower_trim(platform)
+    device_family_norm = _ascii_lower_trim(device_family)
+    return (
+        "v3"
+        f"|{device_id}|{client_id}|{client_mode}|{role}|{scopes_csv}|{signed_at_ms}|{token}|{nonce}"
+        f"|{platform_norm}|{device_family_norm}"
+    )
+
+
+def _connect_token_for_device_payload(auth: Any) -> str:
+    if not isinstance(auth, dict):
+        return ""
+    token = auth.get("token")
+    if isinstance(token, str):
+        return token
+    mode = auth.get("mode")
+    credential = auth.get("credential")
+    if mode == "token" and isinstance(credential, str):
+        return credential
+    return ""
+
+
+def _verify_ed25519_signature(*, public_key: bytes, signature: bytes, payload: str) -> bool:
+    try:
+        from cryptography.exceptions import InvalidSignature
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+    except Exception:
+        return False
+    try:
+        key = Ed25519PublicKey.from_public_bytes(public_key)
+    except Exception:
+        return False
+    try:
+        key.verify(signature, payload.encode("utf-8"))
+        return True
+    except InvalidSignature:
+        return False
+    except Exception:
+        return False
+
+
+def _validate_device_auth(
+    params: dict[str, Any],
+    *,
+    challenge_nonce: str,
+    now_ms: int,
+) -> tuple[str, dict[str, Any]] | None:
+    device = params.get("device")
+    if not isinstance(device, dict):
+        return ("device identity required", {"code": "DEVICE_IDENTITY_REQUIRED"})
+
+    device_id = device.get("id")
+    public_key_b64 = device.get("publicKey")
+    signature_b64 = device.get("signature")
+    signed_at_ms = device.get("signedAt")
+    device_nonce = device.get("nonce")
+
+    if not isinstance(device_id, str) or not device_id.strip():
+        return ("device identity required", {"code": "DEVICE_IDENTITY_REQUIRED"})
+    if not isinstance(public_key_b64, str) or not public_key_b64.strip():
+        return ("device identity required", {"code": "DEVICE_IDENTITY_REQUIRED"})
+    if not isinstance(signature_b64, str) or not signature_b64.strip():
+        return ("device identity required", {"code": "DEVICE_IDENTITY_REQUIRED"})
+    if not isinstance(signed_at_ms, int):
+        return ("device identity required", {"code": "DEVICE_IDENTITY_REQUIRED"})
+
+    if not isinstance(device_nonce, str) or not device_nonce.strip():
+        return ("device nonce required", {"code": "DEVICE_AUTH_NONCE_REQUIRED", "reason": "device-nonce-missing"})
+    if not secrets.compare_digest(device_nonce, challenge_nonce):
+        return ("device nonce mismatch", {"code": "DEVICE_AUTH_NONCE_MISMATCH", "reason": "device-nonce-mismatch"})
+
+    if abs(int(now_ms) - int(signed_at_ms)) > _DEVICE_AUTH_SKEW_MS:
+        return ("device signature expired", {"code": "DEVICE_AUTH_SIGNATURE_EXPIRED", "reason": "device-signature-stale"})
+
+    try:
+        public_key_bytes = _b64url_decode(public_key_b64)
+    except ValueError:
+        return ("device public key invalid", {"code": "DEVICE_AUTH_PUBLIC_KEY_INVALID", "reason": "device-public-key"})
+    if len(public_key_bytes) != 32:
+        return ("device public key invalid", {"code": "DEVICE_AUTH_PUBLIC_KEY_INVALID", "reason": "device-public-key"})
+    derived_id = hashlib.sha256(public_key_bytes).hexdigest()
+    if not secrets.compare_digest(device_id, derived_id):
+        return ("device identity mismatch", {"code": "DEVICE_AUTH_DEVICE_ID_MISMATCH", "reason": "device-id-mismatch"})
+
+    try:
+        signature_bytes = _b64url_decode(signature_b64)
+    except ValueError:
+        return ("device signature invalid", {"code": "DEVICE_AUTH_SIGNATURE_INVALID", "reason": "device-signature"})
+    if len(signature_bytes) != 64:
+        return ("device signature invalid", {"code": "DEVICE_AUTH_SIGNATURE_INVALID", "reason": "device-signature"})
+
+    client = params.get("client") or {}
+    client_id = ""
+    client_mode = ""
+    platform = ""
+    device_family = ""
+    if isinstance(client, dict):
+        client_id = str(client.get("id") or "")
+        client_mode = str(client.get("mode") or "")
+        platform = str(client.get("platform") or "")
+        maybe_device_family = client.get("deviceFamily")
+        device_family = str(maybe_device_family) if isinstance(maybe_device_family, str) else ""
+
+    role = str(params.get("role") or "")
+    scopes_in = params.get("scopes")
+    scopes: list[str] = []
+    if isinstance(scopes_in, list):
+        scopes = [str(scope) for scope in scopes_in]
+
+    token = _connect_token_for_device_payload(params.get("auth"))
+    payload_v3 = _device_payload_v3(
+        device_id=device_id,
+        client_id=client_id,
+        client_mode=client_mode,
+        role=role,
+        scopes=scopes,
+        signed_at_ms=int(signed_at_ms),
+        token=token,
+        nonce=device_nonce,
+        platform=platform,
+        device_family=device_family,
+    )
+    if _verify_ed25519_signature(public_key=public_key_bytes, signature=signature_bytes, payload=payload_v3):
+        return None
+
+    payload_v2 = _device_payload_v2(
+        device_id=device_id,
+        client_id=client_id,
+        client_mode=client_mode,
+        role=role,
+        scopes=scopes,
+        signed_at_ms=int(signed_at_ms),
+        token=token,
+        nonce=device_nonce,
+    )
+    if _verify_ed25519_signature(public_key=public_key_bytes, signature=signature_bytes, payload=payload_v2):
+        return None
+
+    return ("device signature invalid", {"code": "DEVICE_AUTH_SIGNATURE_INVALID", "reason": "device-signature"})
 
 
 def _validate_logs_tail_params(params: dict[str, Any]) -> list[str]:

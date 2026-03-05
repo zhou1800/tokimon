@@ -23,6 +23,7 @@ This document maps requirements to automated tests.
 - CLI help surface: default `--help` output hides advanced flags while still accepting them (see `src/tests/test_cli_auto.py`).
 - Self-improve CLI LLM default: `--llm` defaults to `$TOKIMON_LLM` when set, else `mixed` (see `src/tests/test_cli_auto.py`).
 - CLI gateway subcommands: `tokimon gateway run|health|call|probe` parse and client behavior (see `src/tests/test_gateway_cli.py`).
+- Gateway WS protocol v3 device auth: `connect.params.device` identity + challenge signing success and OpenClaw-compatible DEVICE_* failure codes (see `src/tests/test_gateway_ws.py`).
 - CLI logs: `tokimon logs` returns Gateway log entries over the WebSocket RPC (see `src/tests/test_logs_cli.py`).
 - CLI memory: `tokimon memory status/index/search` supports deterministic JSON output, query precedence (`--query` wins), and indexing/search via `--root`, `--deep`, `--index`, `--limit` (see `src/tests/test_memory_cli.py`).
 - CLI approvals: `tokimon approvals list/add/remove/clear` manages `.tokimon-tmp/approvals/allowlist.json` deterministically, includes env allowlist entries in `list`, and supports stable `--json` output (new tests under `src/tests/test_approvals_cli.py`).

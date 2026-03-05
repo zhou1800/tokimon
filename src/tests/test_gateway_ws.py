@@ -17,6 +17,13 @@ from llm.client import MockLLMClient
 
 _WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
+try:
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+except Exception:  # pragma: no cover - environment dependent
+    Ed25519PrivateKey = None  # type: ignore[assignment]
+    serialization = None  # type: ignore[assignment]
+
 
 def _get_json(url: str, *, timeout_s: float = 2.0) -> dict:
     with urllib.request.urlopen(url, timeout=timeout_s) as response:
@@ -159,6 +166,120 @@ def _ws_connect(host: str, port: int, *, path: str = "/gateway", timeout_s: floa
     expected = base64.b64encode(hashlib.sha1((key + _WS_GUID).encode("utf-8")).digest()).decode("ascii")
     assert accept == expected
     return _WSClient(sock, rest)
+
+
+def _ascii_lower_trim(text: str) -> str:
+    text = str(text or "").strip()
+    return "".join(chr(ord(ch) + 32) if "A" <= ch <= "Z" else ch for ch in text)
+
+
+def _b64url_encode(data: bytes) -> str:
+    return base64.urlsafe_b64encode(data).decode("ascii").rstrip("=")
+
+
+def _device_payload_v2(
+    *,
+    device_id: str,
+    client_id: str,
+    client_mode: str,
+    role: str,
+    scopes: list[str],
+    signed_at_ms: int,
+    token: str,
+    nonce: str,
+) -> str:
+    scopes_csv = ",".join(scopes)
+    return f"v2|{device_id}|{client_id}|{client_mode}|{role}|{scopes_csv}|{signed_at_ms}|{token}|{nonce}"
+
+
+def _device_payload_v3(
+    *,
+    device_id: str,
+    client_id: str,
+    client_mode: str,
+    role: str,
+    scopes: list[str],
+    signed_at_ms: int,
+    token: str,
+    nonce: str,
+    platform: str,
+    device_family: str,
+) -> str:
+    scopes_csv = ",".join(scopes)
+    platform_norm = _ascii_lower_trim(platform)
+    device_family_norm = _ascii_lower_trim(device_family)
+    return (
+        "v3"
+        f"|{device_id}|{client_id}|{client_mode}|{role}|{scopes_csv}|{signed_at_ms}|{token}|{nonce}"
+        f"|{platform_norm}|{device_family_norm}"
+    )
+
+
+def _sign_payload(private_key: object, payload: str) -> str:
+    if Ed25519PrivateKey is None:
+        raise AssertionError("cryptography not available")
+    assert isinstance(private_key, Ed25519PrivateKey)
+    signature = private_key.sign(payload.encode("utf-8"))
+    return _b64url_encode(signature)
+
+
+def _build_v3_device(
+    *,
+    private_key: object,
+    client_id: str,
+    client_mode: str,
+    role: str,
+    scopes: list[str],
+    signed_at_ms: int,
+    token: str,
+    challenge_nonce: str,
+    platform: str,
+    device_family: str,
+    sign_version: str,
+) -> dict:
+    if Ed25519PrivateKey is None or serialization is None:
+        raise AssertionError("cryptography not available")
+    assert isinstance(private_key, Ed25519PrivateKey)
+    pub_bytes = private_key.public_key().public_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PublicFormat.Raw,
+    )
+    device_id = hashlib.sha256(pub_bytes).hexdigest()
+    payload_v3 = _device_payload_v3(
+        device_id=device_id,
+        client_id=client_id,
+        client_mode=client_mode,
+        role=role,
+        scopes=scopes,
+        signed_at_ms=signed_at_ms,
+        token=token,
+        nonce=challenge_nonce,
+        platform=platform,
+        device_family=device_family,
+    )
+    payload_v2 = _device_payload_v2(
+        device_id=device_id,
+        client_id=client_id,
+        client_mode=client_mode,
+        role=role,
+        scopes=scopes,
+        signed_at_ms=signed_at_ms,
+        token=token,
+        nonce=challenge_nonce,
+    )
+    if sign_version == "v3":
+        signature = _sign_payload(private_key, payload_v3)
+    elif sign_version == "v2":
+        signature = _sign_payload(private_key, payload_v2)
+    else:
+        raise AssertionError(f"unknown sign_version: {sign_version}")
+    return {
+        "id": device_id,
+        "publicKey": _b64url_encode(pub_bytes),
+        "signature": signature,
+        "signedAt": signed_at_ms,
+        "nonce": challenge_nonce,
+    }
 
 
 def test_gateway_ws_handshake_health_and_send(tmp_path: Path) -> None:
@@ -317,6 +438,8 @@ def test_gateway_ws_protocol_v3_methods_and_presence(tmp_path: Path) -> None:
         server = GatewayServer(config)
     except PermissionError as exc:
         pytest.skip(f"socket operations not permitted in this environment: {exc}")
+    if Ed25519PrivateKey is None:
+        pytest.skip("cryptography is required for protocol v3 device auth tests")
     server.start()
     try:
         _wait_for_healthz(server.url)
@@ -329,6 +452,23 @@ def test_gateway_ws_protocol_v3_methods_and_presence(tmp_path: Path) -> None:
             nonce = challenge.get("payload", {}).get("nonce")
             assert isinstance(nonce, str)
             assert nonce
+            ts_ms = challenge.get("payload", {}).get("ts")
+            assert isinstance(ts_ms, int)
+
+            private_key = Ed25519PrivateKey.generate()
+            device = _build_v3_device(
+                private_key=private_key,
+                client_id="pytest-v3",
+                client_mode="operator",
+                role="operator",
+                scopes=["operator.read"],
+                signed_at_ms=ts_ms,
+                token="",
+                challenge_nonce=nonce,
+                platform="LiNuX",
+                device_family="LaPtOp",
+                sign_version="v3",
+            )
 
             ws.send_json(
                 {
@@ -339,8 +479,14 @@ def test_gateway_ws_protocol_v3_methods_and_presence(tmp_path: Path) -> None:
                         "minProtocol": 1,
                         "maxProtocol": 3,
                         "challenge": {"nonce": nonce},
-                        "client": {"id": "pytest-v3", "version": "0", "platform": "linux", "mode": "operator"},
-                        "device": {"id": "pytest-v3"},
+                        "client": {
+                            "id": "pytest-v3",
+                            "version": "0",
+                            "platform": "LiNuX",
+                            "deviceFamily": "LaPtOp",
+                            "mode": "operator",
+                        },
+                        "device": device,
                         "role": "operator",
                         "scopes": ["operator.read"],
                     },
@@ -375,14 +521,186 @@ def test_gateway_ws_protocol_v3_methods_and_presence(tmp_path: Path) -> None:
             assert isinstance(connections, list)
             assert connections == [
                 {
-                    "device": {"id": "pytest-v3"},
+                    "device": {"id": device["id"]},
                     "role": "operator",
                     "scopes": ["operator.read"],
-                    "client": {"id": "pytest-v3", "version": "0", "platform": "linux", "mode": "operator"},
+                    "client": {"id": "pytest-v3", "version": "0", "platform": "LiNuX", "mode": "operator"},
                 }
             ]
         finally:
             ws.close()
+    finally:
+        server.stop()
+
+
+def test_gateway_ws_protocol_v3_device_auth_success(tmp_path: Path) -> None:
+    config = GatewayConfig(host="127.0.0.1", port=0, llm_provider="codex", workspace_dir=tmp_path)
+    try:
+        server = GatewayServer(config)
+    except PermissionError as exc:
+        pytest.skip(f"socket operations not permitted in this environment: {exc}")
+    if Ed25519PrivateKey is None:
+        pytest.skip("cryptography is required for protocol v3 device auth tests")
+    server.start()
+    try:
+        _wait_for_healthz(server.url)
+
+        ws = _ws_connect(server.host, server.port)
+        try:
+            challenge = ws.recv_json()
+            assert challenge["type"] == "event"
+            assert challenge["event"] == "connect.challenge"
+            nonce = challenge.get("payload", {}).get("nonce")
+            assert isinstance(nonce, str)
+            assert nonce
+            ts_ms = challenge.get("payload", {}).get("ts")
+            assert isinstance(ts_ms, int)
+
+            private_key = Ed25519PrivateKey.generate()
+            token = "sig-token"
+            device = _build_v3_device(
+                private_key=private_key,
+                client_id="pytest-v3-success",
+                client_mode="operator",
+                role="operator",
+                scopes=["operator.read"],
+                signed_at_ms=ts_ms,
+                token=token,
+                challenge_nonce=nonce,
+                platform="LiNuX",
+                device_family="LaPtOp",
+                sign_version="v2",
+            )
+
+            ws.send_json(
+                {
+                    "type": "req",
+                    "id": "1",
+                    "method": "connect",
+                    "params": {
+                        "minProtocol": 3,
+                        "maxProtocol": 3,
+                        "challenge": {"nonce": nonce},
+                        "auth": {"mode": "token", "credential": token},
+                        "client": {
+                            "id": "pytest-v3-success",
+                            "version": "0",
+                            "platform": "LiNuX",
+                            "deviceFamily": "LaPtOp",
+                            "mode": "operator",
+                        },
+                        "device": device,
+                        "role": "operator",
+                        "scopes": ["operator.read"],
+                    },
+                }
+            )
+            hello = ws.recv_json()
+            assert hello["type"] == "res"
+            assert hello["id"] == "1"
+            assert hello["ok"] is True
+            assert hello["payload"]["protocol"] == 3
+        finally:
+            ws.close()
+    finally:
+        server.stop()
+
+
+def test_gateway_ws_protocol_v3_device_auth_failure_codes(tmp_path: Path) -> None:
+    config = GatewayConfig(host="127.0.0.1", port=0, llm_provider="codex", workspace_dir=tmp_path)
+    try:
+        server = GatewayServer(config)
+    except PermissionError as exc:
+        pytest.skip(f"socket operations not permitted in this environment: {exc}")
+    if Ed25519PrivateKey is None:
+        pytest.skip("cryptography is required for protocol v3 device auth tests")
+    server.start()
+    try:
+        _wait_for_healthz(server.url)
+
+        cases: list[tuple[str, str, str | None]] = [
+            ("missing_device", "DEVICE_IDENTITY_REQUIRED", None),
+            ("nonce_blank", "DEVICE_AUTH_NONCE_REQUIRED", "device-nonce-missing"),
+            ("nonce_mismatch", "DEVICE_AUTH_NONCE_MISMATCH", "device-nonce-mismatch"),
+            ("signature_invalid", "DEVICE_AUTH_SIGNATURE_INVALID", "device-signature"),
+            ("signature_expired", "DEVICE_AUTH_SIGNATURE_EXPIRED", "device-signature-stale"),
+            ("device_id_mismatch", "DEVICE_AUTH_DEVICE_ID_MISMATCH", "device-id-mismatch"),
+            ("public_key_invalid", "DEVICE_AUTH_PUBLIC_KEY_INVALID", "device-public-key"),
+        ]
+
+        for case, expected_code, expected_reason in cases:
+            ws = _ws_connect(server.host, server.port)
+            try:
+                challenge = ws.recv_json()
+                nonce = challenge.get("payload", {}).get("nonce")
+                ts_ms = challenge.get("payload", {}).get("ts")
+                assert isinstance(nonce, str) and nonce
+                assert isinstance(ts_ms, int)
+
+                private_key = Ed25519PrivateKey.generate()
+                token = ""
+                device = _build_v3_device(
+                    private_key=private_key,
+                    client_id="pytest-v3-fail",
+                    client_mode="operator",
+                    role="operator",
+                    scopes=["operator.read"],
+                    signed_at_ms=ts_ms,
+                    token=token,
+                    challenge_nonce=nonce,
+                    platform="linux",
+                    device_family="laptop",
+                    sign_version="v3",
+                )
+
+                params: dict = {
+                    "minProtocol": 3,
+                    "maxProtocol": 3,
+                    "challenge": {"nonce": nonce},
+                    "client": {
+                        "id": "pytest-v3-fail",
+                        "version": "0",
+                        "platform": "linux",
+                        "deviceFamily": "laptop",
+                        "mode": "operator",
+                    },
+                    "device": device,
+                    "role": "operator",
+                    "scopes": ["operator.read"],
+                }
+
+                if case == "missing_device":
+                    params.pop("device", None)
+                elif case == "nonce_blank":
+                    params["device"] = {**device, "nonce": "   "}
+                elif case == "nonce_mismatch":
+                    params["device"] = {**device, "nonce": f"{nonce}-bad"}
+                elif case == "signature_invalid":
+                    bad = base64.urlsafe_b64decode(device["signature"] + "==")
+                    bad = bad[:-1] + bytes([bad[-1] ^ 0x01])
+                    params["device"] = {**device, "signature": _b64url_encode(bad)}
+                elif case == "signature_expired":
+                    params["device"] = {**device, "signedAt": ts_ms - (5 * 60 * 1000)}
+                elif case == "device_id_mismatch":
+                    params["device"] = {**device, "id": "0" * 64}
+                elif case == "public_key_invalid":
+                    params["device"] = {**device, "publicKey": "not-base64url"}
+                else:
+                    raise AssertionError(f"unknown case: {case}")
+
+                ws.send_json({"type": "req", "id": "1", "method": "connect", "params": params})
+                hello = ws.recv_json()
+                assert hello["type"] == "res"
+                assert hello["id"] == "1"
+                assert hello["ok"] is False
+                details = hello.get("error", {}).get("details", {})
+                assert details.get("code") == expected_code
+                if expected_reason is None:
+                    assert "reason" not in details
+                else:
+                    assert details.get("reason") == expected_reason
+            finally:
+                ws.close()
     finally:
         server.stop()
 
