@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from chat_ui.server import ChatUIConfig, ChatUIServer
+from llm.client import MockLLMClient
 
 
 def _get_json(url: str, *, timeout_s: float = 2.0) -> dict:
@@ -53,11 +54,23 @@ def _wait_for_healthz(base_url: str, *, timeout_s: float = 2.0) -> None:
 
 
 def test_chat_ui_healthz_and_send(tmp_path: Path) -> None:
-    config = ChatUIConfig(host="127.0.0.1", port=0, llm_provider="mock", workspace_dir=tmp_path)
+    config = ChatUIConfig(host="127.0.0.1", port=0, llm_provider="codex", workspace_dir=tmp_path)
     try:
         server = ChatUIServer(config)
     except PermissionError as exc:
         pytest.skip(f"socket operations not permitted in this environment: {exc}")
+    server._server.llm_client = MockLLMClient(
+        script=[
+            {
+                "status": "SUCCESS",
+                "summary": "hello from scripted llm",
+                "artifacts": [],
+                "metrics": {},
+                "next_actions": [],
+                "failure_signature": "",
+            }
+        ]
+    )
     server.start()
     try:
         _wait_for_healthz(server.url)
@@ -66,12 +79,12 @@ def test_chat_ui_healthz_and_send(tmp_path: Path) -> None:
         assert "<!doctype html" in body.lower()
         payload = _post_json(
             f"{server.url}/api/send",
-            {"message": "hello", "history": [], "model": "gpt-5.2"},
+            {"message": "hello", "history": [], "model": ""},
         )
         assert payload["ok"] is True
-        assert payload["reply"] == "mock response"
-        assert payload["status"] in {"PARTIAL", "SUCCESS", "FAILURE", "BLOCKED"}
-        assert payload["summary"] == "mock response"
+        assert payload["reply"] == "hello from scripted llm"
+        assert payload["status"] == "SUCCESS"
+        assert payload["summary"] == "hello from scripted llm"
         assert isinstance(payload["artifacts"], list)
         assert isinstance(payload["metrics"], dict)
         assert isinstance(payload["next_actions"], list)

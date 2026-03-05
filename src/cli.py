@@ -41,6 +41,24 @@ from replay import ReplayAbort, replay_run
 from policy.tool_approval import approval_allowlist_file_path, load_approval_allowlist, write_allowlist_file
 
 
+def _default_self_improve_llm() -> str:
+    provider = (os.environ.get("TOKIMON_LLM") or "").strip().lower()
+    if provider in {"codex", "codex-cli"}:
+        return "codex"
+    if provider in {"claude", "claude-cli"}:
+        return "claude"
+    if provider == "mixed":
+        return "mixed"
+    return "mixed"
+
+
+def _default_interactive_llm() -> str:
+    provider = (os.environ.get("TOKIMON_LLM") or "").strip().lower()
+    if provider in {"claude", "claude-cli"}:
+        return "claude"
+    return "codex"
+
+
 def build_parser(*, exit_on_error: bool = True) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="tokimon",
@@ -114,8 +132,8 @@ def build_parser(*, exit_on_error: bool = True) -> argparse.ArgumentParser:
     self_improve.add_argument("--no-merge", action="store_true", help=argparse.SUPPRESS)
     self_improve.add_argument(
         "--llm",
-        choices=["mock", "codex", "claude", "mixed"],
-        default=os.environ.get("TOKIMON_LLM", "mixed"),
+        choices=["codex", "claude", "mixed"],
+        default=_default_self_improve_llm(),
         help=argparse.SUPPRESS,
     )
 
@@ -124,8 +142,8 @@ def build_parser(*, exit_on_error: bool = True) -> argparse.ArgumentParser:
     chat_ui.add_argument("--port", type=int, default=8765)
     chat_ui.add_argument(
         "--llm",
-        choices=["mock", "codex", "claude"],
-        default=os.environ.get("TOKIMON_LLM", "mock"),
+        choices=["codex", "claude"],
+        default=_default_interactive_llm(),
         help=argparse.SUPPRESS,
     )
     chat_ui.add_argument("--workspace", default=None, help=argparse.SUPPRESS)
@@ -146,8 +164,8 @@ def build_parser(*, exit_on_error: bool = True) -> argparse.ArgumentParser:
     gateway_run_common.add_argument("--port", type=int, default=8765)
     gateway_run_common.add_argument(
         "--llm",
-        choices=["mock", "codex", "claude"],
-        default=os.environ.get("TOKIMON_LLM", "mock"),
+        choices=["codex", "claude"],
+        default=_default_interactive_llm(),
         help=argparse.SUPPRESS,
     )
     gateway_run_common.add_argument(
@@ -382,7 +400,7 @@ def _cmd_self_improve(args: argparse.Namespace) -> int:
         max_workers=args.workers,
         merge_on_success=not args.no_merge,
     )
-    llm_provider = str(args.llm or "mock").strip().lower()
+    llm_provider = str(args.llm or "mixed").strip().lower()
     if llm_provider == "mixed":
         validate_mixed_sessions_per_batch(int(args.sessions))
 
@@ -1233,8 +1251,6 @@ def _auto_router_provider() -> str:
         return "codex"
     if provider in {"claude", "claude-cli"}:
         return "claude"
-    if provider in {"mock"}:
-        return "mock"
     if provider in {"mixed"}:
         return "codex"
     return "codex"
@@ -1254,12 +1270,10 @@ def _build_auto_router_client(workspace_dir: Path) -> LLMClient:
     if provider == "claude":
         claude_settings = replace(ClaudeCLISettings.from_env(), timeout_s=60)
         return ClaudeCLIClient(workspace_dir, settings=claude_settings)
-    if provider == "mock":
-        return MockLLMClient(script=[])
     try:
         return build_llm_client(provider, workspace_dir=workspace_dir)
     except Exception:
-        return MockLLMClient(script=[])
+        return build_llm_client("codex", workspace_dir=workspace_dir)
 
 
 def _auto_route_heuristic(prompt: str) -> list[str]:

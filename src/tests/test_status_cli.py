@@ -35,7 +35,7 @@ def _wait_for_healthz(base_url: str, *, timeout_s: float = 2.0) -> None:
 
 
 def test_status_json_sections_are_present_and_stable(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    config = GatewayConfig(host="127.0.0.1", port=0, llm_provider="mock", workspace_dir=tmp_path)
+    config = GatewayConfig(host="127.0.0.1", port=0, llm_provider="codex", workspace_dir=tmp_path)
     try:
         server = GatewayServer(config)
     except PermissionError as exc:

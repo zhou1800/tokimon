@@ -15,6 +15,15 @@ type LogEntry = {
   error?: boolean;
 };
 
+const MODEL_PRESETS = [
+  "gpt-5.3-codex",
+  "gpt-5.3-codex-spark",
+  "gpt-5.2-codex",
+  "gpt-5.2",
+  "gpt-5.1-codex-max",
+  "gpt-5.1-codex-mini",
+] as const;
+
 export function App() {
   const [input, setInput] = useState("");
   const [history, setHistory] = useState<ChatMessage[]>([]);
@@ -28,6 +37,8 @@ export function App() {
     }
   });
   const [lastResponse, setLastResponse] = useState<SendResponse | null>(null);
+  const modelPreset = MODEL_PRESETS.includes(model as (typeof MODEL_PRESETS)[number]) ? model : "__custom__";
+  const isCustomModel = modelPreset === "__custom__";
 
   useEffect(() => {
     try {
@@ -133,22 +144,39 @@ export function App() {
           <div className="tm-controls">
             <label className="tm-control">
               Model
-              <input
+              <select
                 className="tm-model"
-                list="tokimon-models"
-                value={model}
-                onChange={(e) => setModel(e.target.value)}
+                value={modelPreset}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  if (next === "__custom__") {
+                    setModel("");
+                    return;
+                  }
+                  setModel(next);
+                }}
                 disabled={sending}
-              />
+              >
+                <option value="__custom__">Custom…</option>
+                {MODEL_PRESETS.map((preset) => (
+                  <option key={preset} value={preset}>
+                    {preset}
+                  </option>
+                ))}
+              </select>
             </label>
-            <datalist id="tokimon-models">
-              <option value="gpt-5.2" />
-              <option value="gpt-5.3-codex" />
-              <option value="gpt-5.3-codex-spark" />
-              <option value="gpt-5.2-codex" />
-              <option value="gpt-5.1-codex-max" />
-              <option value="gpt-5.1-codex-mini" />
-            </datalist>
+            {isCustomModel ? (
+              <label className="tm-control">
+                Custom model
+                <input
+                  className="tm-model"
+                  value={model}
+                  onChange={(e) => setModel(e.target.value)}
+                  placeholder="e.g. gpt-5.3-codex"
+                  disabled={sending}
+                />
+              </label>
+            ) : null}
           </div>
           <textarea
             className="tm-input"

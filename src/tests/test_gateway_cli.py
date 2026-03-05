@@ -74,7 +74,7 @@ def test_gateway_run_allows_non_loopback_with_token_and_opt_in(monkeypatch: pyte
 
 
 def test_gateway_health_alias_json(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    config = GatewayConfig(host="127.0.0.1", port=0, llm_provider="mock", workspace_dir=tmp_path)
+    config = GatewayConfig(host="127.0.0.1", port=0, llm_provider="codex", workspace_dir=tmp_path)
     try:
         server = GatewayServer(config)
     except PermissionError as exc:
@@ -107,7 +107,7 @@ def test_gateway_health_alias_json(tmp_path: Path, capsys: pytest.CaptureFixture
 
 
 def test_gateway_call_health_json(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    config = GatewayConfig(host="127.0.0.1", port=0, llm_provider="mock", workspace_dir=tmp_path)
+    config = GatewayConfig(host="127.0.0.1", port=0, llm_provider="codex", workspace_dir=tmp_path)
     try:
         server = GatewayServer(config)
     except PermissionError as exc:
@@ -126,7 +126,7 @@ def test_gateway_call_health_json(tmp_path: Path, capsys: pytest.CaptureFixture[
 
 
 def test_gateway_probe_json(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    config = GatewayConfig(host="127.0.0.1", port=0, llm_provider="mock", workspace_dir=tmp_path)
+    config = GatewayConfig(host="127.0.0.1", port=0, llm_provider="codex", workspace_dir=tmp_path)
     try:
         server = GatewayServer(config)
     except PermissionError as exc:

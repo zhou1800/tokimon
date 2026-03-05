@@ -72,21 +72,21 @@ This document maps requirements to automated tests.
 - Parallel exploration protocol: deterministic `path_charter` per session, diversity check (pairwise differences in >= 2 dimensions), enforced per-attempt experiment summary fields (`plan`, `path_charter`, `self_critique`, `lessons`), deterministic winner selection by pre-declared score, and report includes required protocol sections/table (see `src/tests/test_parallel_exploration_protocol.py`).
 
 ## Integration Tests
-- End-to-end run of at least two benchmark tasks using the mock model:
+- End-to-end run of at least two benchmark tasks using a deterministic scripted LLM adapter (no external CLI dependency):
   - Validate artifacts, Lessons, and reports are produced.
   - Verify baseline and hierarchical runners both execute.
 
-- Chat UI smoke test (mock model):
+- Chat UI smoke test (scripted LLM adapter):
   - Start `tokimon chat-ui` (or the server module) on an ephemeral port.
   - Assert `GET /` returns HTML (serves the built React UI when present, otherwise a deterministic build-missing page; tests MUST NOT require `npm run build`).
   - Assert `GET /healthz` returns `{"ok": true}` (or equivalent).
   - Assert `POST /api/send` with a simple message returns a structured JSON reply (including any `ui_blocks`).
-  - Assert `POST /api/send` accepts an optional `model` field (ignored by the mock provider).
+  - Assert `POST /api/send` accepts an optional `model` field (when using Codex/Claude providers it selects the request model).
   - Assert a `step_result.json` run artifact exists under the configured `workspace_dir`.
   - Assert run-level observability artifacts exist under the same run root: `reports/metrics.json` and `reports/dashboard.html`.
   - Shut the server down cleanly.
 
-- Gateway smoke test (mock model):
+- Gateway smoke test (scripted LLM adapter):
   - Start `tokimon gateway` (or `GatewayServer`) on an ephemeral port.
   - Assert `GET /healthz` returns `{"ok": true}`.
   - Establish a WebSocket connection to `/gateway`.

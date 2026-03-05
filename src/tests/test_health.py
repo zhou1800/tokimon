@@ -42,7 +42,7 @@ def _reserve_port() -> tuple[int, socket.socket]:
 
 
 def test_cli_health_ok_json(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    config = GatewayConfig(host="127.0.0.1", port=0, llm_provider="mock", workspace_dir=tmp_path)
+    config = GatewayConfig(host="127.0.0.1", port=0, llm_provider="codex", workspace_dir=tmp_path)
     try:
         server = GatewayServer(config)
     except PermissionError as exc:
@@ -86,4 +86,3 @@ def test_cli_health_unreachable_port_json(capsys: pytest.CaptureFixture[str]) ->
         assert isinstance(payload["details"], dict)
     finally:
         held.close()
-

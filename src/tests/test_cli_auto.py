@@ -51,7 +51,7 @@ def test_self_improve_llm_default_uses_env_else_mixed(monkeypatch) -> None:
     monkeypatch.setenv("TOKIMON_LLM", "mock")
     parser = build_parser()
     args = parser.parse_args(["self-improve"])
-    assert args.llm == "mock"
+    assert args.llm == "mixed"
 
 
 def test_self_improve_help_hides_advanced_flags() -> None:
@@ -69,9 +69,9 @@ def test_self_improve_help_hides_advanced_flags() -> None:
 
 def test_hidden_flags_still_parse_for_power_users() -> None:
     parser = build_parser()
-    args = parser.parse_args(["self-improve", "--sessions", "10", "--llm", "mock"])
+    args = parser.parse_args(["self-improve", "--sessions", "10", "--llm", "codex"])
     assert args.sessions == 10
-    assert args.llm == "mock"
+    assert args.llm == "codex"
 
 
 def test_root_help_includes_subcommand_summaries() -> None:

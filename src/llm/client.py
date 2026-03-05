@@ -46,14 +46,10 @@ class MockLLMClient:
     ) -> dict[str, Any]:
         if self.script:
             return self.script.pop(0)
-        return {
-            "status": "PARTIAL",
-            "summary": "mock response",
-            "artifacts": [],
-            "metrics": {"token_estimate": 0},
-            "next_actions": [],
-            "failure_signature": "mock-empty",
-        }
+        return _llm_error(
+            "scripted LLM has no remaining responses (provide a script or configure a real provider)",
+            failure_signature="llm-script-exhausted",
+        )
 
 
 class PlaceholderLLMClient:
@@ -400,18 +396,18 @@ def build_llm_client(provider: str, *, workspace_dir: Path) -> LLMClient:
     """Factory for LLMClient implementations.
 
     Supported providers:
-    - mock: deterministic scripted client (default)
-    - codex: Codex CLI-backed client
+    - codex: Codex CLI-backed client (default)
     - claude: Claude Code CLI-backed client
+    - mock: deterministic scripted client (tests only)
     """
 
     normalized = (provider or "").strip().lower()
-    if normalized in {"", "mock"}:
-        return MockLLMClient(script=[])
-    if normalized in {"codex", "codex-cli"}:
+    if normalized in {"", "codex", "codex-cli"}:
         return CodexCLIClient(workspace_dir)
     if normalized in {"claude", "claude-cli"}:
         return ClaudeCLIClient(workspace_dir)
+    if normalized == "mock":
+        return MockLLMClient(script=[])
     raise ValueError(f"Unknown LLM provider: {provider}")
 
 

@@ -342,11 +342,12 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
 
 ### Model Integration
 - Abstract `LLMClient.send(messages, tools=None, response_schema=None)`.
-- Provide stub adapter, deterministic mock adapter, and a documented placeholder for a real adapter.
-- Optional real adapter: Codex CLI-backed client that shells out to `codex exec` and returns structured JSON (controlled via `TOKIMON_LLM=codex` or CLI flags).
+- Provide a stub adapter and a deterministic scripted adapter for tests/offline replay.
+  - The scripted adapter MUST NOT synthesize placeholder content; if the script is exhausted it MUST return a deterministic `FAILURE` with actionable remediation.
+- Primary adapter: Codex CLI-backed client that shells out to `codex exec` and returns structured JSON (controlled via `TOKIMON_LLM=codex` or CLI flags).
   - Codex model selection MUST NOT rely on the user's global Codex config. Tokimon MUST pass an explicit `--model` on every Codex invocation.
   - Default Codex model for general tasks is `gpt-5.2` unless overridden (env: `TOKIMON_CODEX_MODEL`, or Chat UI request field: `model`).
-- Optional real adapter: Claude Code CLI-backed client that shells out to `claude` and returns structured JSON (controlled via `TOKIMON_LLM=claude` or CLI flags).
+- Optional adapter: Claude Code CLI-backed client that shells out to `claude` and returns structured JSON (controlled via `TOKIMON_LLM=claude` or CLI flags).
 - Claude Code CLI invocation: send prompts via stdin in `--print` mode (`claude --print --input-format text --output-format json`) and optionally pass a settings file via `--settings <path>` (mirrors `~/clover/joey-playground/apps/ai-agent-cli`).
   - Config surface (env): `CLAUDE_CODE_CLI` (binary override), `TOKIMON_CLAUDE_MODEL`, `TOKIMON_CLAUDE_TIMEOUT_S`, `TOKIMON_CLAUDE_SETTINGS_PATH` or `TOKIMON_CLAUDE_SETTINGS_JSON`, `TOKIMON_CLAUDE_DANGEROUSLY_SKIP_PERMISSIONS`, `TOKIMON_CLAUDE_ARGS`.
 - Codex CLI prompt rendering is deterministic and caching-friendly (stable tool ordering; explicit sections such as `<permissions instructions>` and `<environment_context>`).
@@ -447,7 +448,7 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
 - The frontend renders `ui_blocks` using `@tambo-ai/react` (`TamboRegistryProvider` + `ComponentRenderer`) with a local registry (no Tambo cloud / no API key).
 - Chat UI persists each `/api/send` result under `<workspace_dir>/runs/chat-ui/run-<run_id>/artifacts/steps/chat-<N>/step_result.json`.
 - The chat handler uses the same tool set as the hierarchical runner (file, grep, patch, pytest, web).
-- Default LLM provider is `mock`; `--llm codex` / `--llm claude` (or `TOKIMON_LLM=codex|claude`) enables the corresponding CLI-backed client.
+- Default LLM provider for `chat-ui` and `gateway` is `codex`; `--llm claude` (or `TOKIMON_LLM=claude`) selects the Claude CLI-backed client instead.
 
 ### Gateway Server (OpenClaw-Inspired, Phase 1)
 - `tokimon gateway` starts a local server that supports:

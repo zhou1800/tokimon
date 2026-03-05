@@ -13,6 +13,7 @@ from pathlib import Path
 import pytest
 
 from gateway.server import GatewayConfig, GatewayServer
+from llm.client import MockLLMClient
 
 _WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
@@ -161,11 +162,23 @@ def _ws_connect(host: str, port: int, *, path: str = "/gateway", timeout_s: floa
 
 
 def test_gateway_ws_handshake_health_and_send(tmp_path: Path) -> None:
-    config = GatewayConfig(host="127.0.0.1", port=0, llm_provider="mock", workspace_dir=tmp_path)
+    config = GatewayConfig(host="127.0.0.1", port=0, llm_provider="codex", workspace_dir=tmp_path)
     try:
         server = GatewayServer(config)
     except PermissionError as exc:
         pytest.skip(f"socket operations not permitted in this environment: {exc}")
+    server._server.llm_client = MockLLMClient(
+        script=[
+            {
+                "status": "SUCCESS",
+                "summary": "hello from scripted llm",
+                "artifacts": [],
+                "metrics": {},
+                "next_actions": [],
+                "failure_signature": "",
+            }
+        ]
+    )
     server.start()
     try:
         _wait_for_healthz(server.url)
@@ -290,8 +303,8 @@ def test_gateway_ws_handshake_health_and_send(tmp_path: Path) -> None:
             assert sent["type"] == "res"
             assert sent["id"] == "5"
             assert sent["ok"] is True
-            assert sent["payload"]["reply"] == "mock response"
-            assert sent["payload"]["status"] in {"PARTIAL", "SUCCESS", "FAILURE", "BLOCKED"}
+            assert sent["payload"]["reply"] == "hello from scripted llm"
+            assert sent["payload"]["status"] == "SUCCESS"
         finally:
             ws.close()
     finally:
@@ -299,7 +312,7 @@ def test_gateway_ws_handshake_health_and_send(tmp_path: Path) -> None:
 
 
 def test_gateway_ws_rejects_challenge_mismatch(tmp_path: Path) -> None:
-    config = GatewayConfig(host="127.0.0.1", port=0, llm_provider="mock", workspace_dir=tmp_path)
+    config = GatewayConfig(host="127.0.0.1", port=0, llm_provider="codex", workspace_dir=tmp_path)
     try:
         server = GatewayServer(config)
     except PermissionError as exc:
@@ -341,7 +354,7 @@ def test_gateway_ws_rejects_challenge_mismatch(tmp_path: Path) -> None:
 
 
 def test_gateway_ws_rejects_missing_auth_when_enabled(tmp_path: Path) -> None:
-    config = GatewayConfig(host="127.0.0.1", port=0, llm_provider="mock", workspace_dir=tmp_path, auth_token="secret")
+    config = GatewayConfig(host="127.0.0.1", port=0, llm_provider="codex", workspace_dir=tmp_path, auth_token="secret")
     try:
         server = GatewayServer(config)
     except PermissionError as exc:
@@ -392,7 +405,7 @@ def test_gateway_ws_allows_auth_when_enabled(tmp_path: Path, auth: dict) -> None
     config = GatewayConfig(
         host="127.0.0.1",
         port=0,
-        llm_provider="mock",
+        llm_provider="codex",
         workspace_dir=tmp_path,
         auth_token="secret",
     )
@@ -445,7 +458,7 @@ def test_gateway_ws_allows_auth_when_enabled(tmp_path: Path, auth: dict) -> None
 
 
 def test_gateway_ws_rejects_invalid_auth_shape_when_enabled(tmp_path: Path) -> None:
-    config = GatewayConfig(host="127.0.0.1", port=0, llm_provider="mock", workspace_dir=tmp_path, auth_token="secret")
+    config = GatewayConfig(host="127.0.0.1", port=0, llm_provider="codex", workspace_dir=tmp_path, auth_token="secret")
     try:
         server = GatewayServer(config)
     except PermissionError as exc:
@@ -488,7 +501,7 @@ def test_gateway_ws_rejects_invalid_auth_shape_when_enabled(tmp_path: Path) -> N
 
 
 def test_gateway_ws_rejects_connect_optional_param_type_mismatch(tmp_path: Path) -> None:
-    config = GatewayConfig(host="127.0.0.1", port=0, llm_provider="mock", workspace_dir=tmp_path)
+    config = GatewayConfig(host="127.0.0.1", port=0, llm_provider="codex", workspace_dir=tmp_path)
     try:
         server = GatewayServer(config)
     except PermissionError as exc:

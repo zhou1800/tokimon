@@ -68,7 +68,7 @@ npm run dev</code></pre>
 class ChatUIConfig:
     host: str = "127.0.0.1"
     port: int = 8765
-    llm_provider: str = "mock"
+    llm_provider: str = "codex"
     workspace_dir: Path = field(default_factory=Path.cwd)
 
 

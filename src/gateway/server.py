@@ -46,7 +46,7 @@ _PHASE1_WS_METHODS = ("health", "logs.tail", "methods.list", "send", "tools.cata
 class GatewayConfig:
     host: str = "127.0.0.1"
     port: int = 8765
-    llm_provider: str = "mock"
+    llm_provider: str = "codex"
     workspace_dir: Path = field(default_factory=Path.cwd)
     dangerously_expose: bool = False
     auth_token: str | None = None

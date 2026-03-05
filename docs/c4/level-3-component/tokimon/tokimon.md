@@ -29,7 +29,7 @@ flowchart TB
 - Skill Registry/Builder: hot load generated skills, create skills with tests.
 - Tooling Layer: filesystem and test tools with schemas; test runner adapters are pluggable (default: pytest).
 - Benchmark Harness: runs benchmark evaluations when invoked, using self-contained tasks and producing reports.
-- LLMClient: abstraction with stub/mock/placeholder.
+- LLMClient: abstraction with Codex/Claude adapters plus a deterministic scripted adapter for tests/replay.
 - Parallel Executor: async task queue, concurrency control.
 
 ## Notes

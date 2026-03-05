@@ -13,7 +13,7 @@ in Phase 1.
 Start the Gateway server:
 
 ```bash
-tokimon gateway --host 127.0.0.1 --port 8765 --llm mock
+tokimon gateway --host 127.0.0.1 --port 8765 --llm codex
 ```
 
 Notes:
