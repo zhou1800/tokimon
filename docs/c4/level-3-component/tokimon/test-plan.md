@@ -103,6 +103,7 @@ This document maps requirements to automated tests.
 - Self-improvement batch:
   - Creates multiple isolated session workspaces from a master root.
   - Uses `git worktree` (detached HEAD) for all session workspaces and aborts with an actionable error when the master is not a clean git checkout.
+  - Self-improve entry-point prompts include the session-local AI Agent Worktree Rule (`temp/codex-worktrees/`, `Worktree:` reporting, and the `Create` / `Merge` / `Delete` command sequences) and keep it distinct from Tokimon's outer winner merge contract.
   - Evaluates each session and selects a winner deterministically.
   - Merges the winner back to master and re-runs evaluation.
   - Winner merge uses `git merge --squash` and commits only on passing evaluation.

@@ -110,6 +110,40 @@ DEFAULT_STOP_CONDITIONS: dict[str, list[str]] = {
     ],
 }
 
+AGENT_WORKTREE_RULE_LINES: list[str] = [
+    "## AI Agent Worktree Rule (Required when git/shell access is available)",
+    "- This nested-worktree rule is session-local. It applies inside the current self-improve session workspace and does not replace Tokimon's outer batch winner merge onto the master checkout.",
+    "- If your runtime can execute git/shell commands, do not wait for extra human instructions: create a nested worktree before edits, merge verified committed work back into the session checkout, then delete the nested worktree once it is safely merged and clean.",
+    "- If your runtime cannot execute git/shell commands, say so plainly instead of claiming the worktree lifecycle happened.",
+    "- Goal: keep parallel chat threads isolated by doing all code changes in a dedicated `git worktree` under `temp/`.",
+    "- Treat the default checkout as read-only; only edit files under the current thread's worktree directory.",
+    "- Worktree location: `temp/codex-worktrees/`.",
+    "- Per-thread behavior:",
+    "  - If this thread does not already have a worktree, create one and print `Worktree: <absolute-path>` in your response summary.",
+    "  - On later turns in the same thread, reuse the most recent `Worktree:` path from this thread (and keep printing `Worktree:` when making changes); do not create/switch worktrees unless the user asks.",
+    "- Allowed mutating git commands for this rule are only the commands used in the `Create`, `Merge`, and `Delete` sequences below.",
+    "- Here, `<main-checkout>` means the current self-improve session workspace root.",
+    "Create:",
+    "1) `mkdir -p temp/codex-worktrees`",
+    "2) `WT_DIR=\"$(mktemp -d temp/codex-worktrees/wt-XXXXXX)\"`",
+    "3) `BRANCH=\"ai/$(basename \"$WT_DIR\")\"`",
+    "4) `git worktree add -b \"$BRANCH\" \"$WT_DIR\" HEAD`",
+    "Merge:",
+    "1) Verify the work is committed and there is something to merge; otherwise warn and stop.",
+    "2) `cd <worktree-path>`",
+    "3) `git rebase <base-branch>`",
+    "4) If conflicts happen, resolve them with `git add <resolved-files>` and `git rebase --continue`; use `git rebase --abort` if the merge cannot be completed safely.",
+    "5) `cd <main-checkout>`",
+    "6) `git merge --ff-only <worktree-branch>`",
+    "Delete:",
+    "1) Verify there is nothing to merge and no uncommitted code change; otherwise refuse and warn.",
+    "2) `git worktree remove <worktree-path>`",
+    "3) `git branch -d <worktree-branch>`",
+    "4) If the user asks to `delete` again after that refusal:",
+    "5) `git worktree remove --force <worktree-path>`",
+    "6) `git branch -D <worktree-branch>`",
+]
+
 
 @dataclass(frozen=True)
 class SelfImproveSettings:
@@ -855,6 +889,8 @@ def _entrypoint_prompt(
         "",
         "Soft stops:",
         *[f"- {item}" for item in DEFAULT_STOP_CONDITIONS["soft"]],
+        "",
+        *AGENT_WORKTREE_RULE_LINES,
         "",
         "Self-improve entry-point task.",
         "",

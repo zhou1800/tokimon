@@ -570,6 +570,36 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
   - Verify the outcome using workflow status plus evaluation checks.
   - If verification fails, restart from prompt generation (retry loop) until success or attempt budget is exhausted.
 
+#### Nested Agent Worktree Rule (Self-Improve, Session-Local)
+- This rule applies inside each self-improve session workspace. It does not replace the outer Tokimon batch merge back onto the master checkout, which still follows the winner-merge contract above.
+- When the active self-improve runtime can execute git/shell commands inside the session workspace, the self-improve entry-point prompt MUST instruct the agent to isolate its own edits in a nested git worktree rooted at `temp/codex-worktrees/`.
+- The prompt MUST tell the agent to treat the default session checkout as read-only, reuse the most recent `Worktree: <absolute-path>` from the same thread when present, and report `Worktree: <absolute-path>` whenever it makes changes.
+- In self-improve mode, the agent SHOULD manage the nested worktree lifecycle without waiting for extra human instructions: create before editing, merge committed verified work back into the session checkout, then delete the nested worktree once it is safely merged and clean.
+- Allowed mutating git commands are limited to the `Create`, `Merge`, and `Delete` sequences below. Here, `<main-checkout>` means the current self-improve session workspace root.
+- If the runtime cannot execute git/shell commands, it MUST say so plainly instead of claiming the worktree lifecycle happened.
+
+Create:
+1) `mkdir -p temp/codex-worktrees`
+2) `WT_DIR="$(mktemp -d temp/codex-worktrees/wt-XXXXXX)"`
+3) `BRANCH="ai/$(basename "$WT_DIR")"`
+4) `git worktree add -b "$BRANCH" "$WT_DIR" HEAD`
+
+Merge:
+1) Verify the work is committed and there is something to merge; otherwise warn and stop.
+2) `cd <worktree-path>`
+3) `git rebase <base-branch>`
+4) If conflicts happen, resolve them with `git add <resolved-files>` and `git rebase --continue`; use `git rebase --abort` if the merge cannot be completed safely.
+5) `cd <main-checkout>`
+6) `git merge --ff-only <worktree-branch>`
+
+Delete:
+1) Verify there is nothing to merge and no uncommitted code change; otherwise refuse and warn.
+2) `git worktree remove <worktree-path>`
+3) `git branch -d <worktree-branch>`
+4) If the user asks to `delete` again after that refusal:
+5) `git worktree remove --force <worktree-path>`
+6) `git branch -D <worktree-branch>`
+
 #### Self-Improve Evaluation-First Experiment Loop (Required)
 - Self-improvement MUST be treated as an experiment loop:
   1) Run a baseline evaluation and summarize results.

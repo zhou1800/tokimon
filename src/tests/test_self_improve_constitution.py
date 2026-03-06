@@ -51,6 +51,28 @@ def test_entrypoint_prompt_includes_constitution_sections() -> None:
     assert ".tokimon-tmp/self-improve/experiment/1-1/attempt-1.json" in prompt
 
 
+def test_entrypoint_prompt_includes_agent_worktree_rule() -> None:
+    prompt = _entrypoint_prompt(
+        goal="Learn from this steering prompt.",
+        session_id="1-1",
+        input_payload=InputPayload(kind="none", ref=None, content=""),
+        baseline_master_eval=EvaluationResult(ok=True, passed=10, failed=0, failing_tests=[], elapsed_s=0.1),
+        pytest_args=["-q"],
+        planned_energy=2,
+        experiment_summary_path=Path(".tokimon-tmp/self-improve/experiment/1-1/attempt-1.json"),
+        attempt_index=1,
+        retry_reason=None,
+    )
+    assert "## AI Agent Worktree Rule (Required when git/shell access is available)" in prompt
+    assert "temp/codex-worktrees/" in prompt
+    assert "Worktree: <absolute-path>" in prompt
+    assert "do not wait for extra human instructions" in prompt
+    assert "does not replace Tokimon's outer batch winner merge" in prompt
+    assert "`git worktree add -b \"$BRANCH\" \"$WT_DIR\" HEAD`" in prompt
+    assert "`git merge --ff-only <worktree-branch>`" in prompt
+    assert "`git worktree remove <worktree-path>`" in prompt
+
+
 def test_winner_selection_tie_breaker_by_session_id() -> None:
     evaluation = EvaluationResult(ok=True, passed=1, failed=0, failing_tests=[], elapsed_s=0.0)
     shared = dict(
