@@ -16,6 +16,7 @@ type LogEntry = {
 };
 
 const MODEL_PRESETS = [
+  "gpt-5.4",
   "gpt-5.3-codex",
   "gpt-5.3-codex-spark",
   "gpt-5.2-codex",
@@ -24,8 +25,8 @@ const MODEL_PRESETS = [
   "gpt-5.1-codex-mini",
 ] as const;
 
-const DEFAULT_MODEL = "gpt-5.3-codex";
-const LEGACY_DEFAULT_MODEL = "gpt-5.2";
+const DEFAULT_MODEL = "gpt-5.4";
+const LEGACY_DEFAULT_MODELS = new Set(["gpt-5.3-codex", "gpt-5.2"]);
 
 export function App() {
   const [input, setInput] = useState("");
@@ -36,7 +37,7 @@ export function App() {
     try {
       const stored = localStorage.getItem("tokimon.model");
       const normalized = (stored ?? "").trim();
-      if (!normalized || normalized === LEGACY_DEFAULT_MODEL) {
+      if (!normalized || LEGACY_DEFAULT_MODELS.has(normalized)) {
         return DEFAULT_MODEL;
       }
       return normalized;
@@ -180,7 +181,7 @@ export function App() {
                   className="tm-model"
                   value={model}
                   onChange={(e) => setModel(e.target.value)}
-                  placeholder="e.g. gpt-5.3-codex"
+                  placeholder="e.g. gpt-5.4"
                   disabled={sending}
                 />
               </label>

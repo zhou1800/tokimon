@@ -11,7 +11,7 @@ from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any, Protocol
 
-_DEFAULT_CODEX_MODEL = "gpt-5.3-codex"
+_DEFAULT_CODEX_MODEL = "gpt-5.4"
 
 
 class LLMClient(Protocol):

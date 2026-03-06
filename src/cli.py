@@ -417,14 +417,10 @@ def _cmd_self_improve(args: argparse.Namespace) -> int:
                 codex_settings = replace(codex_settings, ask_for_approval="never")
             if "TOKIMON_CODEX_SEARCH" not in os.environ:
                 codex_settings = replace(codex_settings, search=True)
-            if "TOKIMON_CODEX_TIMEOUT_S" not in os.environ:
-                codex_settings = replace(codex_settings, timeout_s=240)
             return CodexCLIClient(workspace_dir, settings=codex_settings)
 
         if session_provider in {"claude", "claude-cli"}:
             claude_settings = ClaudeCLISettings.from_env()
-            if "TOKIMON_CLAUDE_TIMEOUT_S" not in os.environ:
-                claude_settings = replace(claude_settings, timeout_s=240)
             return ClaudeCLIClient(workspace_dir, settings=claude_settings)
 
         return build_llm_client(session_provider, workspace_dir=workspace_dir)

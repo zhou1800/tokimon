@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import argparse
+from pathlib import Path
 
+import cli
 from cli import _auto_decide_argv, build_parser
 from llm.client import MockLLMClient
 
@@ -81,3 +83,69 @@ def test_root_help_includes_subcommand_summaries() -> None:
     assert "Run the benchmark suite" in help_text
     assert "memory" in help_text
     assert "Manage Tokimon's local memory" in help_text
+
+
+def test_self_improve_codex_preserves_provider_default_timeout(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    class FakeCodexClient:
+        def __init__(self, workspace_dir: Path, settings) -> None:
+            captured["workspace_dir"] = workspace_dir
+            captured["settings"] = settings
+
+    class FakeOrchestrator:
+        def __init__(self, master_root: Path, llm_factory, settings) -> None:
+            self.llm_factory = llm_factory
+
+        def run(self, goal: str, input_ref: str | None = None):
+            captured["goal"] = goal
+            captured["input_ref"] = input_ref
+            self.llm_factory("1-1", Path.cwd())
+            return type("Report", (), {"run_root": str(Path("runs") / "fake-self-improve")})()
+
+    monkeypatch.delenv("TOKIMON_CODEX_TIMEOUT_S", raising=False)
+    monkeypatch.delenv("TOKIMON_CODEX_SANDBOX", raising=False)
+    monkeypatch.delenv("TOKIMON_CODEX_APPROVAL", raising=False)
+    monkeypatch.delenv("TOKIMON_CODEX_SEARCH", raising=False)
+    monkeypatch.setattr(cli, "CodexCLIClient", FakeCodexClient)
+    monkeypatch.setattr(cli, "SelfImproveOrchestrator", FakeOrchestrator)
+
+    exit_code = cli.main(["self-improve", "--llm", "codex", "--sessions", "1", "--goal", "noop", "--no-merge"])
+
+    assert exit_code == 0
+    settings = captured.get("settings")
+    assert settings is not None
+    assert settings.timeout_s == 900
+    assert settings.sandbox == "workspace-write"
+    assert settings.ask_for_approval == "never"
+    assert settings.search is True
+
+
+def test_self_improve_claude_preserves_provider_default_timeout(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    class FakeClaudeClient:
+        def __init__(self, workspace_dir: Path, settings) -> None:
+            captured["workspace_dir"] = workspace_dir
+            captured["settings"] = settings
+
+    class FakeOrchestrator:
+        def __init__(self, master_root: Path, llm_factory, settings) -> None:
+            self.llm_factory = llm_factory
+
+        def run(self, goal: str, input_ref: str | None = None):
+            captured["goal"] = goal
+            captured["input_ref"] = input_ref
+            self.llm_factory("1-1", Path.cwd())
+            return type("Report", (), {"run_root": str(Path("runs") / "fake-self-improve")})()
+
+    monkeypatch.delenv("TOKIMON_CLAUDE_TIMEOUT_S", raising=False)
+    monkeypatch.setattr(cli, "ClaudeCLIClient", FakeClaudeClient)
+    monkeypatch.setattr(cli, "SelfImproveOrchestrator", FakeOrchestrator)
+
+    exit_code = cli.main(["self-improve", "--llm", "claude", "--sessions", "1", "--goal", "noop", "--no-merge"])
+
+    assert exit_code == 0
+    settings = captured.get("settings")
+    assert settings is not None
+    assert settings.timeout_s == 900

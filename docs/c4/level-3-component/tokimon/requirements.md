@@ -346,8 +346,8 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
   - The scripted adapter MUST NOT synthesize placeholder content; if the script is exhausted it MUST return a deterministic `FAILURE` with actionable remediation.
 - Primary adapter: Codex CLI-backed client that shells out to `codex exec` and returns structured JSON (controlled via `TOKIMON_LLM=codex` or CLI flags).
   - Codex model selection MUST NOT rely on the user's global Codex config. Tokimon MUST pass an explicit `--model` on every Codex invocation.
-  - Default Codex model for general tasks is `gpt-5.3-codex` unless overridden (env: `TOKIMON_CODEX_MODEL`, or Chat UI request field: `model`).
-  - If Codex CLI rejects a request-selected model as unsupported for the current auth mode, Tokimon MUST retry that call once with the built-in default model `gpt-5.3-codex` before surfacing a failure.
+  - Default Codex model for general tasks is `gpt-5.4` unless overridden (env: `TOKIMON_CODEX_MODEL`, or Chat UI request field: `model`).
+  - If Codex CLI rejects a request-selected model as unsupported for the current auth mode, Tokimon MUST retry that call once with the built-in default model `gpt-5.4` before surfacing a failure.
 - Optional adapter: Claude Code CLI-backed client that shells out to `claude` and returns structured JSON (controlled via `TOKIMON_LLM=claude` or CLI flags).
 - Claude Code CLI invocation: send prompts via stdin in `--print` mode (`claude --print --input-format text --output-format json`) and optionally pass a settings file via `--settings <path>` (mirrors `~/clover/joey-playground/apps/ai-agent-cli`).
   - Config surface (env): `CLAUDE_CODE_CLI` (binary override), `TOKIMON_CLAUDE_MODEL`, `TOKIMON_CLAUDE_TIMEOUT_S`, `TOKIMON_CLAUDE_SETTINGS_PATH` or `TOKIMON_CLAUDE_SETTINGS_JSON`, `TOKIMON_CLAUDE_DANGEROUSLY_SKIP_PERMISSIONS`, `TOKIMON_CLAUDE_ARGS`.
@@ -446,7 +446,7 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
 - Health endpoint: `GET /healthz` returns JSON indicating the server is running.
 - Chat endpoint: `POST /api/send` accepts JSON `{message: string, history?: [{role, content}], model?: string}` and returns a structured JSON reply including the step result fields (`status`, `summary`, `artifacts`, `metrics`, `next_actions`, `failure_signature`) plus optional `ui_blocks`, and a human-readable assistant message (in `reply`).
   - When `model` is provided and the active LLM provider is a CLI-backed provider (Codex/Claude), Tokimon MUST use it for that request.
-  - For Codex-backed requests, if the requested model is rejected as unsupported for the current auth mode, Tokimon MUST retry once with `gpt-5.3-codex` and still return a normal structured reply when the fallback succeeds.
+  - For Codex-backed requests, if the requested model is rejected as unsupported for the current auth mode, Tokimon MUST retry once with `gpt-5.4` and still return a normal structured reply when the fallback succeeds.
 - The frontend renders `ui_blocks` using `@tambo-ai/react` (`TamboRegistryProvider` + `ComponentRenderer`) with a local registry (no Tambo cloud / no API key).
 - Chat UI persists each `/api/send` result under `<workspace_dir>/runs/chat-ui/run-<run_id>/artifacts/steps/chat-<N>/step_result.json`.
 - The chat handler uses the same tool set as the hierarchical runner (file, grep, patch, pytest, web).
@@ -508,6 +508,9 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
 - If `--input` is not provided, the system may auto-detect URL(s) embedded in the `--goal` text and fetch at least the first URL as the session input payload (bounded by byte/time limits and the WebTool network policy).
 - The system runs a batch of N independent improvement sessions in parallel.
 - Self-improve CLI LLM default: `--llm` defaults to `$TOKIMON_LLM` when set; otherwise it defaults to `mixed`.
+- Self-improve provider timeout policy:
+  - When `TOKIMON_CODEX_TIMEOUT_S` / `TOKIMON_CLAUDE_TIMEOUT_S` are unset, `tokimon self-improve` MUST inherit the provider client's default timeout behavior.
+  - `tokimon self-improve` MUST NOT silently shorten provider timeouts with a self-improve-specific override.
 - Mixed-provider mode: when `--llm mixed`, enforce a deterministic `claude:codex=1:4` session mix by assigning Claude to session indices 1, 6, 11, ... (i.e., `(index - 1) % 5 == 0`) and Codex to the other sessions. `--sessions` MUST be a multiple of 5 (default: 5).
 - Before launching each batch, the system runs an evaluation on the current master workspace (pytest by default) and passes a compact summary (pass/fail counts + failing test ids) into every session as context.
 - Each session:

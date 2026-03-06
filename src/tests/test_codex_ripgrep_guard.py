@@ -223,7 +223,7 @@ def test_codex_client_retries_unsupported_requested_model_with_default(monkeypat
 
     assert payload["status"] == "SUCCESS"
     assert payload["summary"] == "fallback worked"
-    assert [cmd[cmd.index("--model") + 1] for cmd in calls] == ["gpt-5.3-codex-spark", "gpt-5.3-codex"]
+    assert [cmd[cmd.index("--model") + 1] for cmd in calls] == ["gpt-5.3-codex-spark", "gpt-5.4"]
 
 
 def test_codex_client_does_not_retry_default_model_on_nonzero_exit(monkeypatch, tmp_path):
@@ -242,7 +242,7 @@ def test_codex_client_does_not_retry_default_model_on_nonzero_exit(monkeypatch, 
 
     cli = client.CodexCLIClient(
         workspace_dir=tmp_path,
-        settings=client.CodexCLISettings(cli_command="codex", model="gpt-5.3-codex"),
+        settings=client.CodexCLISettings(cli_command="codex", model="gpt-5.4"),
     )
     payload = cli.send(messages=[{"role": "user", "content": "hi"}])
 

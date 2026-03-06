@@ -22,6 +22,7 @@ This document maps requirements to automated tests.
 - CLI auto routing: `tokimon auto "<prompt>"` uses an LLM router to produce a validated argv list (tests stub the router/LLM for determinism and cover fallback to heuristic routing) (see `src/tests/test_cli_auto.py`).
 - CLI help surface: default `--help` output hides advanced flags while still accepting them (see `src/tests/test_cli_auto.py`).
 - Self-improve CLI LLM default: `--llm` defaults to `$TOKIMON_LLM` when set, else `mixed` (see `src/tests/test_cli_auto.py`).
+- Self-improve CLI provider timeout policy: when `TOKIMON_CODEX_TIMEOUT_S` / `TOKIMON_CLAUDE_TIMEOUT_S` are unset, `tokimon self-improve` preserves the provider client default timeout instead of applying an implicit `240s` override (see `src/tests/test_cli_auto.py`).
 - CLI gateway subcommands: `tokimon gateway run|health|call|probe` parse and client behavior (see `src/tests/test_gateway_cli.py`).
 - Gateway WS protocol v3 device auth: `connect.params.device` identity + challenge signing success and OpenClaw-compatible DEVICE_* failure codes (see `src/tests/test_gateway_ws.py`).
 - CLI logs: `tokimon logs` returns Gateway log entries over the WebSocket RPC (see `src/tests/test_logs_cli.py`).
@@ -54,8 +55,8 @@ This document maps requirements to automated tests.
 - Config mutation audit: promoting a skill appends JSONL audit entries when writing skill assets (manifest, modules, prompts).
 - Doctor state integrity: `tokimon doctor` reports missing/non-writable state dirs and invalid generated-skill manifest shape deterministically.
 - Codex CLI prompt rendering: deterministic prompt envelope with stable tool ordering and explicit context sections.
-- Codex CLI model selection: default Codex model is `gpt-5.3-codex` when `TOKIMON_CODEX_MODEL` is unset, and env overrides win (see `src/tests/test_codex_cli_settings_env.py`).
-- Codex CLI unsupported-model fallback: when Codex rejects a requested model as unsupported for the current auth mode, Tokimon retries once with `gpt-5.3-codex` and returns the fallback payload (see `src/tests/test_codex_ripgrep_guard.py`).
+- Codex CLI model selection: default Codex model is `gpt-5.4` when `TOKIMON_CODEX_MODEL` is unset, and env overrides win (see `src/tests/test_codex_cli_settings_env.py`).
+- Codex CLI unsupported-model fallback: when Codex rejects a requested model as unsupported for the current auth mode, Tokimon retries once with `gpt-5.4` and returns the fallback payload (see `src/tests/test_codex_ripgrep_guard.py`).
 - Codex CLI ripgrep guard: guard on/off, guard config contents, `RIPGREP_CONFIG_PATH` override/preservation, max-columns default and disable=0.
 - Codex CLI delegation markers: subprocess env includes `TOKIMON_DELEGATED=1`, increments `TOKIMON_DELEGATION_DEPTH`, and prompt context reflects delegation depth.
 - Claude CLI adapter: subprocess args include non-interactive flags (`--print`, `--input-format text`, `--output-format json`) and delegation markers are set in the subprocess environment (see `src/tests/test_claude_cli_client.py`).

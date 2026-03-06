@@ -66,7 +66,7 @@ source .venv/bin/activate && tokimon self-improve --llm claude --goal "Improve t
 source .venv/bin/activate && tokimon self-improve --llm mixed --sessions 5 --goal "Improve tokimon based on docs and failing tests."
 ```
 
-Note: by default, self-improve uses `MockLLMClient` (no real model calls). To use an agent CLI as the LLM, pass `--llm codex|claude|mixed` (or set `TOKIMON_LLM`).
+Note: by default, self-improve uses `MockLLMClient` (no real model calls). To use an agent CLI as the LLM, pass `--llm codex|claude|mixed` (or set `TOKIMON_LLM`). Self-improve inherits the provider CLI timeout defaults unless you override them with `TOKIMON_CODEX_TIMEOUT_S` / `TOKIMON_CLAUDE_TIMEOUT_S`.
 
 ## Development
 Run tests:

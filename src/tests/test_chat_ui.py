@@ -169,6 +169,6 @@ def test_chat_ui_falls_back_from_unsupported_requested_codex_model(monkeypatch, 
         assert payload["ok"] is True
         assert payload["status"] == "SUCCESS"
         assert payload["reply"] == "fallback reply"
-        assert [cmd[cmd.index("--model") + 1] for cmd in calls] == ["gpt-5.3-codex-spark", "gpt-5.3-codex"]
+        assert [cmd[cmd.index("--model") + 1] for cmd in calls] == ["gpt-5.3-codex-spark", "gpt-5.4"]
     finally:
         server.stop()
