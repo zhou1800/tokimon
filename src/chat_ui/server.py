@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import mimetypes
+import re
 import threading
 import time
 from dataclasses import dataclass, field, replace
@@ -12,7 +13,7 @@ from http.server import BaseHTTPRequestHandler
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 from artifacts import ArtifactStore
 from agents.worker import Worker
@@ -25,7 +26,7 @@ from observability.reports import build_run_metrics_payload
 from observability.reports import normalize_step_metrics
 from observability.reports import write_metrics_and_dashboard
 from replay import ReplayRecorder
-from runs import create_run_context
+from runs import RunContext, create_run_context, load_run_context
 from tools.file_tool import FileTool
 from tools.grep_tool import GrepTool
 from tools.patch_tool import PatchTool
@@ -62,6 +63,58 @@ npm run dev</code></pre>
   </body>
 </html>
 """
+
+_CONVERSATION_FILENAME = "conversation.json"
+_STEP_ID_RE = re.compile(r"^chat-(\d+)$")
+
+
+class ConversationNotFoundError(LookupError):
+    """Raised when a requested chat thread cannot be found."""
+
+
+@dataclass
+class ConversationState:
+    run_context: RunContext
+    artifact_store: ArtifactStore
+    created_at: str
+    updated_at: str
+    title: str
+    model: str | None = None
+    messages: list[dict[str, Any]] = field(default_factory=list)
+    last_step_id: str | None = None
+    last_step_result: dict[str, Any] | None = None
+    step_index: int = 0
+    step_metrics: dict[str, dict[str, Any]] = field(default_factory=dict)
+    base_wall_time_s: float = 0.0
+    loaded_at_perf: float = field(default_factory=time.perf_counter, repr=False)
+    lock: threading.Lock = field(default_factory=threading.Lock, repr=False, compare=False)
+
+    @property
+    def thread_id(self) -> str:
+        return self.run_context.run_id
+
+    def to_summary(self) -> dict[str, Any]:
+        return {
+            "thread_id": self.thread_id,
+            "run_id": self.run_context.run_id,
+            "title": self.title,
+            "preview": _conversation_preview(self.messages),
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+            "message_count": len(self.messages),
+            "model": self.model or "",
+        }
+
+    def to_detail(self) -> dict[str, Any]:
+        payload = self.to_summary()
+        payload.update(
+            {
+                "messages": [dict(message) for message in self.messages],
+                "last_step_id": self.last_step_id,
+                "last_step_result": dict(self.last_step_result or {}) if self.last_step_result else None,
+            }
+        )
+        return payload
 
 
 @dataclass(frozen=True)

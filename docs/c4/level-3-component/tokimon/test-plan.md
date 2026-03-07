@@ -86,6 +86,7 @@ This document maps requirements to automated tests.
   - Assert `POST /api/send` with a simple message returns a structured JSON reply (including any `ui_blocks`).
   - Assert `POST /api/send` accepts an optional `model` field (when using Codex/Claude providers it selects the request model).
   - Assert a Codex-backed `POST /api/send` still succeeds when the requested model is rejected as unsupported and the built-in fallback model succeeds.
+  - Assert the frontend composer wiring remains keyboard-first: the primary textarea is configured to auto-focus, bare `Enter` submits, and `Shift+Enter` remains available for multiline input (see `src/tests/test_chat_ui.py`).
   - Assert a `step_result.json` run artifact exists under the configured `workspace_dir`.
   - Assert run-level observability artifacts exist under the same run root: `reports/metrics.json` and `reports/dashboard.html`.
   - Shut the server down cleanly.

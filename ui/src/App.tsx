@@ -1,5 +1,5 @@
 import { ComponentRenderer, TamboRegistryProvider } from "@tambo-ai/react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { postSend } from "./api";
 import type { ChatMessage, SendResponse, UIBlock } from "./types";
@@ -33,6 +33,7 @@ export function App() {
   const [history, setHistory] = useState<ChatMessage[]>([]);
   const [log, setLog] = useState<LogEntry[]>([]);
   const [sending, setSending] = useState(false);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const [model, setModel] = useState(() => {
     try {
       const stored = localStorage.getItem("tokimon.model");
@@ -56,6 +57,12 @@ export function App() {
       return;
     }
   }, [model]);
+
+  useEffect(() => {
+    if (!sending) {
+      inputRef.current?.focus();
+    }
+  }, [sending]);
 
   const uiBlocks = useMemo(() => {
     const stepBlocks = lastResponse?.step_result?.ui_blocks;
@@ -85,6 +92,13 @@ export function App() {
 
   const onFormSend = async (message: string) => {
     await sendMessage(message);
+  };
+
+  const submitInput = () => {
+    const msg = input.trim();
+    if (!msg || sending) return;
+    setInput("");
+    void sendMessage(msg);
   };
 
   return (
@@ -144,10 +158,7 @@ export function App() {
           className="tm-form"
           onSubmit={(e) => {
             e.preventDefault();
-            const msg = input.trim();
-            if (!msg || sending) return;
-            setInput("");
-            void sendMessage(msg);
+            submitInput();
           }}
         >
           <div className="tm-controls">
@@ -188,11 +199,18 @@ export function App() {
             ) : null}
           </div>
           <textarea
+            ref={inputRef}
             className="tm-input"
             placeholder="Type a message…"
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing) return;
+              e.preventDefault();
+              submitInput();
+            }}
             disabled={sending}
+            autoFocus
           />
           <button className="tm-button" type="submit" disabled={sending}>
             Send

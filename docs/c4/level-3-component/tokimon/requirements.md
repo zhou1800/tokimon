@@ -442,6 +442,7 @@ Tokimon is a production-grade manager/worker (hierarchical) agent system that or
 ### Chat UI
 - `tokimon chat-ui` starts a local web server (binds loopback by default) that serves a single-page chat UI.
 - The chat UI frontend is a React + TypeScript app built with Vite under `ui/`.
+- The primary chat composer is keyboard-first: the message textarea auto-focuses on initial load and after each completed send, `Enter` submits the current message, and `Shift+Enter` inserts a newline.
 - `GET /` serves `ui/dist/index.html` and static assets when present; otherwise it serves an HTML page explaining that the UI build is missing.
 - Health endpoint: `GET /healthz` returns JSON indicating the server is running.
 - Chat endpoint: `POST /api/send` accepts JSON `{message: string, history?: [{role, content}], model?: string}` and returns a structured JSON reply including the step result fields (`status`, `summary`, `artifacts`, `metrics`, `next_actions`, `failure_signature`) plus optional `ui_blocks`, and a human-readable assistant message (in `reply`).

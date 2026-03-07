@@ -172,3 +172,16 @@ def test_chat_ui_falls_back_from_unsupported_requested_codex_model(monkeypatch, 
         assert [cmd[cmd.index("--model") + 1] for cmd in calls] == ["gpt-5.3-codex-spark", "gpt-5.4"]
     finally:
         server.stop()
+
+
+def test_chat_ui_app_wires_keyboard_first_composer_behavior() -> None:
+    content = Path("ui/src/App.tsx").read_text(encoding="utf-8")
+
+    assert "useRef<HTMLTextAreaElement | null>(null)" in content
+    assert "inputRef.current?.focus();" in content
+    assert "ref={inputRef}" in content
+    assert "autoFocus" in content
+    assert 'e.key !== "Enter"' in content
+    assert "e.shiftKey" in content
+    assert "e.nativeEvent.isComposing" in content
+    assert "submitInput();" in content
