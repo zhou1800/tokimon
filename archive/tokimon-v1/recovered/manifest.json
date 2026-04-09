@@ -1,0 +1,19 @@
+{
+  "archive_root": "/home/joey/github/tokimon/archive/tokimon-v1",
+  "counts": {
+    "self_improve_runs_with_goal": 335,
+    "session_attempt_prompts": 758,
+    "session_json_files": 524,
+    "unique_self_improve_goals": 238,
+    "unique_todo_items_ever_seen": 24,
+    "unique_todo_states": 26
+  },
+  "files": {
+    "readme_md": "README.md",
+    "session_prompts_jsonl": "internal_session_prompts.jsonl",
+    "todo_history_json": "todo_history.json",
+    "todo_items_json": "todo_items_ever_seen.json",
+    "unique_goals_json": "unique_self_improve_goals.json"
+  },
+  "generated_from": "archive/tokimon-v1 preserved runtime artifacts + git history of docs/todo.md"
+}

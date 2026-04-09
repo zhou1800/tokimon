@@ -1,0 +1,1860 @@
+{
+  "count": 24,
+  "items": [
+    {
+      "text": "GrepTool safety limits",
+      "first_seen_date": "2026-02-17",
+      "last_seen_date": "2026-02-17",
+      "states": [
+        {
+          "state_first_date": "2026-02-17",
+          "state_last_date": "2026-02-17",
+          "slot": 1,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-17",
+          "state_last_date": "2026-02-17",
+          "slot": 1,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-17",
+          "state_last_date": "2026-02-17",
+          "slot": 1,
+          "done": false
+        }
+      ],
+      "slots": [
+        1
+      ],
+      "statuses_seen": [
+        "open"
+      ]
+    },
+    {
+      "text": "Large-runs regression test",
+      "first_seen_date": "2026-02-17",
+      "last_seen_date": "2026-02-17",
+      "states": [
+        {
+          "state_first_date": "2026-02-17",
+          "state_last_date": "2026-02-17",
+          "slot": 2,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-17",
+          "state_last_date": "2026-02-17",
+          "slot": 2,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-17",
+          "state_last_date": "2026-02-17",
+          "slot": 2,
+          "done": false
+        }
+      ],
+      "slots": [
+        2
+      ],
+      "statuses_seen": [
+        "open"
+      ]
+    },
+    {
+      "text": "Ripgrep guard docs",
+      "first_seen_date": "2026-02-17",
+      "last_seen_date": "2026-02-17",
+      "states": [
+        {
+          "state_first_date": "2026-02-17",
+          "state_last_date": "2026-02-17",
+          "slot": 3,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-17",
+          "state_last_date": "2026-02-17",
+          "slot": 3,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-17",
+          "state_last_date": "2026-02-17",
+          "slot": 3,
+          "done": false
+        }
+      ],
+      "slots": [
+        3
+      ],
+      "statuses_seen": [
+        "open"
+      ]
+    },
+    {
+      "text": "Self-improve OOM smoke scenario",
+      "first_seen_date": "2026-02-17",
+      "last_seen_date": "2026-02-17",
+      "states": [
+        {
+          "state_first_date": "2026-02-17",
+          "state_last_date": "2026-02-17",
+          "slot": 4,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-17",
+          "state_last_date": "2026-02-17",
+          "slot": 4,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-17",
+          "state_last_date": "2026-02-17",
+          "slot": 4,
+          "done": false
+        }
+      ],
+      "slots": [
+        4
+      ],
+      "statuses_seen": [
+        "open"
+      ]
+    },
+    {
+      "text": "Relocate `runs/` to repo root",
+      "first_seen_date": "2026-02-17",
+      "last_seen_date": "2026-02-19",
+      "states": [
+        {
+          "state_first_date": "2026-02-17",
+          "state_last_date": "2026-02-17",
+          "slot": 5,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-17",
+          "state_last_date": "2026-02-17",
+          "slot": 5,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-17",
+          "state_last_date": "2026-02-17",
+          "slot": 2,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 2,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 2,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 2,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 2,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 2,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 2,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 2,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 2,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 2,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 2,
+          "done": true
+        }
+      ],
+      "slots": [
+        2,
+        5
+      ],
+      "statuses_seen": [
+        "done",
+        "open"
+      ]
+    },
+    {
+      "text": "Self-improve from Codex agent loop article",
+      "first_seen_date": "2026-02-17",
+      "last_seen_date": "2026-02-19",
+      "states": [
+        {
+          "state_first_date": "2026-02-17",
+          "state_last_date": "2026-02-17",
+          "slot": 6,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-17",
+          "state_last_date": "2026-02-17",
+          "slot": 6,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-17",
+          "state_last_date": "2026-02-17",
+          "slot": 3,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 3,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 3,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 3,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 3,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 3,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 3,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 3,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 3,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 3,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 3,
+          "done": true
+        }
+      ],
+      "slots": [
+        3,
+        6
+      ],
+      "statuses_seen": [
+        "done",
+        "open"
+      ]
+    },
+    {
+      "text": "Self-improve from skills shell tips article",
+      "first_seen_date": "2026-02-17",
+      "last_seen_date": "2026-02-19",
+      "states": [
+        {
+          "state_first_date": "2026-02-17",
+          "state_last_date": "2026-02-17",
+          "slot": 7,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-17",
+          "state_last_date": "2026-02-17",
+          "slot": 7,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-17",
+          "state_last_date": "2026-02-17",
+          "slot": 4,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 4,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 4,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 4,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 4,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 4,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 4,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 4,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 4,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 4,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 4,
+          "done": true
+        }
+      ],
+      "slots": [
+        4,
+        7
+      ],
+      "statuses_seen": [
+        "done",
+        "open"
+      ]
+    },
+    {
+      "text": "Chat UI-first interaction flow",
+      "first_seen_date": "2026-02-17",
+      "last_seen_date": "2026-02-19",
+      "states": [
+        {
+          "state_first_date": "2026-02-17",
+          "state_last_date": "2026-02-17",
+          "slot": 8,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-17",
+          "state_last_date": "2026-02-17",
+          "slot": 8,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-17",
+          "state_last_date": "2026-02-17",
+          "slot": 5,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 5,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 5,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 5,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 5,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 5,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 5,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 5,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 5,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 5,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 5,
+          "done": true
+        }
+      ],
+      "slots": [
+        5,
+        8
+      ],
+      "statuses_seen": [
+        "done",
+        "open"
+      ]
+    },
+    {
+      "text": "Generalized arbitrary-goal self-improvement mode",
+      "first_seen_date": "2026-02-17",
+      "last_seen_date": "2026-02-19",
+      "states": [
+        {
+          "state_first_date": "2026-02-17",
+          "state_last_date": "2026-02-17",
+          "slot": 9,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-17",
+          "state_last_date": "2026-02-17",
+          "slot": 9,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-17",
+          "state_last_date": "2026-02-17",
+          "slot": 6,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 6,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 6,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 6,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 6,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 6,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 6,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 6,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 6,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 6,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 6,
+          "done": true
+        }
+      ],
+      "slots": [
+        6,
+        9
+      ],
+      "statuses_seen": [
+        "done",
+        "open"
+      ]
+    },
+    {
+      "text": "Claude CLI learning + mixed-provider self-improve ratio",
+      "first_seen_date": "2026-02-17",
+      "last_seen_date": "2026-02-19",
+      "states": [
+        {
+          "state_first_date": "2026-02-17",
+          "state_last_date": "2026-02-17",
+          "slot": 10,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-17",
+          "state_last_date": "2026-02-17",
+          "slot": 10,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-17",
+          "state_last_date": "2026-02-17",
+          "slot": 7,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 7,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 7,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 7,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 7,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 7,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 7,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 7,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 7,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 7,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 7,
+          "done": true
+        }
+      ],
+      "slots": [
+        7,
+        10
+      ],
+      "statuses_seen": [
+        "done",
+        "open"
+      ]
+    },
+    {
+      "text": "Ensure self-improve uses the agent loop",
+      "first_seen_date": "2026-02-17",
+      "last_seen_date": "2026-02-19",
+      "states": [
+        {
+          "state_first_date": "2026-02-17",
+          "state_last_date": "2026-02-17",
+          "slot": 11,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-17",
+          "state_last_date": "2026-02-17",
+          "slot": 11,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-17",
+          "state_last_date": "2026-02-17",
+          "slot": 8,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 8,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 8,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 8,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 8,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 8,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 8,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 8,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 8,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 8,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 8,
+          "done": true
+        }
+      ],
+      "slots": [
+        8,
+        11
+      ],
+      "statuses_seen": [
+        "done",
+        "open"
+      ]
+    },
+    {
+      "text": "Self-improve entry-point request handling loop",
+      "first_seen_date": "2026-02-17",
+      "last_seen_date": "2026-02-19",
+      "states": [
+        {
+          "state_first_date": "2026-02-17",
+          "state_last_date": "2026-02-17",
+          "slot": 12,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-17",
+          "state_last_date": "2026-02-17",
+          "slot": 9,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 9,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 9,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 9,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 9,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 9,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 9,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 9,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 9,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 9,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 9,
+          "done": true
+        }
+      ],
+      "slots": [
+        9,
+        12
+      ],
+      "statuses_seen": [
+        "done",
+        "open"
+      ]
+    },
+    {
+      "text": "OOM and reliability hardening",
+      "first_seen_date": "2026-02-17",
+      "last_seen_date": "2026-02-19",
+      "states": [
+        {
+          "state_first_date": "2026-02-17",
+          "state_last_date": "2026-02-17",
+          "slot": 1,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 1,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 1,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 1,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 1,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 1,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 1,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 1,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 1,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 1,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 1,
+          "done": true
+        }
+      ],
+      "slots": [
+        1
+      ],
+      "statuses_seen": [
+        "done",
+        "open"
+      ]
+    },
+    {
+      "text": "Schema-driven structured outputs",
+      "first_seen_date": "2026-02-18",
+      "last_seen_date": "2026-03-01",
+      "states": [
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 10,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 10,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 10,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 10,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 10,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 10,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 10,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 10,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 10,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 11,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-26",
+          "slot": 1,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-22",
+          "state_last_date": "2026-02-22",
+          "slot": 1,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-22",
+          "state_last_date": "2026-02-22",
+          "slot": 1,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-22",
+          "state_last_date": "2026-02-22",
+          "slot": 1,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-22",
+          "state_last_date": "2026-02-22",
+          "slot": 1,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-22",
+          "state_last_date": "2026-02-22",
+          "slot": 1,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-23",
+          "state_last_date": "2026-02-23",
+          "slot": 1,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-23",
+          "state_last_date": "2026-02-23",
+          "slot": 1,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-24",
+          "state_last_date": "2026-02-24",
+          "slot": 1,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-28",
+          "state_last_date": "2026-02-28",
+          "slot": 1,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-28",
+          "state_last_date": "2026-02-28",
+          "slot": 1,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-03-01",
+          "state_last_date": "2026-03-01",
+          "slot": 1,
+          "done": true
+        }
+      ],
+      "slots": [
+        1,
+        10,
+        11
+      ],
+      "statuses_seen": [
+        "done",
+        "open"
+      ]
+    },
+    {
+      "text": "Persist and render structured results + UI blocks",
+      "first_seen_date": "2026-02-18",
+      "last_seen_date": "2026-03-01",
+      "states": [
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 11,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 11,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 11,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 11,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 11,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 11,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 11,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 11,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 11,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 12,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-26",
+          "slot": 2,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-22",
+          "state_last_date": "2026-02-22",
+          "slot": 2,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-22",
+          "state_last_date": "2026-02-22",
+          "slot": 2,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-22",
+          "state_last_date": "2026-02-22",
+          "slot": 2,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-22",
+          "state_last_date": "2026-02-22",
+          "slot": 2,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-22",
+          "state_last_date": "2026-02-22",
+          "slot": 2,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-23",
+          "state_last_date": "2026-02-23",
+          "slot": 2,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-23",
+          "state_last_date": "2026-02-23",
+          "slot": 2,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-24",
+          "state_last_date": "2026-02-24",
+          "slot": 2,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-28",
+          "state_last_date": "2026-02-28",
+          "slot": 2,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-28",
+          "state_last_date": "2026-02-28",
+          "slot": 2,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-03-01",
+          "state_last_date": "2026-03-01",
+          "slot": 2,
+          "done": true
+        }
+      ],
+      "slots": [
+        2,
+        11,
+        12
+      ],
+      "statuses_seen": [
+        "done",
+        "open"
+      ]
+    },
+    {
+      "text": "Observability-ready metrics and dashboards",
+      "first_seen_date": "2026-02-18",
+      "last_seen_date": "2026-03-01",
+      "states": [
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 12,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 12,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 12,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 12,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 12,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 12,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 12,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 12,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 12,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 13,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-26",
+          "slot": 3,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-22",
+          "state_last_date": "2026-02-22",
+          "slot": 3,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-22",
+          "state_last_date": "2026-02-22",
+          "slot": 3,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-22",
+          "state_last_date": "2026-02-22",
+          "slot": 3,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-22",
+          "state_last_date": "2026-02-22",
+          "slot": 3,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-22",
+          "state_last_date": "2026-02-22",
+          "slot": 3,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-23",
+          "state_last_date": "2026-02-23",
+          "slot": 3,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-23",
+          "state_last_date": "2026-02-23",
+          "slot": 3,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-24",
+          "state_last_date": "2026-02-24",
+          "slot": 3,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-28",
+          "state_last_date": "2026-02-28",
+          "slot": 3,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-28",
+          "state_last_date": "2026-02-28",
+          "slot": 3,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-03-01",
+          "state_last_date": "2026-03-01",
+          "slot": 3,
+          "done": true
+        }
+      ],
+      "slots": [
+        3,
+        12,
+        13
+      ],
+      "statuses_seen": [
+        "done",
+        "open"
+      ]
+    },
+    {
+      "text": "Non-trivial upgrade: move chat UI to React + Tambo",
+      "first_seen_date": "2026-02-18",
+      "last_seen_date": "2026-03-01",
+      "states": [
+        {
+          "state_first_date": "2026-02-18",
+          "state_last_date": "2026-02-18",
+          "slot": 13,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 13,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 13,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 13,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 13,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 13,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 14,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-26",
+          "slot": 4,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-22",
+          "state_last_date": "2026-02-22",
+          "slot": 4,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-22",
+          "state_last_date": "2026-02-22",
+          "slot": 4,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-22",
+          "state_last_date": "2026-02-22",
+          "slot": 4,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-22",
+          "state_last_date": "2026-02-22",
+          "slot": 4,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-22",
+          "state_last_date": "2026-02-22",
+          "slot": 4,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-23",
+          "state_last_date": "2026-02-23",
+          "slot": 4,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-23",
+          "state_last_date": "2026-02-23",
+          "slot": 4,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-24",
+          "state_last_date": "2026-02-24",
+          "slot": 4,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-28",
+          "state_last_date": "2026-02-28",
+          "slot": 4,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-28",
+          "state_last_date": "2026-02-28",
+          "slot": 4,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-03-01",
+          "state_last_date": "2026-03-01",
+          "slot": 4,
+          "done": true
+        }
+      ],
+      "slots": [
+        4,
+        13,
+        14
+      ],
+      "statuses_seen": [
+        "done",
+        "open"
+      ]
+    },
+    {
+      "text": "Tokimon constitution enforcement",
+      "first_seen_date": "2026-02-19",
+      "last_seen_date": "2026-02-19",
+      "states": [
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 14,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 14,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 14,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 14,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 14,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-19",
+          "state_last_date": "2026-02-19",
+          "slot": 10,
+          "done": true
+        }
+      ],
+      "slots": [
+        10,
+        14
+      ],
+      "statuses_seen": [
+        "done",
+        "open"
+      ]
+    },
+    {
+      "text": "Self-improve: enforce evaluation-first experiment reporting",
+      "first_seen_date": "2026-02-22",
+      "last_seen_date": "2026-02-24",
+      "states": [
+        {
+          "state_first_date": "2026-02-22",
+          "state_last_date": "2026-02-22",
+          "slot": 5,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-22",
+          "state_last_date": "2026-02-22",
+          "slot": 5,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-22",
+          "state_last_date": "2026-02-22",
+          "slot": 5,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-22",
+          "state_last_date": "2026-02-22",
+          "slot": 5,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-22",
+          "state_last_date": "2026-02-22",
+          "slot": 5,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-23",
+          "state_last_date": "2026-02-23",
+          "slot": 5,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-23",
+          "state_last_date": "2026-02-23",
+          "slot": 5,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-24",
+          "state_last_date": "2026-02-24",
+          "slot": 5,
+          "done": true
+        }
+      ],
+      "slots": [
+        5
+      ],
+      "statuses_seen": [
+        "done",
+        "open"
+      ]
+    },
+    {
+      "text": "Self-improve: include failing test IDs in baseline/post-change summaries",
+      "first_seen_date": "2026-02-22",
+      "last_seen_date": "2026-02-24",
+      "states": [
+        {
+          "state_first_date": "2026-02-22",
+          "state_last_date": "2026-02-22",
+          "slot": 6,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-22",
+          "state_last_date": "2026-02-22",
+          "slot": 6,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-22",
+          "state_last_date": "2026-02-22",
+          "slot": 6,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-22",
+          "state_last_date": "2026-02-22",
+          "slot": 6,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-22",
+          "state_last_date": "2026-02-22",
+          "slot": 6,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-23",
+          "state_last_date": "2026-02-23",
+          "slot": 6,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-23",
+          "state_last_date": "2026-02-23",
+          "slot": 6,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-24",
+          "state_last_date": "2026-02-24",
+          "slot": 6,
+          "done": true
+        }
+      ],
+      "slots": [
+        6
+      ],
+      "statuses_seen": [
+        "done",
+        "open"
+      ]
+    },
+    {
+      "text": "Self-improve: parallel exploration protocol",
+      "first_seen_date": "2026-02-22",
+      "last_seen_date": "2026-02-24",
+      "states": [
+        {
+          "state_first_date": "2026-02-22",
+          "state_last_date": "2026-02-22",
+          "slot": 7,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-22",
+          "state_last_date": "2026-02-22",
+          "slot": 7,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-22",
+          "state_last_date": "2026-02-22",
+          "slot": 7,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-23",
+          "state_last_date": "2026-02-23",
+          "slot": 7,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-23",
+          "state_last_date": "2026-02-23",
+          "slot": 7,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-24",
+          "state_last_date": "2026-02-24",
+          "slot": 7,
+          "done": true
+        }
+      ],
+      "slots": [
+        7
+      ],
+      "statuses_seen": [
+        "done",
+        "open"
+      ]
+    },
+    {
+      "text": "Self-improve: Memory-as-Asset charter",
+      "first_seen_date": "2026-02-22",
+      "last_seen_date": "2026-02-24",
+      "states": [
+        {
+          "state_first_date": "2026-02-22",
+          "state_last_date": "2026-02-22",
+          "slot": 8,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-22",
+          "state_last_date": "2026-02-22",
+          "slot": 8,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-23",
+          "state_last_date": "2026-02-23",
+          "slot": 8,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-23",
+          "state_last_date": "2026-02-23",
+          "slot": 8,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-24",
+          "state_last_date": "2026-02-24",
+          "slot": 8,
+          "done": true
+        }
+      ],
+      "slots": [
+        8
+      ],
+      "statuses_seen": [
+        "done",
+        "open"
+      ]
+    },
+    {
+      "text": "Skill Asset Protocol: Prompt Skills + Code Skills with metadata",
+      "first_seen_date": "2026-02-22",
+      "last_seen_date": "2026-02-24",
+      "states": [
+        {
+          "state_first_date": "2026-02-22",
+          "state_last_date": "2026-02-22",
+          "slot": 9,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-23",
+          "state_last_date": "2026-02-23",
+          "slot": 9,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-23",
+          "state_last_date": "2026-02-23",
+          "slot": 9,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-24",
+          "state_last_date": "2026-02-24",
+          "slot": 9,
+          "done": true
+        }
+      ],
+      "slots": [
+        9
+      ],
+      "statuses_seen": [
+        "done",
+        "open"
+      ]
+    },
+    {
+      "text": "Self-improve: Resource Safety Directive (Hard vs Soft Constraints)",
+      "first_seen_date": "2026-02-23",
+      "last_seen_date": "2026-02-24",
+      "states": [
+        {
+          "state_first_date": "2026-02-23",
+          "state_last_date": "2026-02-23",
+          "slot": 10,
+          "done": false
+        },
+        {
+          "state_first_date": "2026-02-23",
+          "state_last_date": "2026-02-23",
+          "slot": 10,
+          "done": true
+        },
+        {
+          "state_first_date": "2026-02-24",
+          "state_last_date": "2026-02-24",
+          "slot": 10,
+          "done": true
+        }
+      ],
+      "slots": [
+        10
+      ],
+      "statuses_seen": [
+        "done",
+        "open"
+      ]
+    }
+  ]
+}

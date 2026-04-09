@@ -1,0 +1,542 @@
+{
+  "count": 26,
+  "states": [
+    {
+      "state_id": "todo-state-001",
+      "first_commit": "d9d2d41e314a2af80dc91af63f3d5e43529221fb",
+      "first_date": "2026-02-17",
+      "last_commit": "d9d2d41e314a2af80dc91af63f3d5e43529221fb",
+      "last_date": "2026-02-17",
+      "subject": "tokimon: self-improve winner session 1-1",
+      "items": [
+        "1. [ ] GrepTool safety limits (Owner: TBD)",
+        "2. [ ] Large-runs regression test (Owner: TBD)",
+        "3. [ ] Ripgrep guard docs (Owner: TBD)",
+        "4. [ ] Self-improve OOM smoke scenario (Owner: TBD)"
+      ],
+      "content": "# Tokimon TODO\n\nThis document tracks prioritized follow-up work to reduce OOM risk and improve runtime reliability.\n\n1. [ ] GrepTool safety limits (Owner: TBD)\n   - Acceptance criteria: Enforce configurable max file-size and match-count limits in GrepTool, with tests covering truncation and fail-safe behavior.\n2. [ ] Large-runs regression test (Owner: TBD)\n   - Acceptance criteria: Add a regression test for large runs that reproduces historical memory pressure and fails on OOM-related regressions.\n3. [ ] Ripgrep guard docs (Owner: TBD)\n   - Acceptance criteria: Document ripgrep guard behavior, defaults, and override guidance in `docs/` with one concrete example.\n4. [ ] Self-improve OOM smoke scenario (Owner: TBD)\n   - Acceptance criteria: Add a smoke scenario for self-improve flow that validates completion without OOM under CI-representative settings.\n"
+    },
+    {
+      "state_id": "todo-state-002",
+      "first_commit": "6b8e4e426e8471fdabb772357ceebee1e3717910",
+      "first_date": "2026-02-17",
+      "last_commit": "6b8e4e426e8471fdabb772357ceebee1e3717910",
+      "last_date": "2026-02-17",
+      "subject": "feat: implement delegation recursion safety and markers for Codex CLI",
+      "items": [
+        "1. [ ] GrepTool safety limits (Owner: TBD)",
+        "2. [ ] Large-runs regression test (Owner: TBD)",
+        "3. [ ] Ripgrep guard docs (Owner: TBD)",
+        "4. [ ] Self-improve OOM smoke scenario (Owner: TBD)",
+        "5. [ ] Relocate `runs/` to repo root (Owner: TBD)",
+        "6. [ ] Self-improve from Codex agent loop article (Owner: TBD)",
+        "7. [ ] Self-improve from skills shell tips article (Owner: TBD)",
+        "8. [ ] Chat UI-first interaction flow (Owner: TBD)",
+        "9. [ ] Generalized arbitrary-goal self-improvement mode (Owner: TBD)",
+        "10. [ ] Claude CLI learning + mixed-provider self-improve ratio (Owner: TBD)",
+        "11. [ ] Ensure self-improve uses the agent loop (Owner: TBD)"
+      ],
+      "content": "# Tokimon TODO\n\nThis document tracks prioritized follow-up work to reduce OOM risk and improve runtime reliability.\n\n1. [ ] GrepTool safety limits (Owner: TBD)\n   - Acceptance criteria: Enforce configurable max file-size and match-count limits in GrepTool, with tests covering truncation and fail-safe behavior.\n2. [ ] Large-runs regression test (Owner: TBD)\n   - Acceptance criteria: Add a regression test for large runs that reproduces historical memory pressure and fails on OOM-related regressions.\n3. [ ] Ripgrep guard docs (Owner: TBD)\n   - Acceptance criteria: Document ripgrep guard behavior, defaults, and override guidance in `docs/` with one concrete example.\n4. [ ] Self-improve OOM smoke scenario (Owner: TBD)\n   - Acceptance criteria: Add a smoke scenario for self-improve flow that validates completion without OOM under CI-representative settings.\n5. [ ] Relocate `runs/` to repo root (Owner: TBD)\n   - Acceptance criteria: Store `runs/` as a repo-root sibling of `src/` and `docs/`, and update all setup and usage instructions accordingly.\n6. [ ] Self-improve from Codex agent loop article (Owner: TBD)\n   - Acceptance criteria: Use Tokimon to extract improvements from https://openai.com/index/unrolling-the-codex-agent-loop/ and apply at least one validated enhancement.\n7. [ ] Self-improve from skills shell tips article (Owner: TBD)\n   - Acceptance criteria: Use Tokimon to extract improvements from https://developers.openai.com/blog/skills-shell-tips and apply at least one validated enhancement.\n8. [ ] Chat UI-first interaction flow (Owner: TBD)\n   - Acceptance criteria: Deliver a Tokimon chat UI flow that supports routine interaction without CLI invocation for each step.\n9. [ ] Generalized arbitrary-goal self-improvement mode (Owner: TBD)\n   - Acceptance criteria: Provide a super-concise workflow that takes an arbitrary goal and executes end-to-end self-improvement with measurable output.\n10. [ ] Claude CLI learning + mixed-provider self-improve ratio (Owner: TBD)\n   - Acceptance criteria: Learn from `~/clover/joey-playground/apps/` how to use Claude CLI, then enforce a `claude:codex` session mix of `1:4` in every self-improve task.\n11. [ ] Ensure self-improve uses the agent loop (Owner: TBD)\n   - Acceptance criteria: Confirm and enforce that Tokimon self-improve tasks run through the full agent loop (iterative model/tool cycle), not a one-shot execution path.\n"
+    },
+    {
+      "state_id": "todo-state-003",
+      "first_commit": "6c4eddd6e8b50c6c41242d323ddf46e57d224f44",
+      "first_date": "2026-02-17",
+      "last_commit": "6c4eddd6e8b50c6c41242d323ddf46e57d224f44",
+      "last_date": "2026-02-17",
+      "subject": "feat: update TODO with completed tasks and add new self-improve entry-point request handling loop",
+      "items": [
+        "1. [ ] GrepTool safety limits (Owner: TBD)",
+        "2. [ ] Large-runs regression test (Owner: TBD)",
+        "3. [ ] Ripgrep guard docs (Owner: TBD)",
+        "4. [ ] Self-improve OOM smoke scenario (Owner: TBD)",
+        "5. [x] Relocate `runs/` to repo root (Owner: TBD)",
+        "6. [ ] Self-improve from Codex agent loop article (Owner: TBD)",
+        "7. [ ] Self-improve from skills shell tips article (Owner: TBD)",
+        "8. [x] Chat UI-first interaction flow (Owner: TBD)",
+        "9. [x] Generalized arbitrary-goal self-improvement mode (Owner: TBD)",
+        "10. [ ] Claude CLI learning + mixed-provider self-improve ratio (Owner: TBD)",
+        "11. [x] Ensure self-improve uses the agent loop (Owner: TBD)",
+        "12. [ ] Self-improve entry-point request handling loop (Owner: TBD)"
+      ],
+      "content": "# Tokimon TODO\n\nThis document tracks prioritized follow-up work to reduce OOM risk and improve runtime reliability.\n\n1. [ ] GrepTool safety limits (Owner: TBD)\n   - Acceptance criteria: Enforce configurable max file-size and match-count limits in GrepTool, with tests covering truncation and fail-safe behavior.\n2. [ ] Large-runs regression test (Owner: TBD)\n   - Acceptance criteria: Add a regression test for large runs that reproduces historical memory pressure and fails on OOM-related regressions.\n3. [ ] Ripgrep guard docs (Owner: TBD)\n   - Acceptance criteria: Document ripgrep guard behavior, defaults, and override guidance in `docs/` with one concrete example.\n4. [ ] Self-improve OOM smoke scenario (Owner: TBD)\n   - Acceptance criteria: Add a smoke scenario for self-improve flow that validates completion without OOM under CI-representative settings.\n5. [x] Relocate `runs/` to repo root (Owner: TBD)\n   - Acceptance criteria: Store `runs/` as a repo-root sibling of `src/` and `docs/`, and update all setup and usage instructions accordingly.\n6. [ ] Self-improve from Codex agent loop article (Owner: TBD)\n   - Acceptance criteria: Use Tokimon to extract improvements from https://openai.com/index/unrolling-the-codex-agent-loop/ and apply at least one validated enhancement.\n7. [ ] Self-improve from skills shell tips article (Owner: TBD)\n   - Acceptance criteria: Use Tokimon to extract improvements from https://developers.openai.com/blog/skills-shell-tips and apply at least one validated enhancement.\n8. [x] Chat UI-first interaction flow (Owner: TBD)\n   - Acceptance criteria: Deliver a Tokimon chat UI flow that supports routine interaction without CLI invocation for each step.\n9. [x] Generalized arbitrary-goal self-improvement mode (Owner: TBD)\n   - Acceptance criteria: Provide a super-concise workflow that takes an arbitrary goal and executes end-to-end self-improvement with measurable output.\n10. [ ] Claude CLI learning + mixed-provider self-improve ratio (Owner: TBD)\n   - Acceptance criteria: Learn from `~/clover/joey-playground/apps/` how to use Claude CLI, then enforce a `claude:codex` session mix of `1:4` in every self-improve task.\n11. [x] Ensure self-improve uses the agent loop (Owner: TBD)\n   - Acceptance criteria: Confirm and enforce that Tokimon self-improve tasks run through the full agent loop (iterative model/tool cycle), not a one-shot execution path.\n12. [ ] Self-improve entry-point request handling loop (Owner: TBD)\n   - Acceptance criteria: For Tokimon entry-point tasks, enforce this flow: (1) understand the user's request and ask clarifying questions immediately if it is unclear or ambiguous, (2) once the request is clear move to step 3, (3) generate a prompt, (4) run the agent with the prompt, (5) monitor and report progress, and (6) verify the final outcome; if step 6 fails, restart from step 3.\n"
+    },
+    {
+      "state_id": "todo-state-004",
+      "first_commit": "45d39b425759350368f93912e7f9f135b22c9cce",
+      "first_date": "2026-02-17",
+      "last_commit": "45d39b425759350368f93912e7f9f135b22c9cce",
+      "last_date": "2026-02-17",
+      "subject": "feat: update TODO with new OOM and reliability hardening tasks and clarify self-improve entry-point handling",
+      "items": [
+        "1. [ ] OOM and reliability hardening (Owner: TBD)",
+        "2. [x] Relocate `runs/` to repo root (Owner: TBD)",
+        "3. [ ] Self-improve from Codex agent loop article (Owner: TBD)",
+        "4. [ ] Self-improve from skills shell tips article (Owner: TBD)",
+        "5. [x] Chat UI-first interaction flow (Owner: TBD)",
+        "6. [x] Generalized arbitrary-goal self-improvement mode (Owner: TBD)",
+        "7. [ ] Claude CLI learning + mixed-provider self-improve ratio (Owner: TBD)",
+        "8. [x] Ensure self-improve uses the agent loop (Owner: TBD)",
+        "9. [ ] Self-improve entry-point request handling loop (Owner: TBD)"
+      ],
+      "content": "# Tokimon TODO\n\nThis document tracks prioritized follow-up work to reduce OOM risk and improve runtime reliability.\n\n1. [ ] OOM and reliability hardening (Owner: TBD)\n   - Acceptance criteria: Use Tokimon to identify, prioritize, and implement the required safeguards and validation to prevent OOM regressions and improve runtime reliability.\n2. [x] Relocate `runs/` to repo root (Owner: TBD)\n   - Acceptance criteria: Store `runs/` as a repo-root sibling of `src/` and `docs/`, and update all setup and usage instructions accordingly.\n3. [ ] Self-improve from Codex agent loop article (Owner: TBD)\n   - Acceptance criteria: Use Tokimon to extract improvements from https://openai.com/index/unrolling-the-codex-agent-loop/ and apply at least one validated enhancement.\n4. [ ] Self-improve from skills shell tips article (Owner: TBD)\n   - Acceptance criteria: Use Tokimon to extract improvements from https://developers.openai.com/blog/skills-shell-tips and apply at least one validated enhancement.\n5. [x] Chat UI-first interaction flow (Owner: TBD)\n   - Acceptance criteria: Deliver a Tokimon chat UI flow that supports routine interaction without CLI invocation for each step.\n6. [x] Generalized arbitrary-goal self-improvement mode (Owner: TBD)\n   - Acceptance criteria: Provide a super-concise workflow that takes an arbitrary goal and executes end-to-end self-improvement with measurable output.\n7. [ ] Claude CLI learning + mixed-provider self-improve ratio (Owner: TBD)\n   - Acceptance criteria: Learn from `~/clover/joey-playground/apps/` how to use Claude CLI, then enforce a `claude:codex` session mix of `1:4` in every self-improve task.\n8. [x] Ensure self-improve uses the agent loop (Owner: TBD)\n   - Acceptance criteria: Confirm and enforce that Tokimon self-improve tasks run through the full agent loop (iterative model/tool cycle), not a one-shot execution path.\n9. [ ] Self-improve entry-point request handling loop (Owner: TBD)\n   - Acceptance criteria: For Tokimon entry-point tasks, enforce this flow: (1) understand the user's request and ask clarifying questions immediately if it is unclear or ambiguous, (2) once the request is clear move to step 3, (3) generate a prompt, (4) run the agent with the prompt, (5) monitor and report progress, and (6) verify the final outcome; if step 6 fails, restart from step 3.\n"
+    },
+    {
+      "state_id": "todo-state-005",
+      "first_commit": "d68bac06c9294d3da31b2eadf6b82e791ccdc3ab",
+      "first_date": "2026-02-18",
+      "last_commit": "d68bac06c9294d3da31b2eadf6b82e791ccdc3ab",
+      "last_date": "2026-02-18",
+      "subject": "docs(todo): add structured output follow-ups",
+      "items": [
+        "1. [ ] OOM and reliability hardening (Owner: TBD)",
+        "2. [x] Relocate `runs/` to repo root (Owner: TBD)",
+        "3. [ ] Self-improve from Codex agent loop article (Owner: TBD)",
+        "4. [ ] Self-improve from skills shell tips article (Owner: TBD)",
+        "5. [x] Chat UI-first interaction flow (Owner: TBD)",
+        "6. [x] Generalized arbitrary-goal self-improvement mode (Owner: TBD)",
+        "7. [ ] Claude CLI learning + mixed-provider self-improve ratio (Owner: TBD)",
+        "8. [x] Ensure self-improve uses the agent loop (Owner: TBD)",
+        "9. [ ] Self-improve entry-point request handling loop (Owner: TBD)",
+        "10. [ ] Schema-driven structured outputs (Owner: TBD)",
+        "11. [ ] Persist and render structured results + UI blocks (Owner: TBD)",
+        "12. [ ] Observability-ready metrics and dashboards (Owner: TBD)"
+      ],
+      "content": "# Tokimon TODO\n\nThis document tracks prioritized follow-up work to reduce OOM risk and improve runtime reliability.\n\n1. [ ] OOM and reliability hardening (Owner: TBD)\n   - Acceptance criteria: Use Tokimon to identify, prioritize, and implement the required safeguards and validation to prevent OOM regressions and improve runtime reliability.\n2. [x] Relocate `runs/` to repo root (Owner: TBD)\n   - Acceptance criteria: Store `runs/` as a repo-root sibling of `src/` and `docs/`, and update all setup and usage instructions accordingly.\n3. [ ] Self-improve from Codex agent loop article (Owner: TBD)\n   - Acceptance criteria: Use Tokimon to extract improvements from https://openai.com/index/unrolling-the-codex-agent-loop/ and apply at least one validated enhancement.\n4. [ ] Self-improve from skills shell tips article (Owner: TBD)\n   - Acceptance criteria: Use Tokimon to extract improvements from https://developers.openai.com/blog/skills-shell-tips and apply at least one validated enhancement.\n5. [x] Chat UI-first interaction flow (Owner: TBD)\n   - Acceptance criteria: Deliver a Tokimon chat UI flow that supports routine interaction without CLI invocation for each step.\n6. [x] Generalized arbitrary-goal self-improvement mode (Owner: TBD)\n   - Acceptance criteria: Provide a super-concise workflow that takes an arbitrary goal and executes end-to-end self-improvement with measurable output.\n7. [ ] Claude CLI learning + mixed-provider self-improve ratio (Owner: TBD)\n   - Acceptance criteria: Learn from `~/clover/joey-playground/apps/` how to use Claude CLI, then enforce a `claude:codex` session mix of `1:4` in every self-improve task.\n8. [x] Ensure self-improve uses the agent loop (Owner: TBD)\n   - Acceptance criteria: Confirm and enforce that Tokimon self-improve tasks run through the full agent loop (iterative model/tool cycle), not a one-shot execution path.\n9. [ ] Self-improve entry-point request handling loop (Owner: TBD)\n   - Acceptance criteria: For Tokimon entry-point tasks, enforce this flow: (1) understand the user's request and ask clarifying questions immediately if it is unclear or ambiguous, (2) once the request is clear move to step 3, (3) generate a prompt, (4) run the agent with the prompt, (5) monitor and report progress, and (6) verify the final outcome; if step 6 fails, restart from step 3.\n10. [ ] Schema-driven structured outputs (Owner: TBD)\n   - Acceptance criteria: Define a per-step \"success schema\" and enforce schema-valid structured results (not just valid JSON), with bounded repair on validation failures.\n11. [ ] Persist and render structured results + UI blocks (Owner: TBD)\n   - Acceptance criteria: Persist the full structured step result (including any UI blocks) as first-class run artifacts/outputs, and render them in the chat UI rather than only printing a text summary.\n12. [ ] Observability-ready metrics and dashboards (Owner: TBD)\n   - Acceptance criteria: Standardize a small set of run/step metrics (with types and units) and produce an importable dashboard artifact so Tokimon runs are measurable and easy to visualize.\n"
+    },
+    {
+      "state_id": "todo-state-006",
+      "first_commit": "93ff1d16677989c39390ae4aa680a13e97dae8dd",
+      "first_date": "2026-02-18",
+      "last_commit": "93ff1d16677989c39390ae4aa680a13e97dae8dd",
+      "last_date": "2026-02-18",
+      "subject": "docs(todo): mark entrypoint loop done",
+      "items": [
+        "1. [ ] OOM and reliability hardening (Owner: TBD)",
+        "2. [x] Relocate `runs/` to repo root (Owner: TBD)",
+        "3. [ ] Self-improve from Codex agent loop article (Owner: TBD)",
+        "4. [ ] Self-improve from skills shell tips article (Owner: TBD)",
+        "5. [x] Chat UI-first interaction flow (Owner: TBD)",
+        "6. [x] Generalized arbitrary-goal self-improvement mode (Owner: TBD)",
+        "7. [ ] Claude CLI learning + mixed-provider self-improve ratio (Owner: TBD)",
+        "8. [x] Ensure self-improve uses the agent loop (Owner: TBD)",
+        "9. [x] Self-improve entry-point request handling loop (Owner: TBD)",
+        "10. [ ] Schema-driven structured outputs (Owner: TBD)",
+        "11. [ ] Persist and render structured results + UI blocks (Owner: TBD)",
+        "12. [ ] Observability-ready metrics and dashboards (Owner: TBD)"
+      ],
+      "content": "# Tokimon TODO\n\nThis document tracks prioritized follow-up work to reduce OOM risk and improve runtime reliability.\n\n1. [ ] OOM and reliability hardening (Owner: TBD)\n   - Acceptance criteria: Use Tokimon to identify, prioritize, and implement the required safeguards and validation to prevent OOM regressions and improve runtime reliability.\n2. [x] Relocate `runs/` to repo root (Owner: TBD)\n   - Acceptance criteria: Store `runs/` as a repo-root sibling of `src/` and `docs/`, and update all setup and usage instructions accordingly.\n3. [ ] Self-improve from Codex agent loop article (Owner: TBD)\n   - Acceptance criteria: Use Tokimon to extract improvements from https://openai.com/index/unrolling-the-codex-agent-loop/ and apply at least one validated enhancement.\n4. [ ] Self-improve from skills shell tips article (Owner: TBD)\n   - Acceptance criteria: Use Tokimon to extract improvements from https://developers.openai.com/blog/skills-shell-tips and apply at least one validated enhancement.\n5. [x] Chat UI-first interaction flow (Owner: TBD)\n   - Acceptance criteria: Deliver a Tokimon chat UI flow that supports routine interaction without CLI invocation for each step.\n6. [x] Generalized arbitrary-goal self-improvement mode (Owner: TBD)\n   - Acceptance criteria: Provide a super-concise workflow that takes an arbitrary goal and executes end-to-end self-improvement with measurable output.\n7. [ ] Claude CLI learning + mixed-provider self-improve ratio (Owner: TBD)\n   - Acceptance criteria: Learn from `~/clover/joey-playground/apps/` how to use Claude CLI, then enforce a `claude:codex` session mix of `1:4` in every self-improve task.\n8. [x] Ensure self-improve uses the agent loop (Owner: TBD)\n   - Acceptance criteria: Confirm and enforce that Tokimon self-improve tasks run through the full agent loop (iterative model/tool cycle), not a one-shot execution path.\n9. [x] Self-improve entry-point request handling loop (Owner: TBD)\n   - Acceptance criteria: For Tokimon entry-point tasks, enforce this flow: (1) understand the user's request and ask clarifying questions immediately if it is unclear or ambiguous, (2) once the request is clear move to step 3, (3) generate a prompt, (4) run the agent with the prompt, (5) monitor and report progress, and (6) verify the final outcome; if step 6 fails, restart from step 3.\n   - Verification: `pytest --maxfail=1 -c src/pyproject.toml src/tests` (passes); see `src/tests/test_self_improve_entrypoint_loop.py` and `src/self_improve/orchestrator.py`.\n10. [ ] Schema-driven structured outputs (Owner: TBD)\n   - Acceptance criteria: Define a per-step \"success schema\" and enforce schema-valid structured results (not just valid JSON), with bounded repair on validation failures.\n11. [ ] Persist and render structured results + UI blocks (Owner: TBD)\n   - Acceptance criteria: Persist the full structured step result (including any UI blocks) as first-class run artifacts/outputs, and render them in the chat UI rather than only printing a text summary.\n12. [ ] Observability-ready metrics and dashboards (Owner: TBD)\n   - Acceptance criteria: Standardize a small set of run/step metrics (with types and units) and produce an importable dashboard artifact so Tokimon runs are measurable and easy to visualize.\n"
+    },
+    {
+      "state_id": "todo-state-007",
+      "first_commit": "2da816a0d271634437e7c2c165bacccb7fc90c95",
+      "first_date": "2026-02-18",
+      "last_commit": "2da816a0d271634437e7c2c165bacccb7fc90c95",
+      "last_date": "2026-02-18",
+      "subject": "docs(todo): mark OOM and reliability hardening as complete and add verification details",
+      "items": [
+        "1. [x] OOM and reliability hardening (Owner: TBD)",
+        "2. [x] Relocate `runs/` to repo root (Owner: TBD)",
+        "3. [ ] Self-improve from Codex agent loop article (Owner: TBD)",
+        "4. [ ] Self-improve from skills shell tips article (Owner: TBD)",
+        "5. [x] Chat UI-first interaction flow (Owner: TBD)",
+        "6. [x] Generalized arbitrary-goal self-improvement mode (Owner: TBD)",
+        "7. [ ] Claude CLI learning + mixed-provider self-improve ratio (Owner: TBD)",
+        "8. [x] Ensure self-improve uses the agent loop (Owner: TBD)",
+        "9. [x] Self-improve entry-point request handling loop (Owner: TBD)",
+        "10. [ ] Schema-driven structured outputs (Owner: TBD)",
+        "11. [ ] Persist and render structured results + UI blocks (Owner: TBD)",
+        "12. [ ] Observability-ready metrics and dashboards (Owner: TBD)"
+      ],
+      "content": "# Tokimon TODO\n\nThis document tracks prioritized follow-up work to reduce OOM risk and improve runtime reliability.\n\n1. [x] OOM and reliability hardening (Owner: TBD)\n   - Acceptance criteria: Use Tokimon to identify, prioritize, and implement the required safeguards and validation to prevent OOM regressions and improve runtime reliability.\n   - Verification: `pytest --maxfail=1 -c src/pyproject.toml src/tests` (passes); see `src/tests/test_codex_ripgrep_guard.py`, `src/llm/client.py`, and `src/tests/test_trace_unrolling.py`.\n2. [x] Relocate `runs/` to repo root (Owner: TBD)\n   - Acceptance criteria: Store `runs/` as a repo-root sibling of `src/` and `docs/`, and update all setup and usage instructions accordingly.\n3. [ ] Self-improve from Codex agent loop article (Owner: TBD)\n   - Acceptance criteria: Use Tokimon to extract improvements from https://openai.com/index/unrolling-the-codex-agent-loop/ and apply at least one validated enhancement.\n4. [ ] Self-improve from skills shell tips article (Owner: TBD)\n   - Acceptance criteria: Use Tokimon to extract improvements from https://developers.openai.com/blog/skills-shell-tips and apply at least one validated enhancement.\n5. [x] Chat UI-first interaction flow (Owner: TBD)\n   - Acceptance criteria: Deliver a Tokimon chat UI flow that supports routine interaction without CLI invocation for each step.\n6. [x] Generalized arbitrary-goal self-improvement mode (Owner: TBD)\n   - Acceptance criteria: Provide a super-concise workflow that takes an arbitrary goal and executes end-to-end self-improvement with measurable output.\n7. [ ] Claude CLI learning + mixed-provider self-improve ratio (Owner: TBD)\n   - Acceptance criteria: Learn from `~/clover/joey-playground/apps/` how to use Claude CLI, then enforce a `claude:codex` session mix of `1:4` in every self-improve task.\n8. [x] Ensure self-improve uses the agent loop (Owner: TBD)\n   - Acceptance criteria: Confirm and enforce that Tokimon self-improve tasks run through the full agent loop (iterative model/tool cycle), not a one-shot execution path.\n9. [x] Self-improve entry-point request handling loop (Owner: TBD)\n   - Acceptance criteria: For Tokimon entry-point tasks, enforce this flow: (1) understand the user's request and ask clarifying questions immediately if it is unclear or ambiguous, (2) once the request is clear move to step 3, (3) generate a prompt, (4) run the agent with the prompt, (5) monitor and report progress, and (6) verify the final outcome; if step 6 fails, restart from step 3.\n   - Verification: `pytest --maxfail=1 -c src/pyproject.toml src/tests` (passes); see `src/tests/test_self_improve_entrypoint_loop.py` and `src/self_improve/orchestrator.py`.\n10. [ ] Schema-driven structured outputs (Owner: TBD)\n   - Acceptance criteria: Define a per-step \"success schema\" and enforce schema-valid structured results (not just valid JSON), with bounded repair on validation failures.\n11. [ ] Persist and render structured results + UI blocks (Owner: TBD)\n   - Acceptance criteria: Persist the full structured step result (including any UI blocks) as first-class run artifacts/outputs, and render them in the chat UI rather than only printing a text summary.\n12. [ ] Observability-ready metrics and dashboards (Owner: TBD)\n   - Acceptance criteria: Standardize a small set of run/step metrics (with types and units) and produce an importable dashboard artifact so Tokimon runs are measurable and easy to visualize.\n"
+    },
+    {
+      "state_id": "todo-state-008",
+      "first_commit": "e8c72a0efa00561df61ae420b404ace51aa1d67d",
+      "first_date": "2026-02-18",
+      "last_commit": "e8c72a0efa00561df61ae420b404ace51aa1d67d",
+      "last_date": "2026-02-18",
+      "subject": "feat(todo): add task for migrating chat UI to React with Tambo integration",
+      "items": [
+        "1. [x] OOM and reliability hardening (Owner: TBD)",
+        "2. [x] Relocate `runs/` to repo root (Owner: TBD)",
+        "3. [ ] Self-improve from Codex agent loop article (Owner: TBD)",
+        "4. [ ] Self-improve from skills shell tips article (Owner: TBD)",
+        "5. [x] Chat UI-first interaction flow (Owner: TBD)",
+        "6. [x] Generalized arbitrary-goal self-improvement mode (Owner: TBD)",
+        "7. [ ] Claude CLI learning + mixed-provider self-improve ratio (Owner: TBD)",
+        "8. [x] Ensure self-improve uses the agent loop (Owner: TBD)",
+        "9. [x] Self-improve entry-point request handling loop (Owner: TBD)",
+        "10. [ ] Schema-driven structured outputs (Owner: TBD)",
+        "11. [ ] Persist and render structured results + UI blocks (Owner: TBD)",
+        "12. [ ] Observability-ready metrics and dashboards (Owner: TBD)",
+        "13. [ ] Non-trivial upgrade: move chat UI to React + Tambo (Owner: TBD)"
+      ],
+      "content": "# Tokimon TODO\n\nThis document tracks prioritized follow-up work to reduce OOM risk and improve runtime reliability.\n\n1. [x] OOM and reliability hardening (Owner: TBD)\n   - Acceptance criteria: Use Tokimon to identify, prioritize, and implement the required safeguards and validation to prevent OOM regressions and improve runtime reliability.\n   - Verification: `pytest --maxfail=1 -c src/pyproject.toml src/tests` (passes); see `src/tests/test_codex_ripgrep_guard.py`, `src/llm/client.py`, and `src/tests/test_trace_unrolling.py`.\n2. [x] Relocate `runs/` to repo root (Owner: TBD)\n   - Acceptance criteria: Store `runs/` as a repo-root sibling of `src/` and `docs/`, and update all setup and usage instructions accordingly.\n3. [ ] Self-improve from Codex agent loop article (Owner: TBD)\n   - Acceptance criteria: Use Tokimon to extract improvements from https://openai.com/index/unrolling-the-codex-agent-loop/ and apply at least one validated enhancement.\n4. [ ] Self-improve from skills shell tips article (Owner: TBD)\n   - Acceptance criteria: Use Tokimon to extract improvements from https://developers.openai.com/blog/skills-shell-tips and apply at least one validated enhancement.\n5. [x] Chat UI-first interaction flow (Owner: TBD)\n   - Acceptance criteria: Deliver a Tokimon chat UI flow that supports routine interaction without CLI invocation for each step.\n6. [x] Generalized arbitrary-goal self-improvement mode (Owner: TBD)\n   - Acceptance criteria: Provide a super-concise workflow that takes an arbitrary goal and executes end-to-end self-improvement with measurable output.\n7. [ ] Claude CLI learning + mixed-provider self-improve ratio (Owner: TBD)\n   - Acceptance criteria: Learn from `~/clover/joey-playground/apps/` how to use Claude CLI, then enforce a `claude:codex` session mix of `1:4` in every self-improve task.\n8. [x] Ensure self-improve uses the agent loop (Owner: TBD)\n   - Acceptance criteria: Confirm and enforce that Tokimon self-improve tasks run through the full agent loop (iterative model/tool cycle), not a one-shot execution path.\n9. [x] Self-improve entry-point request handling loop (Owner: TBD)\n   - Acceptance criteria: For Tokimon entry-point tasks, enforce this flow: (1) understand the user's request and ask clarifying questions immediately if it is unclear or ambiguous, (2) once the request is clear move to step 3, (3) generate a prompt, (4) run the agent with the prompt, (5) monitor and report progress, and (6) verify the final outcome; if step 6 fails, restart from step 3.\n   - Verification: `pytest --maxfail=1 -c src/pyproject.toml src/tests` (passes); see `src/tests/test_self_improve_entrypoint_loop.py` and `src/self_improve/orchestrator.py`.\n10. [ ] Schema-driven structured outputs (Owner: TBD)\n   - Acceptance criteria: Define a per-step \"success schema\" and enforce schema-valid structured results (not just valid JSON), with bounded repair on validation failures.\n11. [ ] Persist and render structured results + UI blocks (Owner: TBD)\n   - Acceptance criteria: Persist the full structured step result (including any UI blocks) as first-class run artifacts/outputs, and render them in the chat UI rather than only printing a text summary.\n12. [ ] Observability-ready metrics and dashboards (Owner: TBD)\n   - Acceptance criteria: Standardize a small set of run/step metrics (with types and units) and produce an importable dashboard artifact so Tokimon runs are measurable and easy to visualize.\n13. [ ] Non-trivial upgrade: move chat UI to React + Tambo (Owner: TBD)\n   - Acceptance criteria: Migrate the chat UI to a React frontend using Tambo to render Tokimon UI blocks (charts/forms/panels), add the required JS build+serve workflow, and keep `/healthz` and `/api/send` stable.\n"
+    },
+    {
+      "state_id": "todo-state-009",
+      "first_commit": "987a07f0f3cde98e2572ef1d058850ab833dd08f",
+      "first_date": "2026-02-19",
+      "last_commit": "987a07f0f3cde98e2572ef1d058850ab833dd08f",
+      "last_date": "2026-02-19",
+      "subject": "tokimon: self-improve winner session 1-1",
+      "items": [
+        "1. [x] OOM and reliability hardening (Owner: TBD)",
+        "2. [x] Relocate `runs/` to repo root (Owner: TBD)",
+        "3. [ ] Self-improve from Codex agent loop article (Owner: TBD)",
+        "4. [ ] Self-improve from skills shell tips article (Owner: TBD)",
+        "5. [x] Chat UI-first interaction flow (Owner: TBD)",
+        "6. [x] Generalized arbitrary-goal self-improvement mode (Owner: TBD)",
+        "7. [ ] Claude CLI learning + mixed-provider self-improve ratio (Owner: TBD)",
+        "8. [x] Ensure self-improve uses the agent loop (Owner: TBD)",
+        "9. [x] Self-improve entry-point request handling loop (Owner: TBD)",
+        "10. [ ] Schema-driven structured outputs (Owner: TBD)",
+        "11. [ ] Persist and render structured results + UI blocks (Owner: TBD)",
+        "12. [ ] Observability-ready metrics and dashboards (Owner: TBD)",
+        "13. [ ] Non-trivial upgrade: move chat UI to React + Tambo (Owner: TBD)",
+        "14. [ ] Tokimon constitution enforcement (Owner: TBD)"
+      ],
+      "content": "# Tokimon TODO\n\nThis document tracks prioritized follow-up work to reduce OOM risk and improve runtime reliability.\n\n1. [x] OOM and reliability hardening (Owner: TBD)\n   - Acceptance criteria: Use Tokimon to identify, prioritize, and implement the required safeguards and validation to prevent OOM regressions and improve runtime reliability.\n   - Verification: `pytest --maxfail=1 -c src/pyproject.toml src/tests` (passes); see `src/tests/test_codex_ripgrep_guard.py`, `src/llm/client.py`, and `src/tests/test_trace_unrolling.py`.\n2. [x] Relocate `runs/` to repo root (Owner: TBD)\n   - Acceptance criteria: Store `runs/` as a repo-root sibling of `src/` and `docs/`, and update all setup and usage instructions accordingly.\n3. [ ] Self-improve from Codex agent loop article (Owner: TBD)\n   - Acceptance criteria: Use Tokimon to extract improvements from https://openai.com/index/unrolling-the-codex-agent-loop/ and apply at least one validated enhancement.\n4. [ ] Self-improve from skills shell tips article (Owner: TBD)\n   - Acceptance criteria: Use Tokimon to extract improvements from https://developers.openai.com/blog/skills-shell-tips and apply at least one validated enhancement.\n5. [x] Chat UI-first interaction flow (Owner: TBD)\n   - Acceptance criteria: Deliver a Tokimon chat UI flow that supports routine interaction without CLI invocation for each step.\n6. [x] Generalized arbitrary-goal self-improvement mode (Owner: TBD)\n   - Acceptance criteria: Provide a super-concise workflow that takes an arbitrary goal and executes end-to-end self-improvement with measurable output.\n7. [ ] Claude CLI learning + mixed-provider self-improve ratio (Owner: TBD)\n   - Acceptance criteria: Learn from `~/clover/joey-playground/apps/` how to use Claude CLI, then enforce a `claude:codex` session mix of `1:4` in every self-improve task.\n8. [x] Ensure self-improve uses the agent loop (Owner: TBD)\n   - Acceptance criteria: Confirm and enforce that Tokimon self-improve tasks run through the full agent loop (iterative model/tool cycle), not a one-shot execution path.\n9. [x] Self-improve entry-point request handling loop (Owner: TBD)\n   - Acceptance criteria: For Tokimon entry-point tasks, enforce this flow: (1) understand the user's request and ask clarifying questions immediately if it is unclear or ambiguous, (2) once the request is clear move to step 3, (3) generate a prompt, (4) run the agent with the prompt, (5) monitor and report progress, and (6) verify the final outcome; if step 6 fails, restart from step 3.\n   - Verification: `pytest --maxfail=1 -c src/pyproject.toml src/tests` (passes); see `src/tests/test_self_improve_entrypoint_loop.py` and `src/self_improve/orchestrator.py`.\n10. [ ] Schema-driven structured outputs (Owner: TBD)\n   - Acceptance criteria: Define a per-step \"success schema\" and enforce schema-valid structured results (not just valid JSON), with bounded repair on validation failures.\n11. [ ] Persist and render structured results + UI blocks (Owner: TBD)\n   - Acceptance criteria: Persist the full structured step result (including any UI blocks) as first-class run artifacts/outputs, and render them in the chat UI rather than only printing a text summary.\n12. [ ] Observability-ready metrics and dashboards (Owner: TBD)\n   - Acceptance criteria: Standardize a small set of run/step metrics (with types and units) and produce an importable dashboard artifact so Tokimon runs are measurable and easy to visualize.\n13. [ ] Non-trivial upgrade: move chat UI to React + Tambo (Owner: TBD)\n   - Acceptance criteria: Migrate the chat UI to a React frontend using Tambo to render Tokimon UI blocks (charts/forms/panels), add the required JS build+serve workflow, and keep `/healthz` and `/api/send` stable.\n14. [ ] Tokimon constitution enforcement (Owner: TBD)\n   - Acceptance criteria: Add binding constitution doc, enforce entry-point prompt and report headings, deterministic tie-breaker, and energy budget reporting for self-improve.\n"
+    },
+    {
+      "state_id": "todo-state-010",
+      "first_commit": "22d7dc1cd42e5c8bcc248b8d1952e26f36e96f79",
+      "first_date": "2026-02-19",
+      "last_commit": "22d7dc1cd42e5c8bcc248b8d1952e26f36e96f79",
+      "last_date": "2026-02-19",
+      "subject": "tokimon: self-improve winner session 1-1",
+      "items": [
+        "1. [x] OOM and reliability hardening (Owner: TBD)",
+        "2. [x] Relocate `runs/` to repo root (Owner: TBD)",
+        "3. [ ] Self-improve from Codex agent loop article (Owner: TBD)",
+        "4. [ ] Self-improve from skills shell tips article (Owner: TBD)",
+        "5. [x] Chat UI-first interaction flow (Owner: TBD)",
+        "6. [x] Generalized arbitrary-goal self-improvement mode (Owner: TBD)",
+        "7. [x] Claude CLI learning + mixed-provider self-improve ratio (Owner: TBD)",
+        "8. [x] Ensure self-improve uses the agent loop (Owner: TBD)",
+        "9. [x] Self-improve entry-point request handling loop (Owner: TBD)",
+        "10. [ ] Schema-driven structured outputs (Owner: TBD)",
+        "11. [ ] Persist and render structured results + UI blocks (Owner: TBD)",
+        "12. [ ] Observability-ready metrics and dashboards (Owner: TBD)",
+        "13. [ ] Non-trivial upgrade: move chat UI to React + Tambo (Owner: TBD)",
+        "14. [ ] Tokimon constitution enforcement (Owner: TBD)"
+      ],
+      "content": "# Tokimon TODO\n\nThis document tracks prioritized follow-up work to reduce OOM risk and improve runtime reliability.\n\n1. [x] OOM and reliability hardening (Owner: TBD)\n   - Acceptance criteria: Use Tokimon to identify, prioritize, and implement the required safeguards and validation to prevent OOM regressions and improve runtime reliability.\n   - Verification: `pytest --maxfail=1 -c src/pyproject.toml src/tests` (passes); see `src/tests/test_codex_ripgrep_guard.py`, `src/llm/client.py`, and `src/tests/test_trace_unrolling.py`.\n2. [x] Relocate `runs/` to repo root (Owner: TBD)\n   - Acceptance criteria: Store `runs/` as a repo-root sibling of `src/` and `docs/`, and update all setup and usage instructions accordingly.\n3. [ ] Self-improve from Codex agent loop article (Owner: TBD)\n   - Acceptance criteria: Use Tokimon to extract improvements from https://openai.com/index/unrolling-the-codex-agent-loop/ and apply at least one validated enhancement.\n4. [ ] Self-improve from skills shell tips article (Owner: TBD)\n   - Acceptance criteria: Use Tokimon to extract improvements from https://developers.openai.com/blog/skills-shell-tips and apply at least one validated enhancement.\n5. [x] Chat UI-first interaction flow (Owner: TBD)\n   - Acceptance criteria: Deliver a Tokimon chat UI flow that supports routine interaction without CLI invocation for each step.\n6. [x] Generalized arbitrary-goal self-improvement mode (Owner: TBD)\n   - Acceptance criteria: Provide a super-concise workflow that takes an arbitrary goal and executes end-to-end self-improvement with measurable output.\n7. [x] Claude CLI learning + mixed-provider self-improve ratio (Owner: TBD)\n   - Acceptance criteria: Learn from `~/clover/joey-playground/apps/` how to use Claude CLI, then enforce a `claude:codex` session mix of `1:4` in every self-improve task.\n   - Verification: `pytest --maxfail=1 -c src/pyproject.toml src/tests` (passes); see `src/llm/client.py`, `src/self_improve/provider_mix.py`, `src/cli.py`, `src/tests/test_claude_cli_client.py`, and `src/tests/test_self_improve_provider_mix.py`.\n8. [x] Ensure self-improve uses the agent loop (Owner: TBD)\n   - Acceptance criteria: Confirm and enforce that Tokimon self-improve tasks run through the full agent loop (iterative model/tool cycle), not a one-shot execution path.\n9. [x] Self-improve entry-point request handling loop (Owner: TBD)\n   - Acceptance criteria: For Tokimon entry-point tasks, enforce this flow: (1) understand the user's request and ask clarifying questions immediately if it is unclear or ambiguous, (2) once the request is clear move to step 3, (3) generate a prompt, (4) run the agent with the prompt, (5) monitor and report progress, and (6) verify the final outcome; if step 6 fails, restart from step 3.\n   - Verification: `pytest --maxfail=1 -c src/pyproject.toml src/tests` (passes); see `src/tests/test_self_improve_entrypoint_loop.py` and `src/self_improve/orchestrator.py`.\n10. [ ] Schema-driven structured outputs (Owner: TBD)\n   - Acceptance criteria: Define a per-step \"success schema\" and enforce schema-valid structured results (not just valid JSON), with bounded repair on validation failures.\n11. [ ] Persist and render structured results + UI blocks (Owner: TBD)\n   - Acceptance criteria: Persist the full structured step result (including any UI blocks) as first-class run artifacts/outputs, and render them in the chat UI rather than only printing a text summary.\n12. [ ] Observability-ready metrics and dashboards (Owner: TBD)\n   - Acceptance criteria: Standardize a small set of run/step metrics (with types and units) and produce an importable dashboard artifact so Tokimon runs are measurable and easy to visualize.\n13. [ ] Non-trivial upgrade: move chat UI to React + Tambo (Owner: TBD)\n   - Acceptance criteria: Migrate the chat UI to a React frontend using Tambo to render Tokimon UI blocks (charts/forms/panels), add the required JS build+serve workflow, and keep `/healthz` and `/api/send` stable.\n14. [ ] Tokimon constitution enforcement (Owner: TBD)\n   - Acceptance criteria: Add binding constitution doc, enforce entry-point prompt and report headings, deterministic tie-breaker, and energy budget reporting for self-improve.\n"
+    },
+    {
+      "state_id": "todo-state-011",
+      "first_commit": "96751ba3aa448ce7c2d6207ec6e791f2a37800c1",
+      "first_date": "2026-02-19",
+      "last_commit": "96751ba3aa448ce7c2d6207ec6e791f2a37800c1",
+      "last_date": "2026-02-19",
+      "subject": "tokimon: self-improve winner session 1-1",
+      "items": [
+        "1. [x] OOM and reliability hardening (Owner: TBD)",
+        "2. [x] Relocate `runs/` to repo root (Owner: TBD)",
+        "3. [x] Self-improve from Codex agent loop article (Owner: TBD)",
+        "4. [ ] Self-improve from skills shell tips article (Owner: TBD)",
+        "5. [x] Chat UI-first interaction flow (Owner: TBD)",
+        "6. [x] Generalized arbitrary-goal self-improvement mode (Owner: TBD)",
+        "7. [x] Claude CLI learning + mixed-provider self-improve ratio (Owner: TBD)",
+        "8. [x] Ensure self-improve uses the agent loop (Owner: TBD)",
+        "9. [x] Self-improve entry-point request handling loop (Owner: TBD)",
+        "10. [ ] Schema-driven structured outputs (Owner: TBD)",
+        "11. [ ] Persist and render structured results + UI blocks (Owner: TBD)",
+        "12. [ ] Observability-ready metrics and dashboards (Owner: TBD)",
+        "13. [ ] Non-trivial upgrade: move chat UI to React + Tambo (Owner: TBD)",
+        "14. [ ] Tokimon constitution enforcement (Owner: TBD)"
+      ],
+      "content": "# Tokimon TODO\n\nThis document tracks prioritized follow-up work to reduce OOM risk and improve runtime reliability.\n\n1. [x] OOM and reliability hardening (Owner: TBD)\n   - Acceptance criteria: Use Tokimon to identify, prioritize, and implement the required safeguards and validation to prevent OOM regressions and improve runtime reliability.\n   - Verification: `pytest --maxfail=1 -c src/pyproject.toml src/tests` (passes); see `src/tests/test_codex_ripgrep_guard.py`, `src/llm/client.py`, and `src/tests/test_trace_unrolling.py`.\n2. [x] Relocate `runs/` to repo root (Owner: TBD)\n   - Acceptance criteria: Store `runs/` as a repo-root sibling of `src/` and `docs/`, and update all setup and usage instructions accordingly.\n3. [x] Self-improve from Codex agent loop article (Owner: TBD)\n   - Acceptance criteria: Use Tokimon to extract improvements from https://openai.com/index/unrolling-the-codex-agent-loop/ and apply at least one validated enhancement.\n   - Extracted candidate improvements:\n     - Tool call correlation: carry `call_id` through tool calls/results (and traces/metrics) so models can match outputs to calls.\n     - Prompt-cache friendliness: keep prompts as exact-prefix extensions (stable tool ordering; avoid rewriting earlier prompt sections).\n     - Context compaction: compact long conversation histories when near limits rather than continuing to append unbounded context.\n   - Implemented: Tool call correlation (`call_id`) is recorded in `tool_call_records`, echoed in tool result payloads, and logged in trace events.\n   - Verification: `pytest --maxfail=1 -c src/pyproject.toml src/tests` (passes)\n4. [ ] Self-improve from skills shell tips article (Owner: TBD)\n   - Acceptance criteria: Use Tokimon to extract improvements from https://developers.openai.com/blog/skills-shell-tips and apply at least one validated enhancement.\n5. [x] Chat UI-first interaction flow (Owner: TBD)\n   - Acceptance criteria: Deliver a Tokimon chat UI flow that supports routine interaction without CLI invocation for each step.\n6. [x] Generalized arbitrary-goal self-improvement mode (Owner: TBD)\n   - Acceptance criteria: Provide a super-concise workflow that takes an arbitrary goal and executes end-to-end self-improvement with measurable output.\n7. [x] Claude CLI learning + mixed-provider self-improve ratio (Owner: TBD)\n   - Acceptance criteria: Learn from `~/clover/joey-playground/apps/` how to use Claude CLI, then enforce a `claude:codex` session mix of `1:4` in every self-improve task.\n   - Verification: `pytest --maxfail=1 -c src/pyproject.toml src/tests` (passes); see `src/llm/client.py`, `src/self_improve/provider_mix.py`, `src/cli.py`, `src/tests/test_claude_cli_client.py`, and `src/tests/test_self_improve_provider_mix.py`.\n8. [x] Ensure self-improve uses the agent loop (Owner: TBD)\n   - Acceptance criteria: Confirm and enforce that Tokimon self-improve tasks run through the full agent loop (iterative model/tool cycle), not a one-shot execution path.\n9. [x] Self-improve entry-point request handling loop (Owner: TBD)\n   - Acceptance criteria: For Tokimon entry-point tasks, enforce this flow: (1) understand the user's request and ask clarifying questions immediately if it is unclear or ambiguous, (2) once the request is clear move to step 3, (3) generate a prompt, (4) run the agent with the prompt, (5) monitor and report progress, and (6) verify the final outcome; if step 6 fails, restart from step 3.\n   - Verification: `pytest --maxfail=1 -c src/pyproject.toml src/tests` (passes); see `src/tests/test_self_improve_entrypoint_loop.py` and `src/self_improve/orchestrator.py`.\n10. [ ] Schema-driven structured outputs (Owner: TBD)\n   - Acceptance criteria: Define a per-step \"success schema\" and enforce schema-valid structured results (not just valid JSON), with bounded repair on validation failures.\n11. [ ] Persist and render structured results + UI blocks (Owner: TBD)\n   - Acceptance criteria: Persist the full structured step result (including any UI blocks) as first-class run artifacts/outputs, and render them in the chat UI rather than only printing a text summary.\n12. [ ] Observability-ready metrics and dashboards (Owner: TBD)\n   - Acceptance criteria: Standardize a small set of run/step metrics (with types and units) and produce an importable dashboard artifact so Tokimon runs are measurable and easy to visualize.\n13. [ ] Non-trivial upgrade: move chat UI to React + Tambo (Owner: TBD)\n   - Acceptance criteria: Migrate the chat UI to a React frontend using Tambo to render Tokimon UI blocks (charts/forms/panels), add the required JS build+serve workflow, and keep `/healthz` and `/api/send` stable.\n14. [ ] Tokimon constitution enforcement (Owner: TBD)\n   - Acceptance criteria: Add binding constitution doc, enforce entry-point prompt and report headings, deterministic tie-breaker, and energy budget reporting for self-improve.\n"
+    },
+    {
+      "state_id": "todo-state-012",
+      "first_commit": "3e2b4191d5eaabaa23edbded7f69795bfb96bc8a",
+      "first_date": "2026-02-19",
+      "last_commit": "3e2b4191d5eaabaa23edbded7f69795bfb96bc8a",
+      "last_date": "2026-02-19",
+      "subject": "feat(todo): mark Tokimon constitution enforcement as complete",
+      "items": [
+        "1. [x] OOM and reliability hardening (Owner: TBD)",
+        "2. [x] Relocate `runs/` to repo root (Owner: TBD)",
+        "3. [x] Self-improve from Codex agent loop article (Owner: TBD)",
+        "4. [ ] Self-improve from skills shell tips article (Owner: TBD)",
+        "5. [x] Chat UI-first interaction flow (Owner: TBD)",
+        "6. [x] Generalized arbitrary-goal self-improvement mode (Owner: TBD)",
+        "7. [x] Claude CLI learning + mixed-provider self-improve ratio (Owner: TBD)",
+        "8. [x] Ensure self-improve uses the agent loop (Owner: TBD)",
+        "9. [x] Self-improve entry-point request handling loop (Owner: TBD)",
+        "10. [ ] Schema-driven structured outputs (Owner: TBD)",
+        "11. [ ] Persist and render structured results + UI blocks (Owner: TBD)",
+        "12. [ ] Observability-ready metrics and dashboards (Owner: TBD)",
+        "13. [ ] Non-trivial upgrade: move chat UI to React + Tambo (Owner: TBD)",
+        "14. [x] Tokimon constitution enforcement (Owner: TBD)"
+      ],
+      "content": "# Tokimon TODO\n\nThis document tracks prioritized follow-up work to reduce OOM risk and improve runtime reliability.\n\n1. [x] OOM and reliability hardening (Owner: TBD)\n   - Acceptance criteria: Use Tokimon to identify, prioritize, and implement the required safeguards and validation to prevent OOM regressions and improve runtime reliability.\n   - Verification: `pytest --maxfail=1 -c src/pyproject.toml src/tests` (passes); see `src/tests/test_codex_ripgrep_guard.py`, `src/llm/client.py`, and `src/tests/test_trace_unrolling.py`.\n2. [x] Relocate `runs/` to repo root (Owner: TBD)\n   - Acceptance criteria: Store `runs/` as a repo-root sibling of `src/` and `docs/`, and update all setup and usage instructions accordingly.\n3. [x] Self-improve from Codex agent loop article (Owner: TBD)\n   - Acceptance criteria: Use Tokimon to extract improvements from https://openai.com/index/unrolling-the-codex-agent-loop/ and apply at least one validated enhancement.\n   - Extracted candidate improvements:\n     - Tool call correlation: carry `call_id` through tool calls/results (and traces/metrics) so models can match outputs to calls.\n     - Prompt-cache friendliness: keep prompts as exact-prefix extensions (stable tool ordering; avoid rewriting earlier prompt sections).\n     - Context compaction: compact long conversation histories when near limits rather than continuing to append unbounded context.\n   - Implemented: Tool call correlation (`call_id`) is recorded in `tool_call_records`, echoed in tool result payloads, and logged in trace events.\n   - Verification: `pytest --maxfail=1 -c src/pyproject.toml src/tests` (passes)\n4. [ ] Self-improve from skills shell tips article (Owner: TBD)\n   - Acceptance criteria: Use Tokimon to extract improvements from https://developers.openai.com/blog/skills-shell-tips and apply at least one validated enhancement.\n5. [x] Chat UI-first interaction flow (Owner: TBD)\n   - Acceptance criteria: Deliver a Tokimon chat UI flow that supports routine interaction without CLI invocation for each step.\n6. [x] Generalized arbitrary-goal self-improvement mode (Owner: TBD)\n   - Acceptance criteria: Provide a super-concise workflow that takes an arbitrary goal and executes end-to-end self-improvement with measurable output.\n7. [x] Claude CLI learning + mixed-provider self-improve ratio (Owner: TBD)\n   - Acceptance criteria: Learn from `~/clover/joey-playground/apps/` how to use Claude CLI, then enforce a `claude:codex` session mix of `1:4` in every self-improve task.\n   - Verification: `pytest --maxfail=1 -c src/pyproject.toml src/tests` (passes); see `src/llm/client.py`, `src/self_improve/provider_mix.py`, `src/cli.py`, `src/tests/test_claude_cli_client.py`, and `src/tests/test_self_improve_provider_mix.py`.\n8. [x] Ensure self-improve uses the agent loop (Owner: TBD)\n   - Acceptance criteria: Confirm and enforce that Tokimon self-improve tasks run through the full agent loop (iterative model/tool cycle), not a one-shot execution path.\n9. [x] Self-improve entry-point request handling loop (Owner: TBD)\n   - Acceptance criteria: For Tokimon entry-point tasks, enforce this flow: (1) understand the user's request and ask clarifying questions immediately if it is unclear or ambiguous, (2) once the request is clear move to step 3, (3) generate a prompt, (4) run the agent with the prompt, (5) monitor and report progress, and (6) verify the final outcome; if step 6 fails, restart from step 3.\n   - Verification: `pytest --maxfail=1 -c src/pyproject.toml src/tests` (passes); see `src/tests/test_self_improve_entrypoint_loop.py` and `src/self_improve/orchestrator.py`.\n10. [ ] Schema-driven structured outputs (Owner: TBD)\n   - Acceptance criteria: Define a per-step \"success schema\" and enforce schema-valid structured results (not just valid JSON), with bounded repair on validation failures.\n11. [ ] Persist and render structured results + UI blocks (Owner: TBD)\n   - Acceptance criteria: Persist the full structured step result (including any UI blocks) as first-class run artifacts/outputs, and render them in the chat UI rather than only printing a text summary.\n12. [ ] Observability-ready metrics and dashboards (Owner: TBD)\n   - Acceptance criteria: Standardize a small set of run/step metrics (with types and units) and produce an importable dashboard artifact so Tokimon runs are measurable and easy to visualize.\n13. [ ] Non-trivial upgrade: move chat UI to React + Tambo (Owner: TBD)\n   - Acceptance criteria: Migrate the chat UI to a React frontend using Tambo to render Tokimon UI blocks (charts/forms/panels), add the required JS build+serve workflow, and keep `/healthz` and `/api/send` stable.\n14. [x] Tokimon constitution enforcement (Owner: TBD)\n   - Acceptance criteria: Add binding constitution doc, enforce entry-point prompt and report headings, deterministic tie-breaker, and energy budget reporting for self-improve.\n"
+    },
+    {
+      "state_id": "todo-state-013",
+      "first_commit": "930caa88d01e365cd950c812da0c8d4e7df3497f",
+      "first_date": "2026-02-19",
+      "last_commit": "930caa88d01e365cd950c812da0c8d4e7df3497f",
+      "last_date": "2026-02-19",
+      "subject": "feat(grep): implement bounded output and default excludes for GrepTool",
+      "items": [
+        "1. [x] OOM and reliability hardening (Owner: TBD)",
+        "2. [x] Relocate `runs/` to repo root (Owner: TBD)",
+        "3. [x] Self-improve from Codex agent loop article (Owner: TBD)",
+        "4. [x] Self-improve from skills shell tips article (Owner: TBD)",
+        "5. [x] Chat UI-first interaction flow (Owner: TBD)",
+        "6. [x] Generalized arbitrary-goal self-improvement mode (Owner: TBD)",
+        "7. [x] Claude CLI learning + mixed-provider self-improve ratio (Owner: TBD)",
+        "8. [x] Ensure self-improve uses the agent loop (Owner: TBD)",
+        "9. [x] Self-improve entry-point request handling loop (Owner: TBD)",
+        "10. [ ] Schema-driven structured outputs (Owner: TBD)",
+        "11. [ ] Persist and render structured results + UI blocks (Owner: TBD)",
+        "12. [ ] Observability-ready metrics and dashboards (Owner: TBD)",
+        "13. [ ] Non-trivial upgrade: move chat UI to React + Tambo (Owner: TBD)",
+        "14. [x] Tokimon constitution enforcement (Owner: TBD)"
+      ],
+      "content": "# Tokimon TODO\n\nThis document tracks prioritized follow-up work to reduce OOM risk and improve runtime reliability.\n\n1. [x] OOM and reliability hardening (Owner: TBD)\n   - Acceptance criteria: Use Tokimon to identify, prioritize, and implement the required safeguards and validation to prevent OOM regressions and improve runtime reliability.\n   - Verification: `pytest --maxfail=1 -c src/pyproject.toml src/tests` (passes); see `src/tests/test_codex_ripgrep_guard.py`, `src/llm/client.py`, and `src/tests/test_trace_unrolling.py`.\n2. [x] Relocate `runs/` to repo root (Owner: TBD)\n   - Acceptance criteria: Store `runs/` as a repo-root sibling of `src/` and `docs/`, and update all setup and usage instructions accordingly.\n3. [x] Self-improve from Codex agent loop article (Owner: TBD)\n   - Acceptance criteria: Use Tokimon to extract improvements from https://openai.com/index/unrolling-the-codex-agent-loop/ and apply at least one validated enhancement.\n   - Extracted candidate improvements:\n     - Tool call correlation: carry `call_id` through tool calls/results (and traces/metrics) so models can match outputs to calls.\n     - Prompt-cache friendliness: keep prompts as exact-prefix extensions (stable tool ordering; avoid rewriting earlier prompt sections).\n     - Context compaction: compact long conversation histories when near limits rather than continuing to append unbounded context.\n   - Implemented: Tool call correlation (`call_id`) is recorded in `tool_call_records`, echoed in tool result payloads, and logged in trace events.\n   - Verification: `pytest --maxfail=1 -c src/pyproject.toml src/tests` (passes)\n4. [x] Self-improve from skills shell tips article (Owner: TBD)\n   - Acceptance criteria: Use Tokimon to extract improvements from https://developers.openai.com/blog/skills-shell-tips and apply at least one validated enhancement.\n   - Extracted candidate improvements:\n     - Skill metadata as routing logic: include concrete “use when vs don’t use when”, outputs, and success criteria.\n     - Add negative examples + edge cases in skill descriptions to reduce misfires.\n     - Move templates/examples into skills to avoid prompt bloat.\n     - Design for long runs early: container reuse and compaction as defaults.\n     - Prefer deterministic workflows by explicitly instructing the model to use a named skill when needed.\n   - Implemented: GrepTool now enforces bounded output (`TOKIMON_GREP_MAX_BYTES`) and applies safe default excludes for repo-wide searches to reduce OOM risk and speed up grep (see `src/tools/grep_tool.py` + `src/tests/test_tool_grep_tool.py`).\n   - Verification: `pytest --maxfail=1 -c src/pyproject.toml src/tests` (passes)\n5. [x] Chat UI-first interaction flow (Owner: TBD)\n   - Acceptance criteria: Deliver a Tokimon chat UI flow that supports routine interaction without CLI invocation for each step.\n6. [x] Generalized arbitrary-goal self-improvement mode (Owner: TBD)\n   - Acceptance criteria: Provide a super-concise workflow that takes an arbitrary goal and executes end-to-end self-improvement with measurable output.\n7. [x] Claude CLI learning + mixed-provider self-improve ratio (Owner: TBD)\n   - Acceptance criteria: Learn from `~/clover/joey-playground/apps/` how to use Claude CLI, then enforce a `claude:codex` session mix of `1:4` in every self-improve task.\n   - Verification: `pytest --maxfail=1 -c src/pyproject.toml src/tests` (passes); see `src/llm/client.py`, `src/self_improve/provider_mix.py`, `src/cli.py`, `src/tests/test_claude_cli_client.py`, and `src/tests/test_self_improve_provider_mix.py`.\n8. [x] Ensure self-improve uses the agent loop (Owner: TBD)\n   - Acceptance criteria: Confirm and enforce that Tokimon self-improve tasks run through the full agent loop (iterative model/tool cycle), not a one-shot execution path.\n9. [x] Self-improve entry-point request handling loop (Owner: TBD)\n   - Acceptance criteria: For Tokimon entry-point tasks, enforce this flow: (1) understand the user's request and ask clarifying questions immediately if it is unclear or ambiguous, (2) once the request is clear move to step 3, (3) generate a prompt, (4) run the agent with the prompt, (5) monitor and report progress, and (6) verify the final outcome; if step 6 fails, restart from step 3.\n   - Verification: `pytest --maxfail=1 -c src/pyproject.toml src/tests` (passes); see `src/tests/test_self_improve_entrypoint_loop.py` and `src/self_improve/orchestrator.py`.\n10. [ ] Schema-driven structured outputs (Owner: TBD)\n   - Acceptance criteria: Define a per-step \"success schema\" and enforce schema-valid structured results (not just valid JSON), with bounded repair on validation failures.\n11. [ ] Persist and render structured results + UI blocks (Owner: TBD)\n   - Acceptance criteria: Persist the full structured step result (including any UI blocks) as first-class run artifacts/outputs, and render them in the chat UI rather than only printing a text summary.\n12. [ ] Observability-ready metrics and dashboards (Owner: TBD)\n   - Acceptance criteria: Standardize a small set of run/step metrics (with types and units) and produce an importable dashboard artifact so Tokimon runs are measurable and easy to visualize.\n13. [ ] Non-trivial upgrade: move chat UI to React + Tambo (Owner: TBD)\n   - Acceptance criteria: Migrate the chat UI to a React frontend using Tambo to render Tokimon UI blocks (charts/forms/panels), add the required JS build+serve workflow, and keep `/healthz` and `/api/send` stable.\n14. [x] Tokimon constitution enforcement (Owner: TBD)\n   - Acceptance criteria: Add binding constitution doc, enforce entry-point prompt and report headings, deterministic tie-breaker, and energy budget reporting for self-improve.\n   - Verification: `pytest --maxfail=1 -c src/pyproject.toml src/tests` (passes); see `docs/tokimon-constitution.md`, `src/self_improve/orchestrator.py`, and `src/tests/test_self_improve_constitution.py`.\n"
+    },
+    {
+      "state_id": "todo-state-014",
+      "first_commit": "b5c10ad5e213e2648ef8353ca1c597cab2228c4b",
+      "first_date": "2026-02-19",
+      "last_commit": "b5c10ad5e213e2648ef8353ca1c597cab2228c4b",
+      "last_date": "2026-02-19",
+      "subject": "feat(todo): add Tokimon constitution enforcement and update entry-point request handling criteria",
+      "items": [
+        "1. [x] OOM and reliability hardening (Owner: TBD)",
+        "2. [x] Relocate `runs/` to repo root (Owner: TBD)",
+        "3. [x] Self-improve from Codex agent loop article (Owner: TBD)",
+        "4. [x] Self-improve from skills shell tips article (Owner: TBD)",
+        "5. [x] Chat UI-first interaction flow (Owner: TBD)",
+        "6. [x] Generalized arbitrary-goal self-improvement mode (Owner: TBD)",
+        "7. [x] Claude CLI learning + mixed-provider self-improve ratio (Owner: TBD)",
+        "8. [x] Ensure self-improve uses the agent loop (Owner: TBD)",
+        "9. [x] Self-improve entry-point request handling loop (Owner: TBD)",
+        "10. [x] Tokimon constitution enforcement (Owner: TBD)",
+        "11. [ ] Schema-driven structured outputs (Owner: TBD)",
+        "12. [ ] Persist and render structured results + UI blocks (Owner: TBD)",
+        "13. [ ] Observability-ready metrics and dashboards (Owner: TBD)",
+        "14. [ ] Non-trivial upgrade: move chat UI to React + Tambo (Owner: TBD)"
+      ],
+      "content": "# Tokimon TODO\n\nThis document tracks prioritized follow-up work to reduce OOM risk and improve runtime reliability.\n\n1. [x] OOM and reliability hardening (Owner: TBD)\n   - Acceptance criteria: Use Tokimon to identify, prioritize, and implement the required safeguards and validation to prevent OOM regressions and improve runtime reliability.\n   - Verification: `pytest --maxfail=1 -c src/pyproject.toml src/tests` (passes); see `src/tests/test_codex_ripgrep_guard.py`, `src/llm/client.py`, and `src/tests/test_trace_unrolling.py`.\n2. [x] Relocate `runs/` to repo root (Owner: TBD)\n   - Acceptance criteria: Store `runs/` as a repo-root sibling of `src/` and `docs/`, and update all setup and usage instructions accordingly.\n3. [x] Self-improve from Codex agent loop article (Owner: TBD)\n   - Acceptance criteria: Use Tokimon to extract improvements from https://openai.com/index/unrolling-the-codex-agent-loop/ and apply at least one validated enhancement.\n   - Extracted candidate improvements:\n     - Tool call correlation: carry `call_id` through tool calls/results (and traces/metrics) so models can match outputs to calls.\n     - Prompt-cache friendliness: keep prompts as exact-prefix extensions (stable tool ordering; avoid rewriting earlier prompt sections).\n     - Context compaction: compact long conversation histories when near limits rather than continuing to append unbounded context.\n   - Implemented: Tool call correlation (`call_id`) is recorded in `tool_call_records`, echoed in tool result payloads, and logged in trace events.\n   - Verification: `pytest --maxfail=1 -c src/pyproject.toml src/tests` (passes)\n4. [x] Self-improve from skills shell tips article (Owner: TBD)\n   - Acceptance criteria: Use Tokimon to extract improvements from https://developers.openai.com/blog/skills-shell-tips and apply at least one validated enhancement.\n   - Extracted candidate improvements:\n     - Skill metadata as routing logic: include concrete “use when vs don’t use when”, outputs, and success criteria.\n     - Add negative examples + edge cases in skill descriptions to reduce misfires.\n     - Move templates/examples into skills to avoid prompt bloat.\n     - Design for long runs early: container reuse and compaction as defaults.\n     - Prefer deterministic workflows by explicitly instructing the model to use a named skill when needed.\n   - Implemented: GrepTool now enforces bounded output (`TOKIMON_GREP_MAX_BYTES`) and applies safe default excludes for repo-wide searches to reduce OOM risk and speed up grep (see `src/tools/grep_tool.py` + `src/tests/test_tool_grep_tool.py`).\n   - Verification: `pytest --maxfail=1 -c src/pyproject.toml src/tests` (passes)\n5. [x] Chat UI-first interaction flow (Owner: TBD)\n   - Acceptance criteria: Deliver a Tokimon chat UI flow that supports routine interaction without CLI invocation for each step.\n6. [x] Generalized arbitrary-goal self-improvement mode (Owner: TBD)\n   - Acceptance criteria: Provide a super-concise workflow that takes an arbitrary goal and executes end-to-end self-improvement with measurable output.\n7. [x] Claude CLI learning + mixed-provider self-improve ratio (Owner: TBD)\n   - Acceptance criteria: Learn from `~/clover/joey-playground/apps/` how to use Claude CLI, then enforce a `claude:codex` session mix of `1:4` in every self-improve task.\n   - Verification: `pytest --maxfail=1 -c src/pyproject.toml src/tests` (passes); see `src/llm/client.py`, `src/self_improve/provider_mix.py`, `src/cli.py`, `src/tests/test_claude_cli_client.py`, and `src/tests/test_self_improve_provider_mix.py`.\n8. [x] Ensure self-improve uses the agent loop (Owner: TBD)\n   - Acceptance criteria: Confirm and enforce that Tokimon self-improve tasks run through the full agent loop (iterative model/tool cycle), not a one-shot execution path.\n9. [x] Self-improve entry-point request handling loop (Owner: TBD)\n   - Acceptance criteria: For Tokimon entry-point tasks, enforce this flow: (1) understand the user's request and ask clarifying questions immediately if it is unclear or ambiguous, (2) once the request is clear move to step 3, (3) generate a prompt, (4) run the agent with the prompt, (5) monitor and report progress, and (6) verify the final outcome; if step 6 fails, restart from step 3.\n   - Verification: `pytest --maxfail=1 -c src/pyproject.toml src/tests` (passes); see `src/tests/test_self_improve_entrypoint_loop.py` and `src/self_improve/orchestrator.py`.\n10. [x] Tokimon constitution enforcement (Owner: TBD)\n   - Acceptance criteria: Add binding constitution doc, enforce entry-point prompt and report headings, deterministic tie-breaker, and energy budget reporting for self-improve.\n   - Verification: `pytest --maxfail=1 -c src/pyproject.toml src/tests` (passes); see `docs/tokimon-constitution.md`, `src/self_improve/orchestrator.py`, and `src/tests/test_self_improve_constitution.py`.\n11. [ ] Schema-driven structured outputs (Owner: TBD)\n   - Acceptance criteria: Define a per-step \"success schema\" and enforce schema-valid structured results (not just valid JSON), with bounded repair on validation failures.\n12. [ ] Persist and render structured results + UI blocks (Owner: TBD)\n   - Acceptance criteria: Persist the full structured step result (including any UI blocks) as first-class run artifacts/outputs, and render them in the chat UI rather than only printing a text summary.\n13. [ ] Observability-ready metrics and dashboards (Owner: TBD)\n   - Acceptance criteria: Standardize a small set of run/step metrics (with types and units) and produce an importable dashboard artifact so Tokimon runs are measurable and easy to visualize.\n14. [ ] Non-trivial upgrade: move chat UI to React + Tambo (Owner: TBD)\n   - Acceptance criteria: Migrate the chat UI to a React frontend using Tambo to render Tokimon UI blocks (charts/forms/panels), add the required JS build+serve workflow, and keep `/healthz` and `/api/send` stable."
+    },
+    {
+      "state_id": "todo-state-015",
+      "first_commit": "9cd10cbb82a5983be451f6f459bd3cd2d3c02bb1",
+      "first_date": "2026-02-19",
+      "last_commit": "db0b86b093b921ced8fd75a6e044be1370c0b24c",
+      "last_date": "2026-02-26",
+      "subject": "feat(todo): mark completed tasks and update TODO list structure",
+      "items": [
+        "1. [ ] Schema-driven structured outputs (Owner: TBD)",
+        "2. [ ] Persist and render structured results + UI blocks (Owner: TBD)",
+        "3. [ ] Observability-ready metrics and dashboards (Owner: TBD)",
+        "4. [ ] Non-trivial upgrade: move chat UI to React + Tambo (Owner: TBD)"
+      ],
+      "content": "# Tokimon TODO\n\nThis document tracks prioritized follow-up work to reduce OOM risk and improve runtime reliability.\n\n1. [ ] Schema-driven structured outputs (Owner: TBD)\n   - Acceptance criteria: Define a per-step \"success schema\" and enforce schema-valid structured results (not just valid JSON), with bounded repair on validation failures.\n2. [ ] Persist and render structured results + UI blocks (Owner: TBD)\n   - Acceptance criteria: Persist the full structured step result (including any UI blocks) as first-class run artifacts/outputs, and render them in the chat UI rather than only printing a text summary.\n3. [ ] Observability-ready metrics and dashboards (Owner: TBD)\n   - Acceptance criteria: Standardize a small set of run/step metrics (with types and units) and produce an importable dashboard artifact so Tokimon runs are measurable and easy to visualize.\n4. [ ] Non-trivial upgrade: move chat UI to React + Tambo (Owner: TBD)\n   - Acceptance criteria: Migrate the chat UI to a React frontend using Tambo to render Tokimon UI blocks (charts/forms/panels), add the required JS build+serve workflow, and keep `/healthz` and `/api/send` stable."
+    },
+    {
+      "state_id": "todo-state-016",
+      "first_commit": "e6cefac9a7794289ab334651f583fdc98bdced0a",
+      "first_date": "2026-02-22",
+      "last_commit": "e6cefac9a7794289ab334651f583fdc98bdced0a",
+      "last_date": "2026-02-22",
+      "subject": "Enhance self-improvement framework with evaluation-first experiment loop requirements and reporting standards",
+      "items": [
+        "1. [ ] Schema-driven structured outputs (Owner: TBD)",
+        "2. [ ] Persist and render structured results + UI blocks (Owner: TBD)",
+        "3. [ ] Observability-ready metrics and dashboards (Owner: TBD)",
+        "4. [ ] Non-trivial upgrade: move chat UI to React + Tambo (Owner: TBD)",
+        "5. [ ] Self-improve: enforce evaluation-first experiment reporting (Owner: TBD)",
+        "6. [ ] Self-improve: include failing test IDs in baseline/post-change summaries (Owner: TBD)"
+      ],
+      "content": "# Tokimon TODO\n\nThis document tracks prioritized follow-up work to reduce OOM risk and improve runtime reliability.\n\n1. [ ] Schema-driven structured outputs (Owner: TBD)\n   - Acceptance criteria: Define a per-step \"success schema\" and enforce schema-valid structured results (not just valid JSON), with bounded repair on validation failures.\n2. [ ] Persist and render structured results + UI blocks (Owner: TBD)\n   - Acceptance criteria: Persist the full structured step result (including any UI blocks) as first-class run artifacts/outputs, and render them in the chat UI rather than only printing a text summary.\n3. [ ] Observability-ready metrics and dashboards (Owner: TBD)\n   - Acceptance criteria: Standardize a small set of run/step metrics (with types and units) and produce an importable dashboard artifact so Tokimon runs are measurable and easy to visualize.\n4. [ ] Non-trivial upgrade: move chat UI to React + Tambo (Owner: TBD)\n   - Acceptance criteria: Migrate the chat UI to a React frontend using Tambo to render Tokimon UI blocks (charts/forms/panels), add the required JS build+serve workflow, and keep `/healthz` and `/api/send` stable.\n5. [ ] Self-improve: enforce evaluation-first experiment reporting (Owner: TBD)\n   - Acceptance criteria: Self-improve prompts and reports always include baseline/post-change/delta, causal mechanism hypothesis, and an explicit pass condition (including planned vs actual energy).\n   - Follow-up: Persist the winner's causal mechanism hypothesis into the top-level batch report (not just as a placeholder line).\n6. [ ] Self-improve: include failing test IDs in baseline/post-change summaries (Owner: TBD)\n   - Acceptance criteria: Batch report shows a bounded list of `failing_tests` for baseline and winner post-change evaluations to make deltas auditable.\n"
+    },
+    {
+      "state_id": "todo-state-017",
+      "first_commit": "99820666210d103abbb629792a1f5989017336ee",
+      "first_date": "2026-02-22",
+      "last_commit": "99820666210d103abbb629792a1f5989017336ee",
+      "last_date": "2026-02-22",
+      "subject": "tokimon: self-improve winner session 1-1",
+      "items": [
+        "1. [ ] Schema-driven structured outputs (Owner: TBD)",
+        "2. [ ] Persist and render structured results + UI blocks (Owner: TBD)",
+        "3. [ ] Observability-ready metrics and dashboards (Owner: TBD)",
+        "4. [ ] Non-trivial upgrade: move chat UI to React + Tambo (Owner: TBD)",
+        "5. [x] Self-improve: enforce evaluation-first experiment reporting (Owner: TBD)",
+        "6. [ ] Self-improve: include failing test IDs in baseline/post-change summaries (Owner: TBD)"
+      ],
+      "content": "# Tokimon TODO\n\nThis document tracks prioritized follow-up work to reduce OOM risk and improve runtime reliability.\n\n1. [ ] Schema-driven structured outputs (Owner: TBD)\n   - Acceptance criteria: Define a per-step \"success schema\" and enforce schema-valid structured results (not just valid JSON), with bounded repair on validation failures.\n2. [ ] Persist and render structured results + UI blocks (Owner: TBD)\n   - Acceptance criteria: Persist the full structured step result (including any UI blocks) as first-class run artifacts/outputs, and render them in the chat UI rather than only printing a text summary.\n3. [ ] Observability-ready metrics and dashboards (Owner: TBD)\n   - Acceptance criteria: Standardize a small set of run/step metrics (with types and units) and produce an importable dashboard artifact so Tokimon runs are measurable and easy to visualize.\n4. [ ] Non-trivial upgrade: move chat UI to React + Tambo (Owner: TBD)\n   - Acceptance criteria: Migrate the chat UI to a React frontend using Tambo to render Tokimon UI blocks (charts/forms/panels), add the required JS build+serve workflow, and keep `/healthz` and `/api/send` stable.\n5. [x] Self-improve: enforce evaluation-first experiment reporting (Owner: TBD)\n   - Acceptance criteria: Self-improve prompts and reports always include baseline/post-change/delta, causal mechanism hypothesis, and an explicit pass condition (including planned vs actual energy).\n   - Follow-up complete: Winner causal mechanism hypothesis is now loaded from per-attempt experiment JSON and rendered directly in the top-level batch report.\n6. [ ] Self-improve: include failing test IDs in baseline/post-change summaries (Owner: TBD)\n   - Acceptance criteria: Batch report shows a bounded list of `failing_tests` for baseline and winner post-change evaluations to make deltas auditable.\n"
+    },
+    {
+      "state_id": "todo-state-018",
+      "first_commit": "388ae08800878316e755a66e32065b53b8dca029",
+      "first_date": "2026-02-22",
+      "last_commit": "388ae08800878316e755a66e32065b53b8dca029",
+      "last_date": "2026-02-22",
+      "subject": "Implement parallel exploration protocol with deterministic path charter and reporting requirements",
+      "items": [
+        "1. [ ] Schema-driven structured outputs (Owner: TBD)",
+        "2. [ ] Persist and render structured results + UI blocks (Owner: TBD)",
+        "3. [ ] Observability-ready metrics and dashboards (Owner: TBD)",
+        "4. [ ] Non-trivial upgrade: move chat UI to React + Tambo (Owner: TBD)",
+        "5. [x] Self-improve: enforce evaluation-first experiment reporting (Owner: TBD)",
+        "6. [ ] Self-improve: include failing test IDs in baseline/post-change summaries (Owner: TBD)",
+        "7. [ ] Self-improve: parallel exploration protocol (Owner: TBD)"
+      ],
+      "content": "# Tokimon TODO\n\nThis document tracks prioritized follow-up work to reduce OOM risk and improve runtime reliability.\n\n1. [ ] Schema-driven structured outputs (Owner: TBD)\n   - Acceptance criteria: Define a per-step \"success schema\" and enforce schema-valid structured results (not just valid JSON), with bounded repair on validation failures.\n2. [ ] Persist and render structured results + UI blocks (Owner: TBD)\n   - Acceptance criteria: Persist the full structured step result (including any UI blocks) as first-class run artifacts/outputs, and render them in the chat UI rather than only printing a text summary.\n3. [ ] Observability-ready metrics and dashboards (Owner: TBD)\n   - Acceptance criteria: Standardize a small set of run/step metrics (with types and units) and produce an importable dashboard artifact so Tokimon runs are measurable and easy to visualize.\n4. [ ] Non-trivial upgrade: move chat UI to React + Tambo (Owner: TBD)\n   - Acceptance criteria: Migrate the chat UI to a React frontend using Tambo to render Tokimon UI blocks (charts/forms/panels), add the required JS build+serve workflow, and keep `/healthz` and `/api/send` stable.\n5. [x] Self-improve: enforce evaluation-first experiment reporting (Owner: TBD)\n   - Acceptance criteria: Self-improve prompts and reports always include baseline/post-change/delta, causal mechanism hypothesis, and an explicit pass condition (including planned vs actual energy).\n   - Follow-up complete: Winner causal mechanism hypothesis is now loaded from per-attempt experiment JSON and rendered directly in the top-level batch report.\n6. [ ] Self-improve: include failing test IDs in baseline/post-change summaries (Owner: TBD)\n   - Acceptance criteria: Batch report shows a bounded list of `failing_tests` for baseline and winner post-change evaluations to make deltas auditable.\n7. [ ] Self-improve: parallel exploration protocol (Owner: TBD)\n   - Acceptance criteria: Deterministic per-session `path_charter`, enforced per-attempt experiment summary fields (`plan`, `path_charter`, `self_critique`, `lessons` + experiment-loop fields), report includes diversity check + scoring function + per-path comparison + loser reasons/Lessons, and deterministic winner selection aligned with the Constitution.\n"
+    },
+    {
+      "state_id": "todo-state-019",
+      "first_commit": "0b652a333750f6d2951b01ad826440b580b0d5e8",
+      "first_date": "2026-02-22",
+      "last_commit": "0b652a333750f6d2951b01ad826440b580b0d5e8",
+      "last_date": "2026-02-22",
+      "subject": "Enhance lesson management with validation and secret handling in MemoryStore; update tests for charter fields and retrieval stages",
+      "items": [
+        "1. [ ] Schema-driven structured outputs (Owner: TBD)",
+        "2. [ ] Persist and render structured results + UI blocks (Owner: TBD)",
+        "3. [ ] Observability-ready metrics and dashboards (Owner: TBD)",
+        "4. [ ] Non-trivial upgrade: move chat UI to React + Tambo (Owner: TBD)",
+        "5. [x] Self-improve: enforce evaluation-first experiment reporting (Owner: TBD)",
+        "6. [ ] Self-improve: include failing test IDs in baseline/post-change summaries (Owner: TBD)",
+        "7. [ ] Self-improve: parallel exploration protocol (Owner: TBD)",
+        "8. [ ] Self-improve: Memory-as-Asset charter (Owner: TBD)"
+      ],
+      "content": "# Tokimon TODO\n\nThis document tracks prioritized follow-up work to reduce OOM risk and improve runtime reliability.\n\n1. [ ] Schema-driven structured outputs (Owner: TBD)\n   - Acceptance criteria: Define a per-step \"success schema\" and enforce schema-valid structured results (not just valid JSON), with bounded repair on validation failures.\n2. [ ] Persist and render structured results + UI blocks (Owner: TBD)\n   - Acceptance criteria: Persist the full structured step result (including any UI blocks) as first-class run artifacts/outputs, and render them in the chat UI rather than only printing a text summary.\n3. [ ] Observability-ready metrics and dashboards (Owner: TBD)\n   - Acceptance criteria: Standardize a small set of run/step metrics (with types and units) and produce an importable dashboard artifact so Tokimon runs are measurable and easy to visualize.\n4. [ ] Non-trivial upgrade: move chat UI to React + Tambo (Owner: TBD)\n   - Acceptance criteria: Migrate the chat UI to a React frontend using Tambo to render Tokimon UI blocks (charts/forms/panels), add the required JS build+serve workflow, and keep `/healthz` and `/api/send` stable.\n5. [x] Self-improve: enforce evaluation-first experiment reporting (Owner: TBD)\n   - Acceptance criteria: Self-improve prompts and reports always include baseline/post-change/delta, causal mechanism hypothesis, and an explicit pass condition (including planned vs actual energy).\n   - Follow-up complete: Winner causal mechanism hypothesis is now loaded from per-attempt experiment JSON and rendered directly in the top-level batch report.\n6. [ ] Self-improve: include failing test IDs in baseline/post-change summaries (Owner: TBD)\n   - Acceptance criteria: Batch report shows a bounded list of `failing_tests` for baseline and winner post-change evaluations to make deltas auditable.\n7. [ ] Self-improve: parallel exploration protocol (Owner: TBD)\n   - Acceptance criteria: Deterministic per-session `path_charter`, enforced per-attempt experiment summary fields (`plan`, `path_charter`, `self_critique`, `lessons` + experiment-loop fields), report includes diversity check + scoring function + per-path comparison + loser reasons/Lessons, and deterministic winner selection aligned with the Constitution.\n8. [ ] Self-improve: Memory-as-Asset charter (Owner: TBD)\n   - Acceptance criteria: Persist Lessons for failure/retry decisions with required fields, deny/redact secrets deterministically, and use staged retrieval to stop or force strategy changes on repeated failures.\n"
+    },
+    {
+      "state_id": "todo-state-020",
+      "first_commit": "ae7b41f3f1d1cefad425653b764a70c365d20066",
+      "first_date": "2026-02-22",
+      "last_commit": "ae7b41f3f1d1cefad425653b764a70c365d20066",
+      "last_date": "2026-02-22",
+      "subject": "feat: Implement Skill Gap Detection and Candidate Draft Creation",
+      "items": [
+        "1. [ ] Schema-driven structured outputs (Owner: TBD)",
+        "2. [ ] Persist and render structured results + UI blocks (Owner: TBD)",
+        "3. [ ] Observability-ready metrics and dashboards (Owner: TBD)",
+        "4. [ ] Non-trivial upgrade: move chat UI to React + Tambo (Owner: TBD)",
+        "5. [x] Self-improve: enforce evaluation-first experiment reporting (Owner: TBD)",
+        "6. [ ] Self-improve: include failing test IDs in baseline/post-change summaries (Owner: TBD)",
+        "7. [ ] Self-improve: parallel exploration protocol (Owner: TBD)",
+        "8. [ ] Self-improve: Memory-as-Asset charter (Owner: TBD)",
+        "9. [ ] Skill Asset Protocol: Prompt Skills + Code Skills with metadata (Owner: TBD)"
+      ],
+      "content": "# Tokimon TODO\n\nThis document tracks prioritized follow-up work to reduce OOM risk and improve runtime reliability.\n\n1. [ ] Schema-driven structured outputs (Owner: TBD)\n   - Acceptance criteria: Define a per-step \"success schema\" and enforce schema-valid structured results (not just valid JSON), with bounded repair on validation failures.\n2. [ ] Persist and render structured results + UI blocks (Owner: TBD)\n   - Acceptance criteria: Persist the full structured step result (including any UI blocks) as first-class run artifacts/outputs, and render them in the chat UI rather than only printing a text summary.\n3. [ ] Observability-ready metrics and dashboards (Owner: TBD)\n   - Acceptance criteria: Standardize a small set of run/step metrics (with types and units) and produce an importable dashboard artifact so Tokimon runs are measurable and easy to visualize.\n4. [ ] Non-trivial upgrade: move chat UI to React + Tambo (Owner: TBD)\n   - Acceptance criteria: Migrate the chat UI to a React frontend using Tambo to render Tokimon UI blocks (charts/forms/panels), add the required JS build+serve workflow, and keep `/healthz` and `/api/send` stable.\n5. [x] Self-improve: enforce evaluation-first experiment reporting (Owner: TBD)\n   - Acceptance criteria: Self-improve prompts and reports always include baseline/post-change/delta, causal mechanism hypothesis, and an explicit pass condition (including planned vs actual energy).\n   - Follow-up complete: Winner causal mechanism hypothesis is now loaded from per-attempt experiment JSON and rendered directly in the top-level batch report.\n6. [ ] Self-improve: include failing test IDs in baseline/post-change summaries (Owner: TBD)\n   - Acceptance criteria: Batch report shows a bounded list of `failing_tests` for baseline and winner post-change evaluations to make deltas auditable.\n7. [ ] Self-improve: parallel exploration protocol (Owner: TBD)\n   - Acceptance criteria: Deterministic per-session `path_charter`, enforced per-attempt experiment summary fields (`plan`, `path_charter`, `self_critique`, `lessons` + experiment-loop fields), report includes diversity check + scoring function + per-path comparison + loser reasons/Lessons, and deterministic winner selection aligned with the Constitution.\n8. [ ] Self-improve: Memory-as-Asset charter (Owner: TBD)\n   - Acceptance criteria: Persist Lessons for failure/retry decisions with required fields, deny/redact secrets deterministically, and use staged retrieval to stop or force strategy changes on repeated failures.\n9. [ ] Skill Asset Protocol: Prompt Skills + Code Skills with metadata (Owner: TBD)\n   - Acceptance criteria: Detect skill gaps (repeat subtask patterns, repeat retry failures, repeat tool workflows), require metadata for both Prompt Skills and Code Skills, keep failing skills as candidate drafts + record Lessons, and register only on passing validation with sprawl/safety guardrails.\n"
+    },
+    {
+      "state_id": "todo-state-021",
+      "first_commit": "ba768b2d017a575fe918cbc8138ab3ad377882b7",
+      "first_date": "2026-02-23",
+      "last_commit": "ba768b2d017a575fe918cbc8138ab3ad377882b7",
+      "last_date": "2026-02-23",
+      "subject": "feat: Implement Resource Safety Directive with Hard and Soft Constraints; enhance orchestrator and reporting",
+      "items": [
+        "1. [ ] Schema-driven structured outputs (Owner: TBD)",
+        "2. [ ] Persist and render structured results + UI blocks (Owner: TBD)",
+        "3. [ ] Observability-ready metrics and dashboards (Owner: TBD)",
+        "4. [ ] Non-trivial upgrade: move chat UI to React + Tambo (Owner: TBD)",
+        "5. [x] Self-improve: enforce evaluation-first experiment reporting (Owner: TBD)",
+        "6. [ ] Self-improve: include failing test IDs in baseline/post-change summaries (Owner: TBD)",
+        "7. [ ] Self-improve: parallel exploration protocol (Owner: TBD)",
+        "8. [ ] Self-improve: Memory-as-Asset charter (Owner: TBD)",
+        "9. [ ] Skill Asset Protocol: Prompt Skills + Code Skills with metadata (Owner: TBD)",
+        "10. [ ] Self-improve: Resource Safety Directive (Hard vs Soft Constraints) (Owner: TBD)"
+      ],
+      "content": "# Tokimon TODO\n\nThis document tracks prioritized follow-up work to reduce OOM risk and improve runtime reliability.\n\n1. [ ] Schema-driven structured outputs (Owner: TBD)\n   - Acceptance criteria: Define a per-step \"success schema\" and enforce schema-valid structured results (not just valid JSON), with bounded repair on validation failures.\n2. [ ] Persist and render structured results + UI blocks (Owner: TBD)\n   - Acceptance criteria: Persist the full structured step result (including any UI blocks) as first-class run artifacts/outputs, and render them in the chat UI rather than only printing a text summary.\n3. [ ] Observability-ready metrics and dashboards (Owner: TBD)\n   - Acceptance criteria: Standardize a small set of run/step metrics (with types and units) and produce an importable dashboard artifact so Tokimon runs are measurable and easy to visualize.\n4. [ ] Non-trivial upgrade: move chat UI to React + Tambo (Owner: TBD)\n   - Acceptance criteria: Migrate the chat UI to a React frontend using Tambo to render Tokimon UI blocks (charts/forms/panels), add the required JS build+serve workflow, and keep `/healthz` and `/api/send` stable.\n5. [x] Self-improve: enforce evaluation-first experiment reporting (Owner: TBD)\n   - Acceptance criteria: Self-improve prompts and reports always include baseline/post-change/delta, causal mechanism hypothesis, and an explicit pass condition (including planned vs actual energy).\n   - Follow-up complete: Winner causal mechanism hypothesis is now loaded from per-attempt experiment JSON and rendered directly in the top-level batch report.\n6. [ ] Self-improve: include failing test IDs in baseline/post-change summaries (Owner: TBD)\n   - Acceptance criteria: Batch report shows a bounded list of `failing_tests` for baseline and winner post-change evaluations to make deltas auditable.\n7. [ ] Self-improve: parallel exploration protocol (Owner: TBD)\n   - Acceptance criteria: Deterministic per-session `path_charter`, enforced per-attempt experiment summary fields (`plan`, `path_charter`, `self_critique`, `lessons` + experiment-loop fields), report includes diversity check + scoring function + per-path comparison + loser reasons/Lessons, and deterministic winner selection aligned with the Constitution.\n8. [ ] Self-improve: Memory-as-Asset charter (Owner: TBD)\n   - Acceptance criteria: Persist Lessons for failure/retry decisions with required fields, deny/redact secrets deterministically, and use staged retrieval to stop or force strategy changes on repeated failures.\n9. [ ] Skill Asset Protocol: Prompt Skills + Code Skills with metadata (Owner: TBD)\n   - Acceptance criteria: Detect skill gaps (repeat subtask patterns, repeat retry failures, repeat tool workflows), require metadata for both Prompt Skills and Code Skills, keep failing skills as candidate drafts + record Lessons, and register only on passing validation with sprawl/safety guardrails.\n10. [ ] Self-improve: Resource Safety Directive (Hard vs Soft Constraints) (Owner: TBD)\n   - Acceptance criteria: Entrypoint prompt + report include resource plan/risk register/stop conditions; hard red lines refuse unsafe goals pre-execution with audit log; soft red lines auto-mitigate (reduce concurrency + shorten context) and return PARTIAL early-stop when verification is not feasible; planned vs actual time/memory/energy reported with stop condition fired.\n"
+    },
+    {
+      "state_id": "todo-state-022",
+      "first_commit": "00275a99e03fe0a1a23daae58f531ebc23070fd7",
+      "first_date": "2026-02-23",
+      "last_commit": "00275a99e03fe0a1a23daae58f531ebc23070fd7",
+      "last_date": "2026-02-23",
+      "subject": "feat: Mark self-improvement tasks as complete for failing test IDs, parallel exploration protocol, and resource safety directive",
+      "items": [
+        "1. [ ] Schema-driven structured outputs (Owner: TBD)",
+        "2. [ ] Persist and render structured results + UI blocks (Owner: TBD)",
+        "3. [ ] Observability-ready metrics and dashboards (Owner: TBD)",
+        "4. [ ] Non-trivial upgrade: move chat UI to React + Tambo (Owner: TBD)",
+        "5. [x] Self-improve: enforce evaluation-first experiment reporting (Owner: TBD)",
+        "6. [x] Self-improve: include failing test IDs in baseline/post-change summaries (Owner: TBD)",
+        "7. [x] Self-improve: parallel exploration protocol (Owner: TBD)",
+        "8. [ ] Self-improve: Memory-as-Asset charter (Owner: TBD)",
+        "9. [x] Skill Asset Protocol: Prompt Skills + Code Skills with metadata (Owner: TBD)",
+        "10. [x] Self-improve: Resource Safety Directive (Hard vs Soft Constraints) (Owner: TBD)"
+      ],
+      "content": "# Tokimon TODO\n\nThis document tracks prioritized follow-up work to reduce OOM risk and improve runtime reliability.\n\n1. [ ] Schema-driven structured outputs (Owner: TBD)\n   - Acceptance criteria: Define a per-step \"success schema\" and enforce schema-valid structured results (not just valid JSON), with bounded repair on validation failures.\n2. [ ] Persist and render structured results + UI blocks (Owner: TBD)\n   - Acceptance criteria: Persist the full structured step result (including any UI blocks) as first-class run artifacts/outputs, and render them in the chat UI rather than only printing a text summary.\n3. [ ] Observability-ready metrics and dashboards (Owner: TBD)\n   - Acceptance criteria: Standardize a small set of run/step metrics (with types and units) and produce an importable dashboard artifact so Tokimon runs are measurable and easy to visualize.\n4. [ ] Non-trivial upgrade: move chat UI to React + Tambo (Owner: TBD)\n   - Acceptance criteria: Migrate the chat UI to a React frontend using Tambo to render Tokimon UI blocks (charts/forms/panels), add the required JS build+serve workflow, and keep `/healthz` and `/api/send` stable.\n5. [x] Self-improve: enforce evaluation-first experiment reporting (Owner: TBD)\n   - Acceptance criteria: Self-improve prompts and reports always include baseline/post-change/delta, causal mechanism hypothesis, and an explicit pass condition (including planned vs actual energy).\n   - Follow-up complete: Winner causal mechanism hypothesis is now loaded from per-attempt experiment JSON and rendered directly in the top-level batch report.\n6. [x] Self-improve: include failing test IDs in baseline/post-change summaries (Owner: TBD)\n   - Acceptance criteria: Batch report shows a bounded list of `failing_tests` for baseline and winner post-change evaluations to make deltas auditable.\n7. [x] Self-improve: parallel exploration protocol (Owner: TBD)\n   - Acceptance criteria: Deterministic per-session `path_charter`, enforced per-attempt experiment summary fields (`plan`, `path_charter`, `self_critique`, `lessons` + experiment-loop fields), report includes diversity check + scoring function + per-path comparison + loser reasons/Lessons, and deterministic winner selection aligned with the Constitution.\n8. [ ] Self-improve: Memory-as-Asset charter (Owner: TBD)\n   - Acceptance criteria: Persist Lessons for failure/retry decisions with required fields, deny/redact secrets deterministically, and use staged retrieval to stop or force strategy changes on repeated failures.\n9. [x] Skill Asset Protocol: Prompt Skills + Code Skills with metadata (Owner: TBD)\n   - Acceptance criteria: Detect skill gaps (repeat subtask patterns, repeat retry failures, repeat tool workflows), require metadata for both Prompt Skills and Code Skills, keep failing skills as candidate drafts + record Lessons, and register only on passing validation with sprawl/safety guardrails.\n10. [x] Self-improve: Resource Safety Directive (Hard vs Soft Constraints) (Owner: TBD)\n   - Acceptance criteria: Entrypoint prompt + report include resource plan/risk register/stop conditions; hard red lines refuse unsafe goals pre-execution with audit log; soft red lines auto-mitigate (reduce concurrency + shorten context) and return PARTIAL early-stop when verification is not feasible; planned vs actual time/memory/energy reported with stop condition fired.\n"
+    },
+    {
+      "state_id": "todo-state-023",
+      "first_commit": "3f6ccff49f64ecdda21188e00d0034db8597be76",
+      "first_date": "2026-02-24",
+      "last_commit": "3f6ccff49f64ecdda21188e00d0034db8597be76",
+      "last_date": "2026-02-24",
+      "subject": "feat: Enhance memory management with retrieval context validation, failure lesson writing, and staged retrieval expansion",
+      "items": [
+        "1. [ ] Schema-driven structured outputs (Owner: TBD)",
+        "2. [ ] Persist and render structured results + UI blocks (Owner: TBD)",
+        "3. [ ] Observability-ready metrics and dashboards (Owner: TBD)",
+        "4. [ ] Non-trivial upgrade: move chat UI to React + Tambo (Owner: TBD)",
+        "5. [x] Self-improve: enforce evaluation-first experiment reporting (Owner: TBD)",
+        "6. [x] Self-improve: include failing test IDs in baseline/post-change summaries (Owner: TBD)",
+        "7. [x] Self-improve: parallel exploration protocol (Owner: TBD)",
+        "8. [x] Self-improve: Memory-as-Asset charter (Owner: TBD)",
+        "9. [x] Skill Asset Protocol: Prompt Skills + Code Skills with metadata (Owner: TBD)",
+        "10. [x] Self-improve: Resource Safety Directive (Hard vs Soft Constraints) (Owner: TBD)"
+      ],
+      "content": "# Tokimon TODO\n\nThis document tracks prioritized follow-up work to reduce OOM risk and improve runtime reliability.\n\n1. [ ] Schema-driven structured outputs (Owner: TBD)\n   - Acceptance criteria: Define a per-step \"success schema\" and enforce schema-valid structured results (not just valid JSON), with bounded repair on validation failures.\n2. [ ] Persist and render structured results + UI blocks (Owner: TBD)\n   - Acceptance criteria: Persist the full structured step result (including any UI blocks) as first-class run artifacts/outputs, and render them in the chat UI rather than only printing a text summary.\n3. [ ] Observability-ready metrics and dashboards (Owner: TBD)\n   - Acceptance criteria: Standardize a small set of run/step metrics (with types and units) and produce an importable dashboard artifact so Tokimon runs are measurable and easy to visualize.\n4. [ ] Non-trivial upgrade: move chat UI to React + Tambo (Owner: TBD)\n   - Acceptance criteria: Migrate the chat UI to a React frontend using Tambo to render Tokimon UI blocks (charts/forms/panels), add the required JS build+serve workflow, and keep `/healthz` and `/api/send` stable.\n5. [x] Self-improve: enforce evaluation-first experiment reporting (Owner: TBD)\n   - Acceptance criteria: Self-improve prompts and reports always include baseline/post-change/delta, causal mechanism hypothesis, and an explicit pass condition (including planned vs actual energy).\n   - Follow-up complete: Winner causal mechanism hypothesis is now loaded from per-attempt experiment JSON and rendered directly in the top-level batch report.\n6. [x] Self-improve: include failing test IDs in baseline/post-change summaries (Owner: TBD)\n   - Acceptance criteria: Batch report shows a bounded list of `failing_tests` for baseline and winner post-change evaluations to make deltas auditable.\n7. [x] Self-improve: parallel exploration protocol (Owner: TBD)\n   - Acceptance criteria: Deterministic per-session `path_charter`, enforced per-attempt experiment summary fields (`plan`, `path_charter`, `self_critique`, `lessons` + experiment-loop fields), report includes diversity check + scoring function + per-path comparison + loser reasons/Lessons, and deterministic winner selection aligned with the Constitution.\n8. [x] Self-improve: Memory-as-Asset charter (Owner: TBD)\n   - Acceptance criteria: Persist Lessons for failure/retry decisions with required fields, deny/redact secrets deterministically, and use staged retrieval to stop or force strategy changes on repeated failures.\n   - Follow-up complete: Failure Lessons are persisted with required fields + task/component/tool tags; retrieval requires explicit context; staged retrieval includes similar failure signature expansion; memory-aware retry gate logs retrieved Lessons and blocks repeats.\n9. [x] Skill Asset Protocol: Prompt Skills + Code Skills with metadata (Owner: TBD)\n   - Acceptance criteria: Detect skill gaps (repeat subtask patterns, repeat retry failures, repeat tool workflows), require metadata for both Prompt Skills and Code Skills, keep failing skills as candidate drafts + record Lessons, and register only on passing validation with sprawl/safety guardrails.\n10. [x] Self-improve: Resource Safety Directive (Hard vs Soft Constraints) (Owner: TBD)\n   - Acceptance criteria: Entrypoint prompt + report include resource plan/risk register/stop conditions; hard red lines refuse unsafe goals pre-execution with audit log; soft red lines auto-mitigate (reduce concurrency + shorten context) and return PARTIAL early-stop when verification is not feasible; planned vs actual time/memory/energy reported with stop condition fired.\n"
+    },
+    {
+      "state_id": "todo-state-024",
+      "first_commit": "dacf77b7b42a79a6fc6576c88cd39a346ea00724",
+      "first_date": "2026-02-28",
+      "last_commit": "dacf77b7b42a79a6fc6576c88cd39a346ea00724",
+      "last_date": "2026-02-28",
+      "subject": "docs(todo): mark items 1-2 done",
+      "items": [
+        "1. [x] Schema-driven structured outputs (Owner: TBD)",
+        "2. [x] Persist and render structured results + UI blocks (Owner: TBD)",
+        "3. [ ] Observability-ready metrics and dashboards (Owner: TBD)",
+        "4. [ ] Non-trivial upgrade: move chat UI to React + Tambo (Owner: TBD)"
+      ],
+      "content": "# Tokimon TODO\n\nThis document tracks prioritized follow-up work to reduce OOM risk and improve runtime reliability.\n\n1. [x] Schema-driven structured outputs (Owner: TBD)\n   - Acceptance criteria: Define a per-step \"success schema\" and enforce schema-valid structured results (not just valid JSON), with bounded repair on validation failures.\n2. [x] Persist and render structured results + UI blocks (Owner: TBD)\n   - Acceptance criteria: Persist the full structured step result (including any UI blocks) as first-class run artifacts/outputs, and render them in the chat UI rather than only printing a text summary.\n3. [ ] Observability-ready metrics and dashboards (Owner: TBD)\n   - Acceptance criteria: Standardize a small set of run/step metrics (with types and units) and produce an importable dashboard artifact so Tokimon runs are measurable and easy to visualize.\n4. [ ] Non-trivial upgrade: move chat UI to React + Tambo (Owner: TBD)\n   - Acceptance criteria: Migrate the chat UI to a React frontend using Tambo to render Tokimon UI blocks (charts/forms/panels), add the required JS build+serve workflow, and keep `/healthz` and `/api/send` stable.\n"
+    },
+    {
+      "state_id": "todo-state-025",
+      "first_commit": "2749de13e5801d188d4a2d9e0b8d27f83f76f65f",
+      "first_date": "2026-02-28",
+      "last_commit": "2749de13e5801d188d4a2d9e0b8d27f83f76f65f",
+      "last_date": "2026-02-28",
+      "subject": "docs(todo): mark item 3 done",
+      "items": [
+        "1. [x] Schema-driven structured outputs (Owner: TBD)",
+        "2. [x] Persist and render structured results + UI blocks (Owner: TBD)",
+        "3. [x] Observability-ready metrics and dashboards (Owner: TBD)",
+        "4. [ ] Non-trivial upgrade: move chat UI to React + Tambo (Owner: TBD)"
+      ],
+      "content": "# Tokimon TODO\n\nThis document tracks prioritized follow-up work to reduce OOM risk and improve runtime reliability.\n\n1. [x] Schema-driven structured outputs (Owner: TBD)\n   - Acceptance criteria: Define a per-step \"success schema\" and enforce schema-valid structured results (not just valid JSON), with bounded repair on validation failures.\n2. [x] Persist and render structured results + UI blocks (Owner: TBD)\n   - Acceptance criteria: Persist the full structured step result (including any UI blocks) as first-class run artifacts/outputs, and render them in the chat UI rather than only printing a text summary.\n3. [x] Observability-ready metrics and dashboards (Owner: TBD)\n   - Acceptance criteria: Standardize a small set of run/step metrics (with types and units) and produce an importable dashboard artifact so Tokimon runs are measurable and easy to visualize.\n4. [ ] Non-trivial upgrade: move chat UI to React + Tambo (Owner: TBD)\n   - Acceptance criteria: Migrate the chat UI to a React frontend using Tambo to render Tokimon UI blocks (charts/forms/panels), add the required JS build+serve workflow, and keep `/healthz` and `/api/send` stable.\n"
+    },
+    {
+      "state_id": "todo-state-026",
+      "first_commit": "f5251e072fec1df339c1c116ea557f7a131fed42",
+      "first_date": "2026-03-01",
+      "last_commit": "f5251e072fec1df339c1c116ea557f7a131fed42",
+      "last_date": "2026-03-01",
+      "subject": "docs(todo): mark item 4 done",
+      "items": [
+        "1. [x] Schema-driven structured outputs (Owner: TBD)",
+        "2. [x] Persist and render structured results + UI blocks (Owner: TBD)",
+        "3. [x] Observability-ready metrics and dashboards (Owner: TBD)",
+        "4. [x] Non-trivial upgrade: move chat UI to React + Tambo (Owner: TBD)"
+      ],
+      "content": "# Tokimon TODO\n\nThis document tracks prioritized follow-up work to reduce OOM risk and improve runtime reliability.\n\n1. [x] Schema-driven structured outputs (Owner: TBD)\n   - Acceptance criteria: Define a per-step \"success schema\" and enforce schema-valid structured results (not just valid JSON), with bounded repair on validation failures.\n2. [x] Persist and render structured results + UI blocks (Owner: TBD)\n   - Acceptance criteria: Persist the full structured step result (including any UI blocks) as first-class run artifacts/outputs, and render them in the chat UI rather than only printing a text summary.\n3. [x] Observability-ready metrics and dashboards (Owner: TBD)\n   - Acceptance criteria: Standardize a small set of run/step metrics (with types and units) and produce an importable dashboard artifact so Tokimon runs are measurable and easy to visualize.\n4. [x] Non-trivial upgrade: move chat UI to React + Tambo (Owner: TBD)\n   - Acceptance criteria: Migrate the chat UI to a React frontend using Tambo to render Tokimon UI blocks (charts/forms/panels), add the required JS build+serve workflow, and keep `/healthz` and `/api/send` stable.\n"
+    }
+  ]
+}

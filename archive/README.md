@@ -1,5 +1,5 @@
 # Archive
 
-Archived Tokimon lives in `archive/tokimon-v1/`.
+Archived Tokimon v1 lives in `archive/tokimon-v1/`.
 
-The archive is intended to preserve the historical repository layout without keeping an active app at the root.
+Tokimon v2 now lives at the repository root. This archive preserves the historical v1 layout for reference only.
