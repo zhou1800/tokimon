@@ -75,6 +75,15 @@ Run tests:
 pytest
 ```
 
+## AI Docs
+
+The active AI-facing operating docs for v2 live at:
+
+- `AGENTS.md`
+- `docs/helix.md`
+- `docs/repository-guidelines.md`
+- `docs/c4/`
+
 ## State Model
 
 Tokimon stores its working state in `.tokimon/state.json` by default. The state tracks:
