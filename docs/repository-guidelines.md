@@ -38,10 +38,12 @@ PYTHONPATH=src python3 -m tokimon --help
 
 ## Current Source Map
 
-- `src/tokimon/models.py`: persistent state and record types
-- `src/tokimon/engine.py`: token feeding, idle self-improvement, directed learning, task preparation
+- `src/tokimon/models.py`: durable snapshot types, settings types, runtime-only session state
+- `src/tokimon/persistence.py`: state/settings load-save boundary, validation, migration, safe writes
+- `src/tokimon/engine.py`: token feeding, idle self-improvement, directed learning, task preparation, derived runtime values
 - `src/tokimon/cli.py`: user-facing command layer
 - `tests/test_engine.py`: executable baseline for the v2 product rules
+- `tests/test_persistence.py`: round-trip, migration, malformed-file, and serialization-boundary coverage
 
 ## Doc Update Standard
 

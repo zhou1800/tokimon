@@ -1,44 +1,28 @@
 from __future__ import annotations
 
-import json
 import math
 import re
-from pathlib import Path
 
-from tokimon.models import Direction, ImprovementRecord, SkillRecord, TaskAdvice, TaskRecord, TokimonState
+from tokimon.models import (
+    Direction,
+    ImprovementRecord,
+    SkillRecord,
+    TaskAdvice,
+    TaskRecord,
+    TokimonSettings,
+    TokimonState,
+    normalize_skill_name,
+)
 
 
-DEFAULT_STATE_PATH = Path(".tokimon/state.json")
 DEFAULT_SKILL = "general reasoning"
 HISTORY_LIMIT = 50
 
 
-def normalize_skill_name(name: str) -> str:
-    cleaned = " ".join(name.strip().lower().split())
-    if not cleaned:
-        raise ValueError("skill name cannot be empty")
-    return cleaned
-
-
-def create_state() -> TokimonState:
-    state = TokimonState()
-    refresh_quality_score(state)
+def create_state(settings: TokimonSettings | None = None) -> TokimonState:
+    state = TokimonState(settings=settings or TokimonSettings())
+    refresh_runtime_state(state)
     return state
-
-
-def load_state(path: Path = DEFAULT_STATE_PATH) -> TokimonState:
-    if not path.exists():
-        return create_state()
-    data = json.loads(path.read_text())
-    state = TokimonState.from_dict(data)
-    refresh_quality_score(state)
-    return state
-
-
-def save_state(state: TokimonState, path: Path = DEFAULT_STATE_PATH) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    refresh_quality_score(state)
-    path.write_text(json.dumps(state.to_dict(), indent=2) + "\n")
 
 
 def refresh_quality_score(state: TokimonState) -> float:
@@ -56,6 +40,19 @@ def refresh_quality_score(state: TokimonState) -> float:
     return state.quality_score
 
 
+def refresh_runtime_state(state: TokimonState) -> TokimonState:
+    state.session.derived_rankings["skills_by_level"] = [
+        skill.name for skill in sorted(state.skills.values(), key=lambda item: (-item.level, item.name))
+    ]
+    state.session.derived_rankings["directions_by_priority"] = [
+        direction.skill
+        for direction in sorted(state.directions, key=lambda item: (-item.priority, item.skill))
+    ]
+    state.session.caches["skill_levels"] = {skill.name: skill.level for skill in state.skills.values()}
+    refresh_quality_score(state)
+    return state
+
+
 def get_skill(state: TokimonState, skill_name: str) -> SkillRecord:
     normalized = normalize_skill_name(skill_name)
     if normalized not in state.skills:
@@ -67,7 +64,7 @@ def feed_tokens(state: TokimonState, tokens: int) -> int:
     if tokens <= 0:
         raise ValueError("tokens must be greater than zero")
     state.available_tokens += tokens
-    refresh_quality_score(state)
+    refresh_runtime_state(state)
     return state.available_tokens
 
 
@@ -79,10 +76,12 @@ def add_direction(state: TokimonState, skill_name: str, priority: int = 5, note:
             direction.priority = bounded_priority
             direction.note = note or direction.note
             get_skill(state, skill)
+            refresh_runtime_state(state)
             return direction
     direction = Direction(skill=skill, priority=bounded_priority, note=note)
     state.directions.append(direction)
     get_skill(state, skill)
+    refresh_runtime_state(state)
     return direction
 
 
@@ -133,13 +132,6 @@ def spend_token_on_improvement(state: TokimonState, skill_name: str, reason: str
     skill.practice_runs += 1
     if skill_priority(state, skill_name) > 0:
         skill.directed_cycles += 1
-    skill.last_improved_at = ImprovementRecord(skill=skill.name, reason=reason, tokens_spent=1, before_level=before_level, after_level=skill.level).timestamp
-
-    state.available_tokens -= 1
-    state.total_tokens_eaten += 1
-    state.improvement_cycles += 1
-    if reason == "idle":
-        state.idle_cycles += 1
 
     record = ImprovementRecord(
         skill=skill.name,
@@ -148,10 +140,18 @@ def spend_token_on_improvement(state: TokimonState, skill_name: str, reason: str
         before_level=before_level,
         after_level=skill.level,
     )
+    skill.last_improved_at = record.timestamp
+
+    state.available_tokens -= 1
+    state.total_tokens_eaten += 1
+    state.improvement_cycles += 1
+    if reason == "idle":
+        state.idle_cycles += 1
+
     state.improvement_history.append(record)
     if len(state.improvement_history) > HISTORY_LIMIT:
         state.improvement_history = state.improvement_history[-HISTORY_LIMIT:]
-    refresh_quality_score(state)
+    refresh_runtime_state(state)
     return record
 
 
@@ -244,7 +244,7 @@ def prepare_for_task(
     state.task_history.append(task_record)
     if len(state.task_history) > HISTORY_LIMIT:
         state.task_history = state.task_history[-HISTORY_LIMIT:]
-    refresh_quality_score(state)
+    refresh_runtime_state(state)
 
     return TaskAdvice(
         summary=summary,

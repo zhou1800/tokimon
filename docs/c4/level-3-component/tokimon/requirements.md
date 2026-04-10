@@ -16,8 +16,8 @@ When the user asks Tokimon to help with a task and relevant tokens are available
 
 ### R4. Persistence
 
-Tokimon state must survive across CLI runs through a state file on disk.
+Tokimon's durable learning snapshot must survive across CLI runs through a state file on disk. Runtime-only session data must not become resumable state by accident.
 
 ### R5. Benchmark Honesty
 
-Tokimon may expose local heuristic signals such as `quality_score`, but claims of being better than baseline AI systems must be justified by explicit benchmarks rather than by the heuristic alone.
+Tokimon may expose local heuristic signals such as `quality_score`, but they are derived runtime values rather than persisted truth. Claims of being better than baseline AI systems must be justified by explicit benchmarks rather than by the heuristic alone.
