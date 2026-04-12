@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import math
-import re
 
 from tokimon.models import (
     Direction,
@@ -13,9 +12,19 @@ from tokimon.models import (
     TokimonState,
     normalize_skill_name,
 )
+from tokimon.policy import (
+    CapabilityProfile,
+    PolicyInputs,
+    RuntimeModeFlags,
+    TaskIntent,
+    build_policy_inputs,
+    choose_improvement_target as decide_improvement_target,
+    directed_priority_for_skill,
+    extract_task_skills as policy_extract_task_skills,
+    plan_task_preparation,
+)
 
 
-DEFAULT_SKILL = "general reasoning"
 HISTORY_LIMIT = 50
 
 
@@ -89,37 +98,15 @@ def choose_improvement_target(
     state: TokimonState,
     preferred_skills: list[str] | None = None,
 ) -> tuple[str, str]:
-    if preferred_skills:
-        ranked_preferred = sorted(
-            {normalize_skill_name(skill) for skill in preferred_skills},
-            key=lambda skill: (skill_priority(state, skill), -get_skill(state, skill).level, skill),
-            reverse=True,
-        )
-        if ranked_preferred:
-            return ranked_preferred[0], "task-preparation"
-
-    if state.directions:
-        ranked_directions = sorted(
-            state.directions,
-            key=lambda direction: (direction.priority, -get_skill(state, direction.skill).level, direction.skill),
-            reverse=True,
-        )
-        direction = ranked_directions[0]
-        return direction.skill, "directed-learning"
-
-    if state.skills:
-        weakest_skill = min(state.skills.values(), key=lambda skill: (skill.level, skill.name))
-        return weakest_skill.name, "balance-existing-skills"
-
-    return DEFAULT_SKILL, "bootstrap"
+    decision = decide_improvement_target(
+        _policy_inputs(state),
+        preferred_skills=tuple(preferred_skills or ()),
+    )
+    return decision.selected_improvement_target, decision.decision_reason
 
 
 def skill_priority(state: TokimonState, skill_name: str) -> int:
-    normalized = normalize_skill_name(skill_name)
-    for direction in state.directions:
-        if direction.skill == normalized:
-            return direction.priority
-    return 0
+    return directed_priority_for_skill(_policy_inputs(state).directed_priorities, skill_name)
 
 
 def spend_token_on_improvement(state: TokimonState, skill_name: str, reason: str) -> ImprovementRecord:
@@ -162,34 +149,30 @@ def run_idle_cycle(state: TokimonState, max_cycles: int | None = None) -> list[I
     records: list[ImprovementRecord] = []
     cycles_remaining = max_cycles
     while state.available_tokens > 0 and (cycles_remaining is None or cycles_remaining > 0):
-        target_skill, target_reason = choose_improvement_target(state)
-        reason = "idle" if target_reason in {"directed-learning", "balance-existing-skills", "bootstrap"} else target_reason
-        records.append(spend_token_on_improvement(state, target_skill, reason))
+        decision = decide_improvement_target(_policy_inputs(state))
+        reason = (
+            "idle"
+            if decision.decision_reason in {"directed-learning", "balance-existing-skills", "bootstrap"}
+            else decision.decision_reason
+        )
+        records.append(spend_token_on_improvement(state, decision.selected_improvement_target, reason))
         if cycles_remaining is not None:
             cycles_remaining -= 1
     return records
 
 
 def extract_task_skills(state: TokimonState, summary: str, requested_skills: list[str] | None = None) -> list[str]:
-    relevant = {normalize_skill_name(skill) for skill in requested_skills or []}
-    summary_terms = {term for term in re.findall(r"[a-zA-Z][a-zA-Z0-9_-]+", summary.lower()) if len(term) > 2}
-
-    for direction in state.directions:
-        direction_terms = set(direction.skill.split())
-        if direction.skill in summary.lower() or direction_terms & summary_terms:
-            relevant.add(direction.skill)
-
-    for skill_name in state.skills:
-        skill_terms = set(skill_name.split())
-        if skill_name in summary.lower() or skill_terms & summary_terms:
-            relevant.add(skill_name)
-
-    if not relevant and state.directions:
-        relevant.add(sorted(state.directions, key=lambda direction: direction.priority, reverse=True)[0].skill)
-    if not relevant:
-        relevant.add(DEFAULT_SKILL)
-
-    return sorted(relevant)
+    return list(
+        policy_extract_task_skills(
+            _policy_inputs(
+                state,
+                task_intent=TaskIntent(
+                    summary=summary,
+                    requested_skills=tuple(normalize_skill_name(skill) for skill in requested_skills or []),
+                ),
+            )
+        )
+    )
 
 
 def prepare_for_task(
@@ -198,48 +181,29 @@ def prepare_for_task(
     requested_skills: list[str] | None = None,
     prep_budget: int = 3,
 ) -> TaskAdvice:
-    if prep_budget < 0:
-        raise ValueError("prep_budget cannot be negative")
-
-    relevant_skills = extract_task_skills(state, summary=summary, requested_skills=requested_skills)
-    auto_training_spent = 0
-    while state.available_tokens > 0 and auto_training_spent < prep_budget:
-        target_skill, _ = choose_improvement_target(state, preferred_skills=relevant_skills)
-        spend_token_on_improvement(state, target_skill, "task-preparation")
-        auto_training_spent += 1
-
-    ranked_focus = sorted(
-        relevant_skills,
-        key=lambda skill: (
-            skill_priority(state, skill),
-            get_skill(state, skill).level,
-            skill,
-        ),
-        reverse=True,
+    normalized_requested = sorted({normalize_skill_name(skill) for skill in requested_skills or []})
+    decision = plan_task_preparation(
+        _policy_inputs(
+            state,
+            task_intent=TaskIntent(
+                summary=summary,
+                requested_skills=tuple(normalized_requested),
+            ),
+            available_token_budget=prep_budget,
+        )
     )
-    focus_skills = ranked_focus[:3]
-    average_level = sum(get_skill(state, skill).level for skill in focus_skills) / max(1, len(focus_skills))
-    if average_level >= 5:
-        confidence = "high"
-    elif average_level >= 2:
-        confidence = "medium"
-    else:
-        confidence = "low"
+    _ensure_skills(state, decision.focus_context_plan.relevant_skills)
 
-    gaps = [skill for skill in focus_skills if get_skill(state, skill).level < 2]
-    approach = [
-        f"Clarify the acceptance criteria for: {summary}",
-        f"Prioritize execution through: {', '.join(focus_skills)}",
-        "Validate quality with tests, benchmarks, or explicit review criteria before calling the task done.",
-    ]
+    for target_skill in decision.preparation_spend_plan.planned_targets:
+        spend_token_on_improvement(state, target_skill, "task-preparation")
 
     state.task_runs += 1
     task_record = TaskRecord(
         summary=summary,
-        requested_skills=sorted({normalize_skill_name(skill) for skill in requested_skills or []}),
-        focus_skills=focus_skills,
-        auto_training_spent=auto_training_spent,
-        confidence=confidence,
+        requested_skills=normalized_requested,
+        focus_skills=list(decision.focus_context_plan.focus_skills),
+        auto_training_spent=decision.preparation_spend_plan.granted_budget,
+        confidence=decision.confidence_assessment.level,
     )
     state.task_history.append(task_record)
     if len(state.task_history) > HISTORY_LIMIT:
@@ -248,11 +212,47 @@ def prepare_for_task(
 
     return TaskAdvice(
         summary=summary,
-        focus_skills=focus_skills,
-        auto_training_spent=auto_training_spent,
-        approach=approach,
-        gaps=gaps,
-        confidence=confidence,
+        focus_skills=list(decision.focus_context_plan.focus_skills),
+        auto_training_spent=decision.preparation_spend_plan.granted_budget,
+        approach=list(decision.focus_context_plan.approach),
+        gaps=list(decision.confidence_assessment.gaps),
+        confidence=decision.confidence_assessment.level,
+    )
+
+
+def _ensure_skills(state: TokimonState, skills: tuple[str, ...]) -> None:
+    for skill in skills:
+        get_skill(state, skill)
+
+
+def _policy_inputs(
+    state: TokimonState,
+    *,
+    task_intent: TaskIntent | None = None,
+    available_token_budget: int = 0,
+) -> PolicyInputs:
+    return build_policy_inputs(
+        state,
+        task_intent=task_intent,
+        available_token_budget=available_token_budget,
+        capability_profile=_capability_profile(state),
+        runtime_mode=_runtime_mode(state),
+    )
+
+
+def _capability_profile(state: TokimonState) -> CapabilityProfile:
+    available = ["idle-learning", "task-preparation"]
+    if state.settings.allow_background_runtime:
+        available.append("background-runtime")
+    if state.settings.allow_cached_approvals:
+        available.append("cached-approvals")
+    return CapabilityProfile(available=tuple(available))
+
+
+def _runtime_mode(state: TokimonState) -> RuntimeModeFlags:
+    return RuntimeModeFlags(
+        allow_background_runtime=state.settings.allow_background_runtime,
+        allow_cached_approvals=state.settings.allow_cached_approvals,
     )
 
 

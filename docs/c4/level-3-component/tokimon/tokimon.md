@@ -35,23 +35,23 @@
 - Functions: `load_state`, `save_state`, `load_settings`, `migrate_snapshot`
 - Validates file shape, applies explicit versioned migrations, rebuilds runtime-only derived data, and writes with safe replacement plus rolling backups
 
-### Learning Target Selection
+### Decision Policy
 
-- File: `src/tokimon/engine.py`
-- Functions: `choose_improvement_target`, `skill_priority`, `extract_task_skills`
-- Chooses between directed skills, relevant task skills, and fallback general learning
+- File: `src/tokimon/policy.py`
+- Functions: `choose_improvement_target`, `extract_task_skills`, `plan_task_preparation`, `assess_confidence`
+- Pure layer only: accepts immutable policy inputs, ranks candidates, allocates bounded prep spend, produces focus/confidence outputs, and returns allowed capability metadata without touching durable state
 
 ### Improvement Loop
 
 - File: `src/tokimon/engine.py`
 - Functions: `feed_tokens`, `spend_token_on_improvement`, `run_idle_cycle`
-- Converts tokens into skill growth and improvement history
+- Orchestration only: loads mutable state, calls the policy layer, applies token spending, and appends bounded improvement history
 
 ### Task Preparation
 
 - File: `src/tokimon/engine.py`
 - Function: `prepare_for_task`
-- Uses a bounded token budget to improve task-relevant skills before giving guidance
+- Orchestrates task runs: builds policy inputs, applies the returned prep plan to state, appends task history, and formats runtime advice
 
 ### Quality Heuristic
 
