@@ -1,0 +1,55 @@
+Tokimon Third-Party Notices
+
+Tokimon's original code and documentation are licensed under the MIT License
+in LICENSE. Third-party material retains the licenses and copyright notices
+listed below. The full upstream license and notice texts are supplied in licenses/ and in
+generated Codex and Claude Code plugin packages.
+
+Playwright Seccomp Profile
+
+Current file: tokimon/tools/mcp/remote_browser_broker/image/seccomp_profile.json
+Source: microsoft/playwright, utils/docker/seccomp_profile.json
+Source revision: d9f2fd3e2232ace8e317a84eda6cb86e25bcf49c
+https://github.com/microsoft/playwright/blob/d9f2fd3e2232ace8e317a84eda6cb86e25bcf49c/utils/docker/seccomp_profile.json
+
+This profile is identical to the referenced upstream file.
+License: Apache License, Version 2.0.
+Full license: licenses/Playwright-Apache-2.0.txt
+Upstream attribution notice: licenses/Playwright-NOTICE.txt
+
+Matt Pocock Skills
+
+File: skills/grill-me/skill.md
+Source: mattpocock/skills, grill-me/SKILL.md
+Source revision: a6bdfd9fed6c17d21b306aeb7ff6a0de8b72ef3c
+https://github.com/mattpocock/skills/blob/a6bdfd9fed6c17d21b306aeb7ff6a0de8b72ef3c/grill-me/SKILL.md
+
+The skill description and interview wording correspond to this upstream skill.
+Tokimon modifies the wording and adds repository-context question screening.
+Copyright (c) 2026 Matt Pocock
+License: MIT License.
+Full upstream license and permission notice: licenses/Matt-Pocock-MIT.txt
+
+Superpowers
+
+File: skills/using-tokimon/skill.md
+Source: obra/superpowers, skills/using-superpowers/SKILL.md
+Source revision: 8b1669269c51835168c98fd435a7af1e5f15ec12
+https://github.com/obra/superpowers/blob/8b1669269c51835168c98fd435a7af1e5f15ec12/skills/using-superpowers/SKILL.md
+
+Selected startup and skill-use wording corresponds to this upstream skill.
+Tokimon modifies the wording and supplies its own startup, memory, repository,
+runtime, and browser-routing guidance.
+Copyright (c) 2025 Jesse Vincent
+License: MIT License.
+Full upstream license and permission notice: licenses/Superpowers-MIT.txt
+
+External Runtime Components
+
+Docker recipes and deployment commands use external components, including
+Playwright, Google Chrome, noVNC, websockify, x11vnc, Docker base images, and the
+OpenAI tunnel client. Their executable code is not supplied in this source tree.
+Those components retain their own licenses and service terms. A distributor of
+prebuilt images or binary bundles must include the applicable component notices
+and satisfy their redistribution requirements; Tokimon's MIT License does not
+relicense those components or grant permission to access external services.

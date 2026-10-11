@@ -1,0 +1,6 @@
+interface:
+  display_name: "Memory Maintenance"
+  short_description: "Review and repair Mem Palace"
+  default_prompt: "Use $memory-maintenance to inspect and repair the requested Mem Palace scope."
+policy:
+  allow_implicit_invocation: false

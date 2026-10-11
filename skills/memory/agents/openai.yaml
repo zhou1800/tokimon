@@ -1,0 +1,6 @@
+interface:
+  display_name: "Memory"
+  short_description: "Search and maintain Mem Palace context"
+  default_prompt: "Use $memory to perform the requested Mem Palace search, write, or deeper memory operation."
+policy:
+  allow_implicit_invocation: true

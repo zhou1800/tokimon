@@ -1,0 +1,6 @@
+interface:
+  display_name: "Using Tokimon"
+  short_description: "Route work through Tokimon safely"
+  default_prompt: "Use $using-tokimon to apply Tokimon routing, skills, memory, and repository boundaries to this task."
+policy:
+  allow_implicit_invocation: true

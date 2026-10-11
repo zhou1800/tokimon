@@ -1,0 +1,6 @@
+interface:
+  display_name: "Pair"
+  short_description: "Run explicit Pair collaboration"
+  default_prompt: "Use $pair to run the explicitly requested paired-agent collaboration."
+policy:
+  allow_implicit_invocation: false

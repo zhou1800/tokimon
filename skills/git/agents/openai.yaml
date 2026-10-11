@@ -1,0 +1,6 @@
+interface:
+  display_name: "Git"
+  short_description: "Perform explicit guarded git mutations"
+  default_prompt: "Use $git to perform only the explicitly requested branch, commit, or merge operation."
+policy:
+  allow_implicit_invocation: true

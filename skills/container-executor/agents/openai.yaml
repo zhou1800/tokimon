@@ -1,0 +1,6 @@
+interface:
+  display_name: "Container Executor"
+  short_description: "Start, stop, and list directory MCP services"
+  default_prompt: "Manage a ChatGPT-accessible MCP service for the current directory."
+policy:
+  allow_implicit_invocation: true

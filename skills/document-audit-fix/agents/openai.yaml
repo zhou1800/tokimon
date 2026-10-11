@@ -1,0 +1,6 @@
+interface:
+  display_name: "Document Audit Fix"
+  short_description: "Fix documentation findings to closure"
+  default_prompt: "Use $document-audit-fix to remediate the scoped findings and run targeted re-audits to convergence."
+policy:
+  allow_implicit_invocation: false

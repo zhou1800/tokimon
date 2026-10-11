@@ -1,0 +1,54 @@
+name: Quality
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Tokimon
+        run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install -e .
+      - name: Run canonical unit-test suite
+        run: TMPDIR="$GITHUB_WORKSPACE/tests" .venv/bin/python -m unittest discover -s tests -t . -p 'test_*.py'
+
+  distributions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build wheel and source archive
+        run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install 'setuptools>=77'
+          .venv/bin/python -c 'import setuptools.build_meta as backend; backend.build_wheel("dist"); backend.build_sdist("dist")'
+      - name: Verify standalone wheel
+        run: .venv/bin/python tests/wheel_smoke.py dist/tokimon-*.whl --scratch-root .tokimon/verification/wheel
+      - name: Rebuild wheel from source archive
+        run: .venv/bin/python -m pip wheel --no-deps --no-build-isolation dist/tokimon-*.tar.gz --wheel-dir .tokimon/verification/sdist-wheel
+      - name: Verify source archive wheel
+        run: .venv/bin/python tests/wheel_smoke.py .tokimon/verification/sdist-wheel/tokimon-*.whl --scratch-root .tokimon/verification/sdist-smoke

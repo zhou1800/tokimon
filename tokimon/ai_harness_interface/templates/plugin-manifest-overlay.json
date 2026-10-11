@@ -1,0 +1,16 @@
+{
+  "description": "Expose Tokimon startup, root skill directories, and MCP entries through a Codex plugin interface.",
+  "interface": {
+    "displayName": "Tokimon",
+    "shortDescription": "Use Tokimon in any repository.",
+    "longDescription": "Tokimon exposes copied root skill directories and MCP declarations while routing implementation work to the configured live checkout.",
+    "developerName": "Joey Zhou",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": "Use Tokimon for this repository."
+  },
+  "license": "MIT"
+}

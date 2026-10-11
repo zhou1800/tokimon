@@ -1,0 +1,6 @@
+interface:
+  display_name: "Product Development"
+  short_description: "Guide development through pre-commit acceptance"
+  default_prompt: "Use $product-development to carry this change from design through testing, pre-commit acceptance, and handoff."
+policy:
+  allow_implicit_invocation: false

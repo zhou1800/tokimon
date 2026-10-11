@@ -1,0 +1,6 @@
+interface:
+  display_name: "Code Audit"
+  short_description: "Audit code against owning contracts"
+  default_prompt: "Use $code-audit to audit the requested implementation and return evidence-backed findings."
+policy:
+  allow_implicit_invocation: false

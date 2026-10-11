@@ -1,0 +1,6 @@
+interface:
+  display_name: "Learning"
+  short_description: "Turn failures into product intake"
+  default_prompt: "Use $learning to turn the approved evidence into a reusable product-development intake package."
+policy:
+  allow_implicit_invocation: false

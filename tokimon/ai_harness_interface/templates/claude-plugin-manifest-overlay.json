@@ -1,0 +1,5 @@
+{
+  "description": "Expose Tokimon startup, root skill directories, and MCP entries through a Claude Code plugin interface.",
+  "displayName": "Tokimon",
+  "license": "MIT"
+}

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Code Audit Fix"
+  short_description: "Fix code-audit findings to closure"
+  default_prompt: "Use $code-audit-fix to remediate the scoped findings, verify them, and run targeted re-audits to convergence."
+policy:
+  allow_implicit_invocation: false
