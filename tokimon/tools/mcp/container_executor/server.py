@@ -10,7 +10,7 @@ import threading
 import uuid
 from pathlib import Path
 
-from tokimon.tools.mcp._protocol import error_response, handle_request, response, tool_result
+from tokimon.tools.mcp._protocol import error_response, handle_request, response, tool_result, json_wire_text
 
 from . import MAX_FRAME, VERSION
 from .config import fields, integer
@@ -117,7 +117,7 @@ class ExecutorServer:
         return encoding
 
     def handle(self, request: dict, *, correlation_id: str | None = None) -> dict | None:
-        if request.get("method") == "tokimon/maintenance":
+        if request.get("method") == "tokimon/maintenance" and "id" in request:
             try:
                 params = fields(request.get("params", {}), {"paused"}, {"_meta"})
                 if type(params["paused"]) is not bool:
@@ -181,7 +181,7 @@ class RequestHandler(socketserver.StreamRequestHandler):
                 result = error_response(None, -32700, "Invalid JSON request")
             self.server.executor.log.info("request_completed", extra={"correlation_id": correlation})
             if result is not None:
-                output = json.dumps(result, ensure_ascii=False).encode() + b"\n"
+                output = json_wire_text(result).encode("utf-8") + b"\n"
                 if len(output) > MAX_FRAME:
                     output = json.dumps(error_response(request.get("id"), -32603, "Response exceeds frame limit")).encode() + b"\n"
                 self.wfile.write(output)

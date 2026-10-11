@@ -59,6 +59,15 @@ The server supports the minimum MCP stdio methods needed by Codex-compatible cli
 - `tools/list`
 - `tools/call`
 
+`initialize` returns the service's declared protocol version, including for unsupported, missing, or malformed client proposals.
+Missing or non-string methods return `-32600`.
+Messages with a string method and no `id` are notifications: they produce no reply and cannot invoke request-only methods or tools.
+Explicit request ids, including `0`, an empty string, and `null`, keep their response correlation.
+Wire responses escape unpaired Unicode surrogates as JSON escapes and preserve ordinary Unicode text.
+Tool text and error messages also escape malformed characters before wrapping, so decoded display text is valid UTF-8.
+Strict UTF-8 output remains valid for ids, errors, and tool content, and the next request still receives its response.
+Malformed JSON, interpreter integer limits, and decoder recursion errors return `-32700`, log a correlated parse failure, and leave stdio ready for the next line.
+
 Tool names exposed through `tools/list`:
 
 - `telegram_bot_health`
@@ -194,6 +203,8 @@ Telegram recovery fixes the local secret, destination, permission, payload, or n
    ```
    Expected outcome: tests pass for secrets loading, destination resolution, request handling, sanitized logs, MCP protocol behavior, health diagnostics, and parser coverage.
    Document tests cover file and ancestor replacement, symlink escapes, regular-file checks, matching upload/log bytes, and dry runs without network or log writes.
+   Shared protocol tests in `tests/tools/mcp/test_protocol.py` cover version negotiation, silent notifications, explicit request ids, and stdio parser recovery.
+   Wire tests in `tests/tools/mcp/test_wire_encoding.py` use strict UTF-8 byte streams for surrogate ids, errors, and tool content.
 
 2. Verify registry contract:
    ```bash

@@ -34,6 +34,17 @@ Owner configuration defines host access and resource limits, while immutable dep
 
 ## Interfaces/Contracts
 
+### MCP Protocol
+
+The Executor and Gateway return their declared protocol version from `initialize`, including for unsupported, missing, or malformed client proposals.
+Missing or non-string methods return `-32600`.
+Messages with a string method and no `id` are notifications: they produce no reply and cannot invoke request-only methods, tools, or maintenance.
+Explicit request ids, including `0`, an empty string, and `null`, keep their response correlation.
+Worker socket and Gateway stdio responses escape unpaired Unicode surrogates as JSON escapes and preserve ordinary Unicode text.
+Tool text and error messages also escape malformed characters before wrapping, so decoded display text is valid UTF-8.
+Strict UTF-8 frames retain ids, errors, and tool content and do not interrupt following requests; response byte limits remain enforced.
+JSON decoder errors return `-32700` within the existing frame limits; over-limit or incomplete frames close the transport.
+
 ### Operator Commands
 
 Entrypoint: `.venv/bin/python -m tokimon.tools.mcp.container_executor`.
@@ -216,6 +227,8 @@ Named paired deployments use stop, uninstall without purge, then install. A roll
 ```
 
 Expected: focused tests pass; health reports the local prerequisites without Docker mutation.
+Shared protocol tests in `tests/tools/mcp/test_protocol.py` cover both service ports, version negotiation, silent notifications, explicit request ids, and maintenance admission.
+Wire tests in `tests/tools/mcp/test_wire_encoding.py` cover strict UTF-8 frames, tool/error content, byte limits, and continued request handling.
 
 ```text
 With no machine profile, invoke workspace start and verify it drafts a private single-line key template, reports its path and creation status, and performs no Docker operations. Repeat with an existing credential and verify bytes and mode remain unchanged. Reject symlink/special targets and symlink parents without changing their targets. Try setup with the unchanged marker or a blank file: it must fail before client download, profile save or Docker mutation, without printing key contents. Fill a private canary key and verify setup still saves references only. Explicit local start must not draft credentials.

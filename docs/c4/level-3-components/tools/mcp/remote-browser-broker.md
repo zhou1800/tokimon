@@ -75,6 +75,16 @@ Supported JSON-RPC methods:
 - `tools/list`
 - `tools/call`
 
+`initialize` returns the service's declared protocol version, including for unsupported, missing, or malformed client proposals.
+Missing or non-string methods return `-32600`.
+Messages with a string method and no `id` are notifications: they produce no reply and cannot invoke request-only methods or tools.
+Explicit request ids, including `0`, an empty string, and `null`, keep their response correlation.
+Wire responses escape unpaired Unicode surrogates as JSON escapes and preserve ordinary Unicode text.
+Tool text and error messages also escape malformed characters before wrapping, so decoded display text is valid UTF-8.
+Strict UTF-8 stdio and HTTP replies remain valid for ids, errors, and tool content, and later requests still receive their responses.
+Malformed JSON, invalid HTTP UTF-8, interpreter integer limits, and decoder recursion errors return `-32700` and log a correlated parse failure.
+Stdio continues with the next line and retains its normal EOF shutdown; HTTP notifications receive an empty `202` response with the MCP session header.
+
 The HTTP handler returns or preserves `mcp-session-id`.
 The broker maps that header to the browser session for all normal tool calls.
 New MCP sessions are isolated unless the caller explicitly recovers its retained browser using the recovery token returned to the original session.
@@ -532,6 +542,8 @@ Unit tests must cover these behavior families:
 - human-view credential lifecycle and human pause
 
 - MCP/CLI catalogs, session reuse and isolation, page operations, bounded artifacts, stable errors, and registry availability
+- protocol negotiation, silent notifications, explicit request ids, and parser recovery through `tests/tools/mcp/test_protocol.py`
+- strict UTF-8 byte-stream replies, accurate HTTP byte lengths, and normal EOF cleanup through `tests/tools/mcp/test_wire_encoding.py`
 - sanitized HTML capture and linked-file downloads, metadata-only replies, file limits, and pause behavior
 - current-session viewer access, resume, and stop; human-view link reuse for 24 hours and renewal after expiry; immediate credential revocation and redacted status
 - ordinary task operations without per-action approval, snapshot-ref invalidation, paused-action rejection with continued observation, and direct pacing selection

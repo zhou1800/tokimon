@@ -49,7 +49,7 @@ from typing import Any, Callable, Mapping, TextIO
 
 from . import artifacts
 
-from tokimon.tools.mcp._protocol import response, error_response, tool_result, handle_request
+from tokimon.tools.mcp._protocol import response, error_response, tool_result, handle_request, json_wire_text
 from tokimon.tools._runtime import configure_logger, format_log_record
 from tokimon.runtime import (
     resolve_env_runtime_path,
@@ -8121,7 +8121,7 @@ def required_positive_int(arguments: Mapping[str, Any], name: str) -> int:
 
 
 def encode_sse(payload: Mapping[str, Any]) -> bytes:
-    text = json.dumps(payload, ensure_ascii=False)
+    text = json_wire_text(payload)
     return f"event: message\ndata: {text}\n\n".encode("utf-8")
 
 
@@ -8184,7 +8184,7 @@ def make_handler(
             try:
                 server.broker.shutdown_transport_session(session_key)
             except BrowserBrokerError as exc:
-                body = json.dumps(exc.to_payload(), ensure_ascii=False).encode("utf-8")
+                body = json_wire_text(exc.to_payload()).encode("utf-8")
                 self.send_response(409)
                 self.send_header("Content-Type", "application/json; charset=utf-8")
                 self.send_header("Content-Length", str(len(body)))
@@ -8219,7 +8219,7 @@ def make_handler(
                 return
             try:
                 request = json.loads(raw.decode("utf-8"))
-            except json.JSONDecodeError as exc:
+            except (ValueError, RecursionError) as exc:
                 session_key = self._session_key(None)
                 log_runtime_event(
                     configure_runtime_logger(),
@@ -8328,7 +8328,7 @@ def make_handler(
                 return
 
         def _send_json(self, payload: Mapping[str, Any]) -> None:
-            body = json.dumps(payload, indent=2, ensure_ascii=False).encode("utf-8")
+            body = json_wire_text(payload, indent=2).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))
@@ -8389,7 +8389,7 @@ def serve(
                     f"Request exceeds {MAX_MCP_REQUEST_BYTES} bytes",
                 )
                 print(
-                    json.dumps(result, ensure_ascii=False),
+                    json_wire_text(result),
                     file=output_stream,
                     flush=True,
                 )
@@ -8398,7 +8398,12 @@ def serve(
                 continue
             try:
                 request = json.loads(line)
-            except json.JSONDecodeError as exc:
+            except (ValueError, RecursionError) as exc:
+                log_runtime_event(
+                    logger, logging.WARNING, "invalid_jsonrpc_request",
+                    correlation_id=mcp_session_key, mcp_session_key=mcp_session_key,
+                    runtime="stdio-mcp",
+                )
                 result = error_response(None, -32700, str(exc))
             else:
                 if not isinstance(request, dict):
@@ -8416,7 +8421,7 @@ def serve(
                     )
                     result = resolved_server.handle(request, mcp_session_key=mcp_session_key)
             if result is not None:
-                print(json.dumps(result, ensure_ascii=False), file=output_stream, flush=True)
+                print(json_wire_text(result), file=output_stream, flush=True)
     finally:
         if isinstance(resolved_server, MCPServer):
             resolved_server.broker.begin_shutdown()

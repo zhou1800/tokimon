@@ -14,7 +14,7 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from tokimon.tools.mcp._protocol import error_response, handle_request, tool_result
+from tokimon.tools.mcp._protocol import error_response, handle_request, tool_result, json_wire_text, utf8_safe_text
 
 from . import MAX_FRAME, VERSION
 from .config import fields, integer
@@ -77,6 +77,7 @@ class GatewayServer:
             fields(content, {"type", "text"})
             if content["type"] != "text" or not isinstance(content["text"], str):
                 raise ValueError("invalid workspace tool content")
+            content["text"] = utf8_safe_text(content["text"])
         return tool
 
     def _workspace(self, item: tuple[str, dict], correlation: str) -> dict:
@@ -153,7 +154,7 @@ def serve() -> int:
             result = error_response(None, -32700, "Invalid JSON request")
         server.log.info("gateway_request_completed", extra={"correlation_id": correlation})
         if result is not None:
-            output = json.dumps(result, ensure_ascii=False).encode("utf-8", "backslashreplace") + b"\n"
+            output = json_wire_text(result).encode("utf-8") + b"\n"
             if len(output) > MAX_FRAME:
                 output = json.dumps(error_response(None, -32603, "Response exceeds frame limit")).encode() + b"\n"
             sys.stdout.buffer.write(output)

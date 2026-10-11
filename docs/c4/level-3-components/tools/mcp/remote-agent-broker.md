@@ -75,6 +75,16 @@ Supported JSON-RPC methods:
 - `tools/list`
 - `tools/call`
 
+`initialize` returns the service's declared protocol version, including for unsupported, missing, or malformed client proposals.
+Missing or non-string methods return `-32600`.
+Messages with a string method and no `id` are notifications: they produce no reply and cannot invoke request-only methods or tools.
+Explicit request ids, including `0`, an empty string, and `null`, keep their response correlation.
+Wire responses escape unpaired Unicode surrogates as JSON escapes and preserve ordinary Unicode text.
+Tool text and error messages also escape malformed characters before wrapping, so decoded display text is valid UTF-8.
+Strict UTF-8 stdio and HTTP replies remain valid for ids, errors, and tool content, and later requests still receive their responses.
+Malformed JSON, interpreter integer limits, and decoder recursion errors return `-32700` and log a correlated parse failure.
+Stdio continues with the next line; HTTP notifications receive an empty `202` response with the MCP session header.
+
 Tool names exposed through `tools/list`:
 
 - `remote_agent_health`
@@ -367,6 +377,8 @@ This preserves the chain from an HTTP MCP session or stdio JSON-RPC request to t
 Unit tests should cover:
 
 - command, MCP transport, and declared tool-schema behavior
+- protocol negotiation, silent notifications, explicit request ids, and parser recovery through `tests/tools/mcp/test_protocol.py`
+- strict UTF-8 byte-stream replies and accurate HTTP byte lengths through `tests/tools/mcp/test_wire_encoding.py`
 - HTTP Origin/Host/client/bind rejection, bounded JSON body framing, malformed UTF-8, and refusal of non-loopback startup before socket creation
 - runner discovery, settings resolution, supported-runner rejection, and shell/AI job start
 - status, incremental read, input, cancellation, diff, and artifact operations

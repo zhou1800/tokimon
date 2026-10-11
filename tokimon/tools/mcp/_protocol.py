@@ -8,7 +8,16 @@ from typing import Any, Callable, Mapping, TextIO
 
 
 def json_text(payload: Any) -> str:
-    return json.dumps(payload, indent=2, ensure_ascii=False)
+    return json_wire_text(payload, indent=2)
+
+
+def utf8_safe_text(text: str) -> str:
+    return text.encode("utf-8", "backslashreplace").decode("utf-8")
+
+
+def json_wire_text(payload: Any, *, ensure_ascii: bool = False, indent: int | None = None) -> str:
+    """Keep Unicode readable while escaping surrogates for strict UTF-8 transports."""
+    return utf8_safe_text(json.dumps(payload, ensure_ascii=ensure_ascii, indent=indent))
 
 
 def tool_result(payload: Any, *, is_error: bool = False) -> dict[str, Any]:
@@ -23,7 +32,7 @@ def response(request_id: Any, result: Any) -> dict[str, Any]:
 
 
 def error_response(request_id: Any, code: int, message: str) -> dict[str, Any]:
-    return {"jsonrpc": "2.0", "id": request_id, "error": {"code": code, "message": message}}
+    return {"jsonrpc": "2.0", "id": request_id, "error": {"code": code, "message": utf8_safe_text(message)}}
 
 
 def handle_request(
@@ -37,13 +46,15 @@ def handle_request(
 ) -> dict[str, Any] | None:
     request_id = request.get("id")
     method = request.get("method")
+    if not isinstance(method, str):
+        return error_response(request_id, -32600, "Method must be a string")
+    if "id" not in request:
+        return None
     params = request.get("params") if isinstance(request.get("params"), dict) else {}
     try:
-        if method == "notifications/initialized":
-            return None
         if method == "initialize":
             return response(request_id, {
-                "protocolVersion": params.get("protocolVersion", protocol_version),
+                "protocolVersion": protocol_version,
                 "capabilities": {"tools": {"listChanged": False}},
                 "serverInfo": {"name": server_name, "version": server_version},
             })
@@ -75,14 +86,14 @@ def serve_stdio(
             continue
         try:
             request = json.loads(line)
-        except json.JSONDecodeError as exc:
+        except (ValueError, RecursionError) as exc:
             log_event(logger, logging.WARNING, "invalid_jsonrpc_request", correlation_id="parse-error")
-            print(json.dumps(error_response(None, -32700, str(exc)), ensure_ascii=ensure_ascii_errors),
+            print(json_wire_text(error_response(None, -32700, str(exc)), ensure_ascii=ensure_ascii_errors),
                   file=output_stream, flush=True)
             continue
         if not isinstance(request, dict):
             log_event(logger, logging.WARNING, "invalid_jsonrpc_request", correlation_id="invalid-request")
-            print(json.dumps(error_response(None, -32600, "Request must be an object"),
+            print(json_wire_text(error_response(None, -32600, "Request must be an object"),
                              ensure_ascii=ensure_ascii_errors), file=output_stream, flush=True)
             continue
         method = request.get("method")
@@ -90,5 +101,5 @@ def serve_stdio(
                   method=str(method) if method_as_text else method)
         result = server.handle(request)
         if result is not None:
-            print(json.dumps(result, ensure_ascii=False), file=output_stream, flush=True)
+            print(json_wire_text(result), file=output_stream, flush=True)
     return 0

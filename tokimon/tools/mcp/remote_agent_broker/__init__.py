@@ -28,7 +28,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Callable, Mapping, TextIO
 
-from tokimon.tools.mcp._protocol import response, error_response, handle_request
+from tokimon.tools.mcp._protocol import response, error_response, handle_request, json_wire_text
 from tokimon.tools._runtime import configure_logger, format_log_record, resolve_executable
 from tokimon.runtime import resolve_env_runtime_path, runtime_root as repository_runtime_root, source_root
 from tokimon.settings import (
@@ -204,7 +204,7 @@ def require_port(value: object, *, name: str) -> int:
 
 
 def encode_sse(payload: Mapping[str, Any]) -> bytes:
-    text = json.dumps(payload, ensure_ascii=False)
+    text = json_wire_text(payload)
     return f"event: message\ndata: {text}\n\n".encode("utf-8")
 
 
@@ -1822,7 +1822,7 @@ def make_handler(server: MCPServer) -> type[BaseHTTPRequestHandler]:
                 return
 
         def _send_json(self, payload: Mapping[str, Any]) -> None:
-            body = json.dumps(payload, indent=2, ensure_ascii=False).encode("utf-8")
+            body = json_wire_text(payload, indent=2).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))
@@ -1865,7 +1865,11 @@ def serve(
             continue
         try:
             request = json.loads(line)
-        except json.JSONDecodeError as exc:
+        except (ValueError, RecursionError) as exc:
+            log_runtime_event(
+                logger, logging.WARNING, "invalid_jsonrpc_request",
+                correlation_id="parse-error", runtime="stdio-mcp",
+            )
             result = error_response(None, -32700, str(exc))
         else:
             if not isinstance(request, dict):
@@ -1889,7 +1893,7 @@ def serve(
                     ),
                 )
         if result is not None:
-            print(json.dumps(result, ensure_ascii=False), file=output_stream, flush=True)
+            print(json_wire_text(result), file=output_stream, flush=True)
     return 0
 
 

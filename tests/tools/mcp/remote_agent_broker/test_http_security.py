@@ -23,8 +23,11 @@ class MemoryConnection:
         if data.startswith(b": connected"):
             raise BrokenPipeError("Synthetic event-stream client disconnected")
 
-    def settimeout(self, value: float) -> None:
+    def settimeout(self, value: float | None) -> None:
         self.timeout = value
+
+    def gettimeout(self) -> float | None:
+        return self.timeout
 
 
 class RemoteAgentHTTPBoundaryTests(unittest.TestCase):
