@@ -302,7 +302,7 @@ Structured operations:
   The broker revalidates the bounded regular-file source during copying; a zero or inaccurate size hint cannot bypass the 100 MiB source cap.
   One session may retain at most 64 staged uploads and 512 MiB total; a source change between validation and copying aborts the upload and removes the partial copy.
 - `browser_backend_request` runs generic same-origin requests with the active page's ordinary cookies. Absolute/cross-origin URLs and unsupported arguments are rejected.
-  It does not read auth-session endpoints or acquire bearer tokens.
+  It does not automatically fetch auth-session endpoints or acquire bearer tokens.
   `timeout_ms` is bounded to `1..60000` and `max_response_chars` to `1..10000000`.
   One deadline covers the bounded response.
 - `browser_press_key` targets the active page or a ref when supplied.
@@ -310,7 +310,6 @@ Structured operations:
 - `browser_new_tab`, `browser_switch_tab`, and `browser_close_tab` operate within the current browser session and invalidate old element refs.
 - tab tools return the active tab id deterministically.
 
-Coordinate actions are optional and require explicit coordinate mode.
 Stale refs fail with `STALE_REF`.
 Pacing accepts `human`, `fast`, or `batch` directly; `human` is the default.
 Mutation-capable tool parameters are limited to 1 MiB before controller execution.
@@ -554,7 +553,7 @@ Unit tests must cover these behavior families:
 - template create/edit/seal/clone/refresh/delete, immutable versions, interrupted publication, and replacement rollback
 - primary/linked worktree template reuse and Docker ownership, unchanged primary defaults, and explicit installation isolation
 - path containment, input/resource limits, verified Docker ownership, runtime hardening, network boundaries, and foreign-resource refusal
-- generic same-origin requests with one bounded fetch, no auth-session fetch or bearer header, and rejection of removed authentication arguments
+- generic same-origin requests with one bounded fetch, no automatic auth-session fetch or bearer header, and rejection of removed authentication arguments
 
 Live checks must include:
 

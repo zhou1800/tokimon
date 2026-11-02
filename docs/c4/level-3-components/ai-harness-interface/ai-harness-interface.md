@@ -91,6 +91,7 @@ The generated package output under `.tokimon/ai-harness-interface/codex/plugins/
 
 - `.codex-plugin/plugin.json`
 - `.mcp.json`
+- License and notice files from [License Distribution](#license-distribution).
 - `skills/<skill-id>/SKILL.md` for every packaged root skill
 - `skills/<skill-id>/agents/openai.yaml` for every canonical skill that declares Codex metadata
 
@@ -113,6 +114,7 @@ The generated package output under `.tokimon/ai-harness-interface/claude/plugins
 
 - `.claude-plugin/plugin.json`
 - `.mcp.json`
+- License and notice files from [License Distribution](#license-distribution).
 - `skills/<skill-id>/SKILL.md` for every packaged root skill
 
 The Claude Code adapter has no scaffold step.
@@ -154,6 +156,7 @@ The adapter must not run `claude plugin` install, uninstall, enable, disable, or
 AI Harness Interface patches only Tokimon-owned values:
 
 - `name`: `tokimon`
+- `license`: `MIT`
 - `version`
 - `description`
 - `author.name`
@@ -173,6 +176,7 @@ Tokimon-owned values:
 
 - `name`: `tokimon`
 - `displayName`: `Tokimon`
+- `license`: `MIT`
 - `version`
 - `description`
 - `author.name`
@@ -275,6 +279,7 @@ Legacy packages without a snapshot retain their complete catalog until regenerat
 
 ### License Distribution
 
+`LICENSE_FILE_PATHS` in `tokimon/ai_harness_interface/contract.py` is the canonical license and notice file catalog for both platforms.
 Generation reads `LICENSE`, `THIRD_PARTY_NOTICES`, and the four upstream license and notice files under `licenses/` before writing package content.
 Both target-platform packages include byte-identical copies at the same relative paths.
 Both generated manifests declare MIT for Tokimon's original material; third-party material retains its own licenses.
@@ -478,13 +483,13 @@ After interruption, rerun `generate`; account-level state remains untouched.
 - **Missing checkout or invalid install route:** Generation or diagnostics fail before using the invalid route.
   Recover by rerunning from an operator-confirmed live checkout.
 - **Generated package or marketplace invalid:** Validation fails.
-  Recover by fixing generated content or generator code.
+  Recover by fixing the canonical source, configuration, or generator, then rerun `generate` and `validate`.
 - **Scaffold missing:** Codex generation fails before writing package content.
   Recover by running `bootstrap-codex`; Claude Code generation self-seeds.
 - **Cachebuster requested for Claude Code:** Generation fails because cachebuster mechanics belong to Codex `plugin-creator`.
   Recover by rerunning without `--cachebuster`, then use Claude Code marketplace and plugin update commands.
-- **Claude CLI unavailable:** Claude validation and platform inspection are skipped and reported as skipped.
-  Recover by installing the Claude Code CLI or setting `TOKIMON_REQUIRE_CLAUDE_CLI` where the CLI exists.
+- **Claude CLI unavailable:** Claude validation and platform inspection are skipped; checks fail when `TOKIMON_REQUIRE_CLAUDE_CLI` requires the CLI.
+  Point `TOKIMON_CLAUDE_CLI` to an existing executable, or report the missing prerequisite when the CLI is required.
 - **Setup missing or invalid:** Generation fails, and `configure` does not prompt implicitly.
   Recover by running `configure --yes` or passing explicit settings flags, then rerun generation or `post-install` as appropriate.
 - **Legacy `plugin-creator` helper unavailable:** Bootstrap and cachebuster use built-in compatibility authoring; optional helper validation reports skipped checks.
